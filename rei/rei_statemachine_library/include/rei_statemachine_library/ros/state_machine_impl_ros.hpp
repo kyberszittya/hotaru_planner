@@ -5,20 +5,19 @@
  *      Author: kyberszittya
  */
 
-#ifndef INCLUDE_HOTARU_COMMON_STATE_MACHINE_STATE_MACHINE_IMPL_ROS_HPP_
-#define INCLUDE_HOTARU_COMMON_STATE_MACHINE_STATE_MACHINE_IMPL_ROS_HPP_
+#ifndef INCLUDE_REI_COMMON_STATE_MACHINE_STATE_MACHINE_IMPL_ROS_HPP_
+#define INCLUDE_REI_COMMON_STATE_MACHINE_STATE_MACHINE_IMPL_ROS_HPP_
 
 
-#include "port_monitor.hpp"
-
-#include "hotaru_common/state_machine/state_machine.hpp"
 
 #include <ros/ros.h>
+#include <rei_statemachine_library/portsync_state_machine/sync_state_machine.hpp>
+#include <rei_statemachine_library/port_monitor/port_monitor.hpp>
 
-namespace hotaru
+namespace rei
 {
 
-class PortStateMonitorRos: PortStateMonitor
+class PortStateMonitorRos: rei::PortStateMonitor
 {
 public:
 	virtual void waitClock(double duration_sec)
@@ -27,7 +26,7 @@ public:
 	}
 };
 
-class RosSyncStateGuard: public Interface_GuardSyncStates
+class RosSyncStateGuard: public rei::Interface_GuardSyncStates
 {
 protected:
 	std::shared_ptr<PortStateMonitorRos> monitor_state;
@@ -45,7 +44,6 @@ public:
 	virtual bool guard_WaitingState()
 	{
 		return !monitor_state->isReady();
-
 	}
 
 	virtual bool guard_Stopped()

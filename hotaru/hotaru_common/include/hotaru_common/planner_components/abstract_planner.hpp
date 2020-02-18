@@ -10,12 +10,42 @@
 
 #include <ros/ros.h>
 #include <autoware_msgs/Lane.h>
+#include <std_msgs/Int32.h>
 #include <tf/transform_datatypes.h>
 
 #include "common_building_blocks.hpp"
 
 namespace hotaru
 {
+
+class Abstract_RosPlanner;
+
+class LanePropertiesGetter
+{
+private:
+	ros::NodeHandle nh;
+	int current_idx;
+
+protected:
+	ros::Subscriber sub_current_wp_idx;
+public:
+	LanePropertiesGetter(ros::NodeHandle& nh): nh(nh), current_idx(-1)
+	{
+
+	}
+
+	void init()
+	{
+		sub_current_wp_idx = nh.subscribe("closest_waypoint", 10, &LanePropertiesGetter::subClosestWaypoint, this);
+	}
+
+	void subClosestWaypoint(const std_msgs::Int32::ConstPtr& msg)
+	{
+		current_idx = msg->data;
+	}
+
+	friend Abstract_RosPlanner;
+};
 
 class Abstract_RosPlanner
 {
@@ -40,6 +70,8 @@ protected:
 	}
 
 public:
+	virtual ~Abstract_RosPlanner() = 0;
+
 	Abstract_RosPlanner(ros::NodeHandle& nh): nh(nh){}
 
 	virtual bool initNode() = 0;
@@ -97,7 +129,10 @@ protected:
 	ros::Subscriber sub_base_waypoints;
 	ros::Publisher pub_final_waypoints;
 	std::vector<geometry_msgs::PoseStamped> starting_plan_points;
+	std::vector<geometry_msgs::TwistStamped> original_velocity_profile;
 	autoware_msgs::Lane final_waypoints;
+	unsigned int number_of_trajectory_points;
+
 	virtual void initRos()
 	{
 		Abstract_RosPlanner::initRos();
@@ -109,22 +144,28 @@ protected:
 	void reconstructStartingPlanPoints(const autoware_msgs::Lane::ConstPtr& msg)
 	{
 		starting_plan_points.clear();
+		original_velocity_profile.clear();
 		if (msg->waypoints.size() >= 2)
 		{
+			number_of_trajectory_points = 1;
 			starting_plan_points.push_back(kinematic_state->pose);
 			for (int i = 1; i < msg->waypoints.size(); i++)
 			{
 				starting_plan_points.push_back(msg->waypoints[i].pose);
+				original_velocity_profile.push_back(msg->waypoints[i].twist);
+				number_of_trajectory_points++;
 			}
+
 		}
 	}
 public:
-	Abstract_RosLocalPlanner(ros::NodeHandle& nh): Abstract_RosPlanner(nh){}
+	Abstract_RosLocalPlanner(ros::NodeHandle& nh): Abstract_RosPlanner(nh), number_of_trajectory_points(0){}
 
-
+	virtual void executePlannerMethods() = 0;
 
 	void subBaseWaypoints(const autoware_msgs::Lane::ConstPtr& msg)
 	{
+		executePlannerMethods();
 		reconstructStartingPlanPoints(msg);
 	}
 

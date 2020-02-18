@@ -19,6 +19,7 @@ inline double bivariateGaussian(const double sigma_x, const double sigma_y, cons
 	return 0.0;
 }
 
+
 }
 
 

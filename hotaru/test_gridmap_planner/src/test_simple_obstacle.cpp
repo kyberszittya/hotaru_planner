@@ -18,12 +18,14 @@
 
 #include <iostream>
 #include <autoware_msgs/Lane.h>
+#include <autoware_msgs/LaneArray.h>
 #include <geometry_msgs/PoseStamped.h>
 #include <geometry_msgs/TwistStamped.h>
 
 #include "test_common.hpp"
 
-
+constexpr int N = 40;
+constexpr double XGoal = 25.0;
 
 int main(int argc, char ** argv)
 {
@@ -35,10 +37,10 @@ int main(int argc, char ** argv)
 	ros::init(argc, argv, "simple_rect_demo");
 	ros::NodeHandle nh;
 	ros::Publisher publisher = nh.advertise<grid_map_msgs::GridMap>("grid_map", 1, true);
-	ros::Publisher publisher_pose = nh.advertise<geometry_msgs::PoseStamped>("current_pose", 1, true);
+	//ros::Publisher publisher_pose = nh.advertise<geometry_msgs::PoseStamped>("current_pose", 1, true);
 	ros::Publisher publisher_goal = nh.advertise<geometry_msgs::PoseStamped>("current_goal", 1, true);
-	ros::Publisher publisher_velocity = nh.advertise<geometry_msgs::TwistStamped>("current_velocity", 1, true);
-	ros::Publisher publisher_base_waypoints = nh.advertise<autoware_msgs::Lane>("base_waypoints", 1, true);
+	//ros::Publisher publisher_velocity = nh.advertise<geometry_msgs::TwistStamped>("current_velocity", 1, true);
+	ros::Publisher publisher_lane_array = nh.advertise<autoware_msgs::LaneArray>("lane_waypoints_array", 1, true);
 
 	ros::Rate rate(10.0);
 	hotaru::PlannerKinematicState state;
@@ -57,26 +59,21 @@ int main(int argc, char ** argv)
 	state.goal.pose.position.y = 2.0;
 	state.goal.pose.orientation.w = 1.0;
 	// Base waypoints
+	autoware_msgs::LaneArray lane_array;
+	lane_array.id = 0;
 	autoware_msgs::Lane l;
-	autoware_msgs::Waypoint wp0;
-	wp0.pose.pose.position.x = 0.0;
-	wp0.pose.pose.position.y = 0.0;
-	wp0.pose.pose.position.z = 0.0;
-	wp0.pose.pose.orientation.w = 1.0;
-	autoware_msgs::Waypoint wp1;
-	wp1.pose.pose.position.x = 15.0;
-	wp1.pose.pose.position.y = 0.0;
-	wp1.pose.pose.position.z = 0.0;
-	wp1.pose.pose.orientation.w = 1.0;
-	autoware_msgs::Waypoint wp2;
-	wp2.pose.pose.position.x = 25.0;
-	wp2.pose.pose.position.y = 0.0;
-	wp2.pose.pose.position.z = 0.0;
-	wp2.pose.pose.orientation.w = 1.0;
-	l.waypoints.push_back(std::move(wp0));
-	l.waypoints.push_back(std::move(wp1));
-	l.waypoints.push_back(std::move(wp2));
-
+	l.header.frame_id = "map";
+	l.header.stamp = ros::Time::now();
+	for (int i = 0; i <= N; i++)
+	{
+		autoware_msgs::Waypoint wp1;
+		wp1.pose.pose.position.x = i*(XGoal/N);
+		wp1.pose.pose.position.y = 0.0;
+		wp1.pose.pose.position.z = 0.0;
+		wp1.pose.pose.orientation.w = 1.0;
+		wp1.twist.twist.linear.x = 10.0;
+		l.waypoints.push_back(std::move(wp1));
+	}
 	for (grid_map::GridMapIterator it(map); !it.isPastEnd(); ++it)
 	{
 		grid_map::Position position;
@@ -90,16 +87,16 @@ int main(int argc, char ** argv)
 	map.getPosition(index_obstacle, rel_obstacle_pose);
 	map.atPosition("elevation", rel_obstacle_pose) = 1.0;
 	grid_map_msgs::GridMap message;
-
+	lane_array.lanes.push_back(l);
 	while (nh.ok()){
 		ros::Time time = ros::Time::now();
 
 		grid_map::GridMapRosConverter::toMessage(map, message);
 		publisher.publish(message);
 
-		publisher_pose.publish(state.pose);
+		//publisher_pose.publish(state.pose);
 		publisher_goal.publish(state.goal);
-		publisher_base_waypoints.publish(l);
+		publisher_lane_array.publish(lane_array);
 		rate.sleep();
 
 	}

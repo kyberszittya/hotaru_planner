@@ -10,64 +10,45 @@
 
 #include <gtest/gtest.h>
 
-#include <hotaru_common/state_machine/state_machine.hpp>
-#include <hotaru_common/state_machine/sync_signal.hpp>
-#include <memory>
+#include <hotaru_common/state_machine/trajectory_signal.hpp>
+#include <hotaru_common/state_machine/trajectory_statemachine.hpp>
 
+#include <memory>
 #include <iostream>
+
 
 namespace hotaru
 {
 
-class DummyCommunicationGraphNotifier: public Interface_CommunicationGraphNotifier
+
+namespace test_local_planner_state_machine
+{
+
+class DummyLocalPlannerStateMachineGuard: public Interface_GuardLocalPlanner
 {
 public:
-	DummyCommunicationGraphNotifier(): Interface_CommunicationGraphNotifier(){}
-
-	virtual void notifyCommunicationGraph(std::shared_ptr<AbstractSignalInterface> sig) override
-	{
-		std::cout << "NOTIFY with sig: " << sig->getId() << '\n';
-	}
-
-};
-
-class DummySyncStateGuard: public Interface_GuardSyncStates
-{
-public:
-	virtual bool guard_StartedState() override
+	virtual bool guard_Relay2ReplanningState() override
 	{
 		return true;
 	}
 
-	virtual bool guard_WaitingState() override
+	virtual bool guard_Replanning2RelayState() override
 	{
 		return true;
 	}
 
-	virtual bool guard_Stopped() override
+	virtual bool guard_Relay2Waiting() override
+	{
+		return true;
+	}
+
+	virtual bool guard_Waiting2Relay() override
 	{
 		return true;
 	}
 };
 
-class DummySyncStateDenyGuard: public Interface_GuardSyncStates
-{
-public:
-	virtual bool guard_StartedState() override
-	{
-		return false;
-	}
-
-	virtual bool guard_WaitingState() override
-	{
-		return false;
-	}
-
-	virtual bool guard_Stopped() override
-	{
-		return false;
-	}
-};
+}
 
 }
 #endif /* TEST_TEST_COMMON_HPP_ */

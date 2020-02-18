@@ -1,27 +1,22 @@
 cmake_minimum_required(VERSION 2.8.3)
-project(hotaru_common)
+project(rei_waypoint_monitor)
 
 ## Compile as C++11, supported in ROS Kinetic and newer
-add_compile_options(-std=c++11)
+# add_compile_options(-std=c++11)
 
 ## Find catkin macros and libraries
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 ## is used, also find other catkin packages
 find_package(catkin REQUIRED COMPONENTS
-  geometry_msgs
-  nav_msgs
+  autoware_msgs
   roscpp
   rospy
   std_msgs
-  rei_monitoring_msgs
-  rei_statemachine_library
-  autoware_msgs
-  tf2
 )
 
 ## System dependencies are found with CMake's conventions
 # find_package(Boost REQUIRED COMPONENTS system)
-find_package(Eigen3 REQUIRED)
+
 
 ## Uncomment this if the package has a setup.py. This macro ensures
 ## modules and global scripts declared therein get installed
@@ -76,7 +71,7 @@ find_package(Eigen3 REQUIRED)
 ## Generate added messages and services with any dependencies listed here
 # generate_messages(
 #   DEPENDENCIES
-#   geometry_msgs#   nav_msgs#   std_msgs
+#   autoware_msgs#   std_msgs
 # )
 
 ################################################
@@ -109,9 +104,9 @@ find_package(Eigen3 REQUIRED)
 ## CATKIN_DEPENDS: catkin_packages dependent projects also need
 ## DEPENDS: system dependencies of this project that dependent projects also need
 catkin_package(
-  INCLUDE_DIRS include
-  LIBRARIES hotaru_common
-#  CATKIN_DEPENDS geometry_msgs nav_msgs roscpp rospy std_msgs
+#  INCLUDE_DIRS include
+#  LIBRARIES rei_waypoint_monitor
+#  CATKIN_DEPENDS autoware_msgs roscpp rospy std_msgs
 #  DEPENDS system_lib
 )
 
@@ -122,26 +117,24 @@ catkin_package(
 ## Specify additional locations of header files
 ## Your package locations should be listed before other locations
 include_directories(
-  include
+# include
   ${catkin_INCLUDE_DIRS}
-  ${EIGEN3_INCLUDE_DIR}
 )
 
 ## Declare a C++ library
-
+# add_library(${PROJECT_NAME}
+#   src/${PROJECT_NAME}/rei_waypoint_monitor.cpp
+# )
 
 ## Add cmake target dependencies of the library
 ## as an example, code may need to be generated before libraries
 ## either from message generation or dynamic reconfigure
 # add_dependencies(${PROJECT_NAME} ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
-add_library(${PROJECT_NAME} 
-	src/common_building_blocks/common_planner.cpp
-	src/local_planner/local_planner_building_blocks.cpp
-)
+
 ## Declare a C++ executable
 ## With catkin_make all packages are built within a single CMake context
 ## The recommended prefix ensures that target names across packages don't collide
-# add_executable(${PROJECT_NAME}_node src/hotaru_common_node.cpp)
+add_executable(${PROJECT_NAME}_node src/main.cpp)
 
 ## Rename C++ executable without prefix
 ## The above recommended prefix causes long target names, the following renames the
@@ -154,7 +147,9 @@ add_library(${PROJECT_NAME}
 # add_dependencies(${PROJECT_NAME}_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
 ## Specify libraries to link a library or executable target against
-target_link_libraries(${PROJECT_NAME} ${catkin_LIBRARIES})
+target_link_libraries(${PROJECT_NAME}_node
+  ${catkin_LIBRARIES}
+)
 
 #############
 ## Install ##
@@ -203,9 +198,10 @@ target_link_libraries(${PROJECT_NAME} ${catkin_LIBRARIES})
 #############
 
 ## Add gtest based cpp test target and link libraries
-catkin_add_gtest(local_planner_state_machine-test test/test_local_planner_state_machine.cpp)
-target_link_libraries(local_planner_state_machine-test ${PROJECT_NAME})
-
+# catkin_add_gtest(${PROJECT_NAME}-test test/test_rei_waypoint_monitor.cpp)
+# if(TARGET ${PROJECT_NAME}-test)
+#   target_link_libraries(${PROJECT_NAME}-test ${PROJECT_NAME})
+# endif()
 
 ## Add folders to be run by python nosetests
 # catkin_add_nosetests(test)
