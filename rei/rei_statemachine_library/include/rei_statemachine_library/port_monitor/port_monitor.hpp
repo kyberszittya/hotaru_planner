@@ -14,39 +14,59 @@
 
 namespace rei
 {
+class PortStateMonitor;
+
+enum class PortMonitorState_State { UNINITIALIZED, FRESH, TIMEOUT };
 
 struct PortMonitorState
 {
 	const unsigned long freq;
 	unsigned long long timestamp;
-	bool valid;
+	PortMonitorState_State state;
+	std::string name;
 
-	PortMonitorState(const unsigned long freq):
+	PortMonitorState(std::string& name, const unsigned long freq):
+		name(name),
 		freq(freq),
-		timestamp(0), valid(false){}
+		timestamp(0), state(PortMonitorState_State::UNINITIALIZED){}
+
+	bool isFresh() const;
+
+	friend PortStateMonitor;
 };
 
 class PortStateMonitor
 {
 private:
 	// A map of port identifier and the latest timestamp
-	std::map<std::string, std::unique_ptr<PortMonitorState>> signal_timestamps;
-	// Assign a function to check stop status
-	std::function<bool(void)> f_isStopped();
+	std::map<std::string, std::shared_ptr<PortMonitorState>> signal_timestamps;
+
 public:
+	PortStateMonitor()
+	{}
+
+
+
 	virtual ~PortStateMonitor() = 0;
 
 	void addPort(std::string name, const unsigned long freq);
 
 	void updateTimestamp(std::string name, unsigned long long timestamp);
 
+	void updateTimestamp(std::shared_ptr<PortMonitorState> portmonitorstate, unsigned long long timestamp);
+
+	void checkAllStatesTimestamp(unsigned long long timestamp);
+
+	void checkStateTimestamp(std::shared_ptr<PortMonitorState> portmonitorstate, unsigned long long timestamp);
+
+	virtual void react_TimeOut(unsigned long long timestamp) = 0;
+	virtual void react_Fresh(unsigned long long timestamp) = 0;
+
 	bool isReady();
 
-	virtual void waitClock(double duration_sec) = 0;
 
-	void updateTimeout(unsigned long long current_time);
 
-	void timeoutAsync();
+
 
 };
 

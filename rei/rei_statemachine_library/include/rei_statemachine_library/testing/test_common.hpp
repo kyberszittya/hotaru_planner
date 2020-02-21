@@ -18,6 +18,7 @@
 #include <list>
 
 #include <rei_statemachine_library/portsync_state_machine/sync_state_machine.hpp>
+#include <rei_statemachine_library/port_monitor/port_monitor.hpp>
 
 namespace rei
 {
@@ -92,7 +93,18 @@ public:
 	}
 };
 
+class DummyPortStateMonitor: public PortStateMonitor
+{
+public:
+	void react_Fresh(unsigned long long timestamp)
+	{
+	}
 
+	void react_TimeOut(unsigned long long timestamp)
+	{
+	}
+
+};
 
 
 }

@@ -14,15 +14,37 @@
 #include <rei_statemachine_library/portsync_state_machine/sync_state_machine.hpp>
 #include <rei_statemachine_library/port_monitor/port_monitor.hpp>
 
+#include <rei_monitoring_msgs/ReiMonitorSignal.h>
+
 namespace rei
 {
 
-class PortStateMonitorRos: rei::PortStateMonitor
+class PortStateMonitorRos: public rei::PortStateMonitor
 {
+private:
+	std::shared_ptr<SyncStateMachine> sm;
 public:
-	virtual void waitClock(double duration_sec)
+	virtual void react_TimeOut(unsigned long long timestamp)
 	{
-		ros::Duration(duration_sec).sleep();
+		using namespace rei::sync_signals;
+		std::shared_ptr<SignalMessageTimeOut> sig_(new SignalMessageTimeOut(timestamp));
+		sm->propagateSignal(sig_);
+	}
+
+	virtual void react_Fresh(unsigned long long timestamp)
+	{
+		using namespace rei::sync_signals;
+		std::shared_ptr<SignalMessageTimeOut> sig_(new SignalMessageTimeOut(timestamp));
+		if (isReady())
+		{
+			sm->propagateSignal(sig_);
+		}
+	}
+
+	void setSyncStateMachine(std::shared_ptr<SyncStateMachine> sm)
+	{
+		this->sm = sm;
+
 	}
 };
 

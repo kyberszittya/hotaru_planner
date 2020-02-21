@@ -7,6 +7,7 @@
 
 #include <rei_statemachine_library/port_monitor/port_monitor.hpp>
 
+
 namespace rei
 {
 
@@ -15,31 +16,79 @@ PortStateMonitor::~PortStateMonitor(){}
 void PortStateMonitor::addPort(std::string name, const unsigned long freq)
 {
 	signal_timestamps.insert(
-		std::pair<std::string, std::unique_ptr<PortMonitorState>>(
-				name,std::unique_ptr<PortMonitorState>(
-						new PortMonitorState(freq))
+		std::pair<std::string, std::shared_ptr<PortMonitorState>>(
+				name,std::shared_ptr<PortMonitorState>(
+						new PortMonitorState(name, freq))
 		)
 	);
+
+
 }
 
-void PortStateMonitor::updateTimestamp(std::string name, unsigned long long timestamp)
+bool PortMonitorState::isFresh() const
 {
-	if (timestamp - signal_timestamps[name]->timestamp > signal_timestamps[name]->freq)
+	return state == PortMonitorState_State::FRESH;
+}
+
+void PortStateMonitor::updateTimestamp(std::string portmonitorstate, unsigned long long timestamp)
+{
+	updateTimestamp(signal_timestamps[portmonitorstate], timestamp);
+}
+
+
+
+void PortStateMonitor::checkStateTimestamp(std::shared_ptr<PortMonitorState> portmonitorstate, unsigned long long timestamp)
+{
+	switch (portmonitorstate->state)
 	{
-		signal_timestamps[name]->valid = false;
+		case PortMonitorState_State::FRESH:
+		{
+			if (timestamp - portmonitorstate->timestamp >= portmonitorstate->freq)
+			{
+				portmonitorstate->state = PortMonitorState_State::TIMEOUT;
+			}
+			break;
+		}
+		case PortMonitorState_State::TIMEOUT:
+		{
+			// TODO: I have a strange feeling that it will not work as expected, revise it!
+			if (timestamp - portmonitorstate->timestamp < portmonitorstate->freq)
+			{
+				portmonitorstate->state = PortMonitorState_State::FRESH;
+			}
+			break;
+		}
 	}
-	else
+
+}
+
+void PortStateMonitor::checkAllStatesTimestamp(unsigned long long timestamp)
+{
+	for (const auto& v: signal_timestamps)
 	{
-		signal_timestamps[name]->valid = true;
+		checkStateTimestamp(v.second, timestamp);
 	}
-	signal_timestamps[name]->timestamp = timestamp;
+}
+
+void PortStateMonitor::updateTimestamp(std::shared_ptr<PortMonitorState> portmonitorstate, unsigned long long timestamp)
+{
+	switch (portmonitorstate->state)
+	{
+		case PortMonitorState_State::UNINITIALIZED:
+		{
+			portmonitorstate->state = PortMonitorState_State::FRESH;
+			break;
+		}
+	}
+	checkAllStatesTimestamp(timestamp);
+	portmonitorstate->timestamp = timestamp;
 }
 
 bool PortStateMonitor::isReady()
 {
 	for (const auto& c: signal_timestamps)
 	{
-		if (!c.second->valid)
+		if (!c.second->isFresh())
 		{
 			return false;
 		}
@@ -47,26 +96,6 @@ bool PortStateMonitor::isReady()
 	return true;
 }
 
-void PortStateMonitor::updateTimeout(unsigned long long current_time)
-{
-	for (const auto& c: signal_timestamps)
-	{
-		if (current_time - c.second->timestamp > c.second->freq)
-		{
-			c.second->valid = false;
-		}
-	}
-}
-
-void PortStateMonitor::timeoutAsync()
-{
-	/*
-	while(!f_isStopped())
-	{
-		//waitClock();
-	}
-	*/
-}
 
 
 }

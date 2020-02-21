@@ -89,6 +89,7 @@ TEST(SyncMachineBasicTest, BasicTestTmeout)
 	ASSERT_TRUE(verifyTrace<unsigned long>(trace, dummy_comm_graph));
 }
 
+
 int main(int argc, char **argv){
 	testing::InitGoogleTest(&argc, argv);
 	return RUN_ALL_TESTS();

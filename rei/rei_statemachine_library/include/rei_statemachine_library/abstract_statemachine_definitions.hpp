@@ -46,6 +46,33 @@ public:
 };
 
 /**
+ *
+ */
+class StateMachineEmptySignalBuffer: public std::exception
+{
+private:
+	std::string message;
+	std::string component;
+public:
+	StateMachineEmptySignalBuffer(
+			std::string component,
+			std::string failure): std::exception()
+	{
+
+	}
+
+	virtual const char* what()
+	{
+		std::stringstream ss;
+		ss << "Empty signal buffer (";
+		ss << component.c_str();
+		ss << "): ";
+		ss << message.c_str();
+		return ss.str().c_str();
+	}
+};
+
+/**
  * Interface to notify external communication graph
  */
 class Interface_CommunicationGraphNotifier

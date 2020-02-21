@@ -36,13 +36,20 @@ bool StateMachineRunner::start()
 
 void StateMachineRunner::stepstatemachine()
 {
-	std::shared_ptr<AbstractSignalInterface> sig = signal_buffer.front();
-	stepsignalprocess(sig);
-	if (sig->isEffective())
+	if (signal_buffer.size() > 0)
 	{
-		comm_graph_notifier->notifyCommunicationGraph(sig);
+		std::shared_ptr<AbstractSignalInterface> sig = signal_buffer.front();
+		stepsignalprocess(sig);
+		if (sig->isEffective())
+		{
+			comm_graph_notifier->notifyCommunicationGraph(sig);
+		}
+		signal_buffer.pop();
 	}
-	signal_buffer.pop();
+	else
+	{
+		throw StateMachineEmptySignalBuffer("state_machine_runner", "step_state_machine");
+	}
 }
 
 void StateMachineRunner::propagateSignal(std::shared_ptr<AbstractSignalInterface> sig)

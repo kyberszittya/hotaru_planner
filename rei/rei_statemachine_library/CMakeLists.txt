@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 2.8.3)
 project(rei_statemachine_library)
 
 ## Compile as C++11, supported in ROS Kinetic and newer
-# add_compile_options(-std=c++11)
+add_compile_options(-std=c++11)
 
 ## Find catkin macros and libraries
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
@@ -16,7 +16,12 @@ find_package(catkin REQUIRED COMPONENTS
 ## System dependencies are found with CMake's conventions
 # find_package(Boost REQUIRED COMPONENTS system)
 
-
+IF(CMAKE_BUILD_TYPE MATCHES Coverage)
+  MESSAGE("Coverage mode! ---         ----")
+  ADD_DEFINITIONS(--coverage)
+  set(CMAKE_SHARED_LINKER_FLAGS "--coverage")
+  set(CMAKE_EXE_LINKER_FLAGS "--coverage")
+ENDIF(CMAKE_BUILD_TYPE MATCHES Coverage)
 ## Uncomment this if the package has a setup.py. This macro ensures
 ## modules and global scripts declared therein get installed
 ## See http://ros.org/doc/api/catkin/html/user_guide/setup_dot_py.html
@@ -135,7 +140,7 @@ add_library(${PROJECT_NAME}
 ## Declare a C++ executable
 ## With catkin_make all packages are built within a single CMake context
 ## The recommended prefix ensures that target names across packages don't collide
-# add_executable(${PROJECT_NAME}_node src/rei_statemachine_library_node.cpp)
+add_executable(example_sync_node src/sync_state_machine/ros/example_ros_state_machine.cpp)
 
 ## Rename C++ executable without prefix
 ## The above recommended prefix causes long target names, the following renames the
@@ -152,6 +157,9 @@ target_link_libraries(${PROJECT_NAME}
   ${catkin_LIBRARIES}
 )
 
+target_link_libraries(example_sync_node
+  ${catkin_LIBRARIES} ${PROJECT_NAME}
+)
 #############
 ## Install ##
 #############
@@ -201,6 +209,19 @@ target_link_libraries(${PROJECT_NAME}
 ## Add gtest based cpp test target and link libraries
 catkin_add_gtest(statemachine-syncstate-test test/sync_state_machine/test_sync_state_machine.cpp)
 target_link_libraries(statemachine-syncstate-test ${PROJECT_NAME})
+catkin_add_gtest(statemachine-abstractdef-test test/test_abstract_definitions/test_abstract_definitions.cpp)
+target_link_libraries(statemachine-abstractdef-test ${PROJECT_NAME})
+catkin_add_gtest(statemachine-portstatemonitor-test test/port_state_machine/test_port_state_machine.cpp)
+target_link_libraries(statemachine-portstatemonitor-test ${PROJECT_NAME})
+
+if(CATKIN_ENABLE_TESTING)
+  find_package(rostest REQUIRED)
+  add_rostest_gtest(test_sync_simple_ros
+    test-launch/rosintegration/ros_sync_state_machine.launch
+    test/ros_integration_tests/test_ros_integration_tests.cpp
+  )
+endif()
+
 # if(TARGET ${PROJECT_NAME}-test)
 #   target_link_libraries(${PROJECT_NAME}-test ${PROJECT_NAME})
 # endif()
