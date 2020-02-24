@@ -132,6 +132,7 @@ add_library(${PROJECT_NAME}
   src/sync_state_machine/sync_state_machine.cpp
   # ROS specific stuff
   src/sync_state_machine/ros/ros_sync_utils.cpp
+  src/testing_utility_functions.cpp
 )
 
 ## Add cmake target dependencies of the library

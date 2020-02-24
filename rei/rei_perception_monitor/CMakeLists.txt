@@ -8,9 +8,11 @@ project(rei_perception_monitor)
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 ## is used, also find other catkin packages
 find_package(catkin REQUIRED COMPONENTS
+  autoware_msgs
   grid_map_msgs
   grid_map_ros
   rei_monitoring_msgs
+  rei_planner_signals
   roscpp
   rospy
   sensor_msgs

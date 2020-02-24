@@ -32,45 +32,65 @@ private:
 	std::shared_ptr<ros::NodeHandle> nh;
 protected:
 	std::shared_ptr<PortStateMonitorRos> port_state_monitor;
-	std::shared_ptr<SyncStateMachine> sync_state_machine;
 	std::shared_ptr<RosCommunicationGraphNotifier> notifier;
+	std::shared_ptr<SyncStateMachine> sync_state_machine;
+
 public:
 	RosSyncStateMachine(std::shared_ptr<ros::NodeHandle> nh,
 			const std::string name): nh(nh), name(name){
 
 	}
 
-
+	// Let us allow to initialize everything externally
+	RosSyncStateMachine(std::shared_ptr<ros::NodeHandle> nh,
+			std::shared_ptr<SyncStateMachine> sync_state_machine,
+			std::shared_ptr<PortStateMonitorRos> port_state_monitor,
+			std::shared_ptr<RosCommunicationGraphNotifier> notifier,
+			const std::string name): nh(nh),
+					port_state_monitor(port_state_monitor),
+					notifier(notifier),
+					sync_state_machine(sync_state_machine),
+					name(name){
+	}
 
 	bool initialize()
 	{
-		ROS_INFO_STREAM("Initializing sync_state_machine: " << name);
-		port_state_monitor= std::shared_ptr<PortStateMonitorRos>(new PortStateMonitorRos());
-		if (port_state_monitor == nullptr)
-		{
-			return false;
-		}
-		std::unique_ptr<RosSyncStateGuard> guard(new RosSyncStateGuard());
-		guard->setMonitor(port_state_monitor);
-		notifier = std::shared_ptr<RosCommunicationGraphNotifier>(
-				new RosCommunicationGraphNotifier(name, nh));
-		if (notifier == nullptr)
-		{
-			return false;
-		}
-		notifier->initialize();
 
-		sync_state_machine = std::shared_ptr<SyncStateMachine>(
-				new SyncStateMachine(notifier,
-						std::move(guard)));
+		// If the state machine hasn't been initialized externally, let's initialize it
+		if (sync_state_machine==nullptr)
+		{
+			port_state_monitor= std::shared_ptr<PortStateMonitorRos>(new PortStateMonitorRos());
+			if (port_state_monitor == nullptr)
+			{
+				return false;
+			}
+			std::unique_ptr<RosSyncStateGuard> guard(new RosSyncStateGuard());
+			guard->setMonitor(port_state_monitor);
+			notifier = std::shared_ptr<RosCommunicationGraphNotifier>(
+					new RosCommunicationGraphNotifier(name, nh));
+			if (notifier == nullptr)
+			{
+				return false;
+			}
+			notifier->initialize();
+			sync_state_machine = std::shared_ptr<SyncStateMachine>(
+					new SyncStateMachine(notifier,
+							std::move(guard)));
+		}
 		if (sync_state_machine == nullptr)
 		{
 			ROS_ERROR("SYNC STATE MACHINE uninitialized");
 			return false;
 		}
 		port_state_monitor->setSyncStateMachine(sync_state_machine);
+		sync_state_machine->setStartFunction(std::bind(&RosSyncStateMachine::startRos, this));
 		sync_state_machine->start();
 		return true;
+	}
+
+	void startRos()
+	{
+		ROS_INFO_STREAM("Initializing sync_state_machine: " << name);
 	}
 
 	void addTopicGuard(std::string name, double estimated_frequency)

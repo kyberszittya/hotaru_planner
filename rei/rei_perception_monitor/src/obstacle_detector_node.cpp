@@ -11,7 +11,10 @@
 #include <geometry_msgs/PoseStamped.h>
 
 #include <visualization_msgs/MarkerArray.h>
+#include <autoware_msgs/Lane.h>
 
+#include <rei_planner_signals/ReplanRequest.h>
+#include <eigen_conversions/eigen_msg.h>
 
 namespace rei
 {
@@ -25,8 +28,12 @@ protected:
 	ros::NodeHandle nh;
 	ros::Subscriber sub_grid_map;
 	ros::Subscriber sub_current_pose;
+	ros::Subscriber sub_base_waypoints;
 	ros::Publisher pub_detected_obstacles;
+	ros::Publisher pub_replan_signal;
 	grid_map::GridMap global_map;
+	rei_planner_signals::ReplanRequest request_msg;
+	autoware_msgs::Lane msg_base_waypoints;
 	// Detect polygon obstacles
 	visualization_msgs::MarkerArray obstacles;
 public:
@@ -35,15 +42,28 @@ public:
 	bool init()
 	{
 		pub_detected_obstacles = nh.advertise<visualization_msgs::MarkerArray>("/filtered_obstacles", 10);
+		pub_replan_signal = nh.advertise<rei_planner_signals::ReplanRequest>("/replan_request_sig",10);
 		sub_current_pose = nh.subscribe("current_pose", 10, &ObstacleGridMapMonitor::cbCurrentPose, this);
 		sub_grid_map = nh.subscribe("grid_map", 1, &ObstacleGridMapMonitor::subGridMap, this);
+		sub_base_waypoints = nh.subscribe("base_waypoints", 1, &ObstacleGridMapMonitor::cbBaseWaypoints, this);
+
 
 		return true;
+	}
+
+	void cbBaseWaypoints(const autoware_msgs::Lane::ConstPtr& msg)
+	{
+		msg_base_waypoints = *msg;
 	}
 
 	void cbCurrentPose(const geometry_msgs::PoseStamped::ConstPtr& msg)
 	{
 		current_pose = *msg;
+	}
+
+	static double distanceBetweenTwoWaypoints(const geometry_msgs::Point& p0, const geometry_msgs::Point& p1)
+	{
+		return (tf::pointMsgToEigen(p0)-tf::pointMsgToEigen(p1)).norm();
 	}
 
 	void subGridMap(const grid_map_msgs::GridMap::ConstPtr& msg)
@@ -77,9 +97,18 @@ public:
 				m.color.g = 0.7;
 				m.color.b = 0.8;
 				obstacles.markers.push_back(std::move(m));
+				// Check distance from base waypoints
+				for (unsigned int i = 0; i < msg_base_waypoints.waypoints.size(); i++)
+				{
+
+				}
 			}
 		}
 		pub_detected_obstacles.publish(obstacles);
+		// Publish replan request
+		request_msg.header.stamp = ros::Time::now();
+		request_msg.eval = true;
+		pub_replan_signal.publish(request_msg);
 	}
 };
 

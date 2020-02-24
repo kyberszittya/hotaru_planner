@@ -146,8 +146,8 @@ protected:
 		}
 		return true;
 	}
-
-
+	// Add functions to handle at start
+	std::function<void(void)> start_f;
 public:
 
 	const StateDef getState()
@@ -155,6 +155,10 @@ public:
 		return state;
 	}
 
+	void setStartFunction(std::function<void(void)> f)
+	{
+		start_f = f;
+	}
 };
 
 }

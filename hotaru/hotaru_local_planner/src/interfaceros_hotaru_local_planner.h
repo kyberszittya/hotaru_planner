@@ -54,7 +54,13 @@ protected:
 	ros::Publisher pub_state_machine_output_signal; ///< pub_state_machine_output_signal publisher to rei_monitoring_msgs/ReiStateMachineTransitionSignal
 	std::unique_ptr<StateHotarulocalplanner> pubsubstate;
 	// State machines
+	/** TODO: provide it in code generator component
+	 *
+	 */
 	std::shared_ptr<rei::RosSyncStateMachine> sync_sm_sync_state;
+	std::shared_ptr<rei::SyncStateMachine> sync_state_machine;
+	std::shared_ptr<rei::PortStateMonitorRos> port_state_monitor;
+	std::shared_ptr<rei::RosCommunicationGraphNotifier> notifier;
 public:
 	InterfaceRos_Hotarulocalplanner(std::shared_ptr<ros::NodeHandle> nh): nh(nh){}
 	
@@ -78,6 +84,7 @@ public:
 	 * Callback method for replan_request_sig
 	 */
 	void cbSub_replan_request_sig(const rei_planner_signals::ReplanRequest::ConstPtr& msg); ///< sub_replan_request_sig subscriber to rei_planner_signals/ReplanRequest
+	virtual void executeReplanRequest() = 0;
 	/**
 	 * Callback method for current_pose
 	 */

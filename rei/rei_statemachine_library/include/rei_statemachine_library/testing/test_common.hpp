@@ -106,6 +106,9 @@ public:
 
 };
 
+void dummy_start_function();
+void dummy_allmessages_received_function();
+
 
 }
 //

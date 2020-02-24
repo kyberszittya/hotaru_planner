@@ -12,8 +12,15 @@
 #include <autoware_msgs/Lane.h>
 #include <std_msgs/Int32.h>
 #include <tf/transform_datatypes.h>
+#include <memory>
 
+#include <rei_statemachine_library/abstract_signal_definitions.hpp>
+#include <rei_statemachine_library/abstract_statemachine_definitions.hpp>
+#include <rei_statemachine_library/portsync_state_machine/sync_state_machine.hpp>
 #include "common_building_blocks.hpp"
+#include <rei_monitoring_msgs/ReiStateMachineTransitionSignal.h>
+#include <hotaru_common/state_machine/trajectory_statemachine.hpp>
+
 
 namespace hotaru
 {
@@ -50,110 +57,143 @@ public:
 class Abstract_RosPlanner
 {
 protected:
-	ros::Subscriber sub_base_waypoints;
-	ros::Subscriber sub_current_pose;
-	ros::Subscriber sub_current_velocity;
-	// Subscribe to environment map
-	ros::Subscriber sub_grid_map;
-	// States
-	//std::unique_ptr<hotaru::PlannerKinematicState> kinematic_state;
-	//std::unique_ptr<hotaru::PlannerPerceptionState> perception_state;
 
-	/*
-	virtual void initRos()
-	{
-		sub_current_pose = nh.subscribe("current_pose", 10,
-				&Abstract_RosPlanner::subCurrentPose, this);
-		sub_current_velocity = nh.subscribe("current_velocity", 10,
-				&Abstract_RosPlanner::subCurrentVelocity, this);
-
-	}
-	*/
 
 public:
 	virtual ~Abstract_RosPlanner() = 0;
 
-	//Abstract_RosPlanner(ros::NodeHandle& nh): nh(nh){}
 
-	//virtual bool initNode() = 0;
-
-	/*
-	virtual bool init()
-	{
-		if (!allocateState())
-		{
-			ROS_FATAL("Unable to allocate state");
-			return false;
-		}
-		initRos();
-		if (!initNode())
-		{
-			ROS_FATAL("Unable to initialize instance node");
-			return false;
-		}
-		return true;
-	}
-	*/
-
-	/*
-	void subCurrentPose(const geometry_msgs::PoseStamped::ConstPtr& msg)
-	{
-		kinematic_state->pose = *msg;
-		tf::poseStampedMsgToTF(*msg, kinematic_state->tf_pose);
-		kinematic_state->tf_proj_pose[0] = msg->pose.position.x;
-		kinematic_state->tf_proj_pose[1] = msg->pose.position.y;
-	}
-	*/
-
-	/*
-	bool allocateState()
-	{
-		kinematic_state = std::unique_ptr<PlannerKinematicState>(new PlannerKinematicState());
-		if (kinematic_state==nullptr)
-		{
-			return false;
-		}
-		perception_state = std::unique_ptr<PlannerPerceptionState>(new PlannerPerceptionState());
-		if (perception_state==nullptr)
-		{
-			return false;
-		}
-		return true;
-	}
-	*/
-	/*
-	void subCurrentVelocity(const geometry_msgs::TwistStamped::ConstPtr& msg)
-	{
-		kinematic_state->twist = *msg;
-	}
-	*/
 
 
 };
 
+
+class SyncGuardLocalPlanner: public hotaru::Interface_GuardLocalPlanner
+{
+protected:
+	std::shared_ptr<rei::SyncStateMachine> sync_sm;
+public:
+	SyncGuardLocalPlanner(std::shared_ptr<rei::SyncStateMachine> sync_sm): sync_sm(sync_sm)
+	{
+	}
+
+	virtual bool guard_Relay2ReplanningState() override
+	{
+		return sync_sm->isStarted();
+		//return true;
+	}
+	virtual bool guard_Replanning2RelayState() override
+	{
+		return sync_sm->isStarted();
+	}
+	virtual bool guard_Relay2Waiting() override
+	{
+		return sync_sm->isStarted();
+	}
+	virtual bool guard_Waiting2Relay() override
+	{
+		return sync_sm->isStarted();
+	}
+};
+
+const std::string translateTrajectorySignalToName(
+		std::shared_ptr<rei::AbstractSignalInterface> _sig)
+{
+	switch(_sig->getId())
+	{
+		case 0x20: {
+			return "SignalReplanRequest";
+		}
+		case 0x21: {
+			return "SignalNoObstacleDetected";
+		}
+		case 0x22: {
+			return "SignalLastWaypointReached";
+		}
+		case 0x23: {
+			return "SignalNewGlobalPlan";
+		}
+		default: {
+			return "INVALID";
+		}
+	}
+}
+
+
+class RosReplannerGraphNotifier: public rei::Interface_CommunicationGraphNotifier
+{
+private:
+	std::string node_name;
+	std::shared_ptr<ros::NodeHandle> nh;
+	rei_monitoring_msgs::ReiStateMachineTransitionSignal msg_sig;
+	ros::Publisher pub_sig_id;
+public:
+	RosReplannerGraphNotifier(std::string node_name,
+			std::shared_ptr<ros::NodeHandle> nh):
+				node_name(node_name), nh(nh) {}
+
+	void initialize()
+	{
+		ROS_INFO_STREAM("Initializing ROS communication notifier: "
+				<< node_name+"/sync_state_machine/current_state");
+		pub_sig_id = nh->advertise<rei_monitoring_msgs::ReiStateMachineTransitionSignal>(
+				node_name+"/replanner/current_state", 10);
+	}
+
+
+	virtual void notifyCommunicationGraph(std::shared_ptr<rei::AbstractSignalInterface> sig)
+	{
+		msg_sig.header.stamp = ros::Time::now();
+		msg_sig.signal_name = translateTrajectorySignalToName(sig);
+		msg_sig.sig_id = sig->getId();
+		pub_sig_id.publish(msg_sig);
+	}
+};
+
+
+
 class Abstract_RosLocalPlanner: public Abstract_RosPlanner
 {
 protected:
-	/*
-	ros::Subscriber sub_base_waypoints;
-	ros::Publisher pub_final_waypoints;
-	*/
+
 	std::vector<geometry_msgs::PoseStamped> starting_plan_points;
 	std::vector<geometry_msgs::TwistStamped> original_velocity_profile;
 	autoware_msgs::Lane final_waypoints;
 	unsigned int number_of_trajectory_points;
+	// ROS communication graph as notifier of replanner state
+	std::unique_ptr<hotaru::LocalPlannerStateMachine> planner_state_machine;
+	std::shared_ptr<RosReplannerGraphNotifier> comm_repl_notif;
 
-	/*
-	virtual void initRos()
+
+
+	bool initLocalPlannerStateMachine(std::shared_ptr<ros::NodeHandle> nh,
+			std::shared_ptr<rei::SyncStateMachine> sync_sm)
 	{
-		Abstract_RosPlanner::initRos();
+		// Initialize planner state machine
+		comm_repl_notif = std::shared_ptr<RosReplannerGraphNotifier>(
+			new RosReplannerGraphNotifier("local_planner_state", nh)
+		);
+		if (comm_repl_notif == nullptr)
+		{
+			return false;
+		}
+		comm_repl_notif->initialize();
+		std::unique_ptr<hotaru::SyncGuardLocalPlanner> guard_local_planner =
+				std::unique_ptr<hotaru::SyncGuardLocalPlanner>(new hotaru::SyncGuardLocalPlanner(sync_sm));
+		if (guard_local_planner == nullptr)
+		{
+			return false;
+		}
+		planner_state_machine = std::unique_ptr<hotaru::LocalPlannerStateMachine>(
+				new hotaru::LocalPlannerStateMachine(comm_repl_notif,
+						std::move(guard_local_planner)));
+		if (planner_state_machine == nullptr)
+		{
+			return false;
+		}
 
-		sub_base_waypoints = nh.subscribe("base_waypoints", 10,
-						&Abstract_RosLocalPlanner::subBaseWaypoints, this);
-		pub_final_waypoints = nh.advertise<autoware_msgs::Lane>("final_waypoints", 1);
-
+		return true;
 	}
-	*/
 
 	void reconstructStartingPlanPoints(const autoware_msgs::Lane& msg,
 			geometry_msgs::PoseStamped pose)
@@ -174,10 +214,11 @@ protected:
 		}
 	}
 public:
-	//Abstract_RosLocalPlanner(ros::NodeHandle& nh): Abstract_RosPlanner(nh), number_of_trajectory_points(0){}
 	Abstract_RosLocalPlanner(): number_of_trajectory_points(0){}
 
 	virtual void executePlannerMethods() = 0;
+
+	virtual void relayCycle() = 0;
 
 	/*
 	void subBaseWaypoints(const autoware_msgs::Lane::ConstPtr& msg)

@@ -16,6 +16,8 @@ TEST(SyncMachineBasicTest, BasicTest)
 	std::shared_ptr<DummyCommunicationGraphNotifier> dummy_comm_graph(new DummyCommunicationGraphNotifier());
 	SyncStateMachine sm(dummy_comm_graph,
 			std::move(dummy_syncstate));
+	sm.setStartFunction(std::bind(rei::test_sync_state_machine::dummy_start_function));
+	sm.setCbAllStateMessageReceived(std::bind(rei::test_sync_state_machine::dummy_allmessages_received_function));
 	sm.start();
 	using namespace rei::sync_signals;
 	ASSERT_TRUE(sm.isWaiting());
@@ -39,6 +41,8 @@ TEST(SyncMachineBasicTest, BasicTestDeny)
 	std::shared_ptr<DummyCommunicationGraphNotifier> dummy_comm_graph(new DummyCommunicationGraphNotifier());
 	SyncStateMachine sm(dummy_comm_graph,
 			std::move(dummy_syncstate));
+	sm.setStartFunction(std::bind(rei::test_sync_state_machine::dummy_start_function));
+	sm.setCbAllStateMessageReceived(std::bind(rei::test_sync_state_machine::dummy_allmessages_received_function));
 	sm.start();
 	using namespace rei::sync_signals;
 	ASSERT_TRUE(sm.isWaiting());
@@ -63,8 +67,9 @@ TEST(SyncMachineBasicTest, BasicTestTmeout)
 	SyncStateMachine sm(
 			dummy_comm_graph,
 			std::move(dummy_syncstate));
+	sm.setStartFunction(std::bind(rei::test_sync_state_machine::dummy_start_function));
+	sm.setCbAllStateMessageReceived(std::bind(rei::test_sync_state_machine::dummy_allmessages_received_function));
 	ASSERT_TRUE(sm.start());
-
 	using namespace rei::sync_signals;
 	ASSERT_TRUE(sm.isWaiting());
 	std::shared_ptr<AbstractSignalInterface> sig_sync(new SignalAllStateMessagesReceived(1));

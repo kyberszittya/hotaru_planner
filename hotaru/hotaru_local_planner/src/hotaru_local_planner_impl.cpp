@@ -6,8 +6,22 @@ InterfaceRos_Hotarulocalplanner::~InterfaceRos_Hotarulocalplanner() {}
 
 bool InterfaceRos_Hotarulocalplanner::init()
 {
-	// Initialize state machines 
-	sync_sm_sync_state = std::shared_ptr<rei::RosSyncStateMachine>(new rei::RosSyncStateMachine(nh, "hotaru_local_planner/sync_state"));
+	// Initialize state machines
+	notifier = std::shared_ptr<rei::RosCommunicationGraphNotifier>(
+						new rei::RosCommunicationGraphNotifier("hotaru_local_planner/sync_state/", nh));
+	notifier->initialize();
+	port_state_monitor= std::shared_ptr<rei::PortStateMonitorRos>(new rei::PortStateMonitorRos());
+	std::unique_ptr<rei::RosSyncStateGuard> guard(new rei::RosSyncStateGuard());
+	guard->setMonitor(port_state_monitor);
+	sync_state_machine = std::shared_ptr<rei::SyncStateMachine>(
+						new rei::SyncStateMachine(notifier,
+								std::move(guard)));
+	sync_sm_sync_state = std::shared_ptr<rei::RosSyncStateMachine>(
+			new rei::RosSyncStateMachine(nh,
+					sync_state_machine,
+					port_state_monitor,
+					notifier,
+					"hotaru_local_planner/sync_state"));
 	if (sync_sm_sync_state!=nullptr){
 		if (!sync_sm_sync_state->initialize())
 		{
@@ -16,6 +30,7 @@ bool InterfaceRos_Hotarulocalplanner::init()
 		sync_sm_sync_state->addTopicGuard("/base_waypoints", 0.1);
 		sync_sm_sync_state->addTopicGuard("/current_pose", 0.1);
 		sync_sm_sync_state->addTopicGuard("/current_velocity", 0.1);
+
 	}
 	else
 	{
@@ -36,6 +51,7 @@ bool InterfaceRos_Hotarulocalplanner::init()
 	{
 		return false;
 	}
+
 	return true;
 }
 
@@ -52,7 +68,7 @@ void InterfaceRos_Hotarulocalplanner::cbSub_base_waypoints(const autoware_msgs::
 void InterfaceRos_Hotarulocalplanner::cbSub_replan_request_sig(const rei_planner_signals::ReplanRequest::ConstPtr& msg)
 {
 	pubsubstate->msg_sub_replan_request_sig = *msg;
-	
+	executeReplanRequest();
 }
 void InterfaceRos_Hotarulocalplanner::cbSub_current_pose(const geometry_msgs::PoseStamped::ConstPtr& msg)
 {

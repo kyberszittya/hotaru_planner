@@ -14,77 +14,8 @@
 
 #include <hotaru_common/planner_components/abstract_planner.hpp>
 #include <hotaru_common/state_machine/trajectory_statemachine.hpp>
+#include <hotaru_common/state_machine/trajectory_signal.hpp>
 
-class GuardLocalPlanner: public hotaru::Interface_GuardLocalPlanner
-{
-public:
-	virtual bool guard_Relay2ReplanningState() override
-	{
-		return true;
-	}
-	virtual bool guard_Replanning2RelayState() override
-	{
-		return true;
-	}
-	virtual bool guard_Relay2Waiting() override
-	{
-		return true;
-	}
-	virtual bool guard_Waiting2Relay() override
-	{
-		return true;
-	}
-};
-
-std::string translateTrajectorySignalToName(
-		std::shared_ptr<rei::AbstractSignalInterface> _sig)
-{
-	switch(_sig->getId())
-	{
-		case 0x21: {
-			return "SignalNoObstacleDetected";
-		}
-		case 0x22: {
-			return "SignalLastWaypointReached";
-		}
-		case 0x23: {
-			return "SignalNewGlobalPlan";
-		}
-		default: {
-			return "";
-		}
-	}
-}
-
-class RosReplannerGraphNotifier: public rei::Interface_CommunicationGraphNotifier
-{
-private:
-	std::string node_name;
-	std::shared_ptr<ros::NodeHandle> nh;
-	rei_monitoring_msgs::ReiStateMachineTransitionSignal msg_sig;
-	ros::Publisher pub_sig_id;
-public:
-	RosReplannerGraphNotifier(std::string node_name,
-			std::shared_ptr<ros::NodeHandle> nh):
-				node_name(node_name), nh(nh) {}
-
-	void initialize()
-	{
-		ROS_INFO_STREAM("Initializing ROS communication notifier: "
-				<< node_name+"/sync_state_machine/current_state");
-		pub_sig_id = nh->advertise<rei_monitoring_msgs::ReiStateMachineTransitionSignal>(
-				node_name+"/replanner/current_state", 10);
-	}
-
-
-	virtual void notifyCommunicationGraph(std::shared_ptr<rei::AbstractSignalInterface> sig)
-	{
-		msg_sig.header.stamp = ros::Time::now();
-		msg_sig.signal_name = translateTrajectorySignalToName(sig);
-		msg_sig.sig_id = sig->getId();
-		pub_sig_id.publish(msg_sig);
-	}
-};
 
 class TebHotaruLocalPlanner: public hotaru::InterfaceRos_Hotarulocalplanner,
 	public hotaru::Abstract_RosLocalPlanner
@@ -99,9 +30,9 @@ protected:
 	std::shared_ptr<teb_local_planner::ViaPointContainer> via_points;
 	// Starting plan as pose stamped
 	std::vector<teb_local_planner::TrajectoryPointMsg> _full_trajectory;
-	std::unique_ptr<hotaru::LocalPlannerStateMachine> planner_state_machine;
-	// ROS communication graph as notifier of replanner state
-	std::shared_ptr<RosReplannerGraphNotifier> comm_repl_notif;
+
+
+
 
 	virtual void executeReconstructWaypoints() override {
 		reconstructStartingPlanPoints(pubsubstate->msg_sub_base_waypoints,
@@ -142,6 +73,33 @@ public:
 		//m_obstacle_update.unlock();
 	}
 
+	virtual void executeReplanRequest()
+	{
+		using namespace hotaru::trajectory_signals;
+
+		std::shared_ptr<rei::AbstractSignalInterface> _sig;
+		if (pubsubstate->msg_sub_replan_request_sig.eval)
+		{
+			// RISING EDGE
+			_sig = std::shared_ptr<rei::AbstractSignalInterface>(
+				new SignalReplanningTrajectory(
+					pubsubstate->msg_sub_replan_request_sig.header.stamp.toNSec()
+				)
+			);
+		}
+		else
+		{
+			// FALLING EDGE
+			_sig = std::shared_ptr<rei::AbstractSignalInterface>(
+				new SignalNoObstacleDetected(
+					pubsubstate->msg_sub_replan_request_sig.header.stamp.toNSec()
+				)
+			);
+		}
+		planner_state_machine->propagateSignal(_sig);
+		planner_state_machine->stepstatemachine();
+	}
+
 	virtual bool initNode() override
 	{
 		using namespace teb_local_planner;
@@ -171,7 +129,6 @@ public:
 		robot_footprint = RobotFootprintModelPtr(new CircularRobotFootprint(2.0));
 		obstacle_container = std::make_shared<ObstContainer>();
 		// ROS
-
 		planner = std::unique_ptr<teb_local_planner::TebOptimalPlanner>(
 			new TebOptimalPlanner(
 				conf,
@@ -180,17 +137,18 @@ public:
 				viz,
 				via_points.get()
 				));
-		// Initialize planner state machine
-		comm_repl_notif = std::shared_ptr<RosReplannerGraphNotifier>(
-			new rei::RosCommunicationGraphNotifier("local_planner_state", nh)
-		);
-		std::unique_ptr<GuardLocalPlanner> guard_local_planner =
-				std::unique_ptr<GuardLocalPlanner>(new GuardLocalPlanner());
-		planner_state_machine = std::unique_ptr<hotaru::LocalPlannerStateMachine>(
-				new hotaru::LocalPlannerStateMachine(comm_repl_notif,
-						std::move(guard_local_planner)));
-		planner_state_machine->start();
+		if (!initLocalPlannerStateMachine(nh, sync_state_machine))
+		{
+			return false;
+		}
+		sync_state_machine->setCbAllStateMessageReceived(
+				std::bind(&TebHotaruLocalPlanner::startAfterAllMessagesReceived, this));
 		return true;
+	}
+
+	void startAfterAllMessagesReceived()
+	{
+		planner_state_machine->start();
 	}
 
 	virtual void localPlanCycle() override
@@ -225,6 +183,24 @@ public:
 
 	}
 
+	virtual void relayCycle() override
+	{
+		if (starting_plan_points.size()>0)
+		{
+			pubsubstate->msg_final_waypoints.waypoints.clear();
+			for (unsigned int i = 0; i < starting_plan_points.size(); i++)
+			{
+				autoware_msgs::Waypoint wp;
+				wp.pose.pose = _full_trajectory[i].pose;
+				//wp.twist.twist = v.velocity;
+				//wp.twist = original_velocity_profile[i];
+				wp.twist.twist.linear.x = 10/3.6;
+				pubsubstate->msg_final_waypoints.waypoints.push_back(
+						std::move(wp));
+			}
+		}
+	}
+
 	void visualizeTeb()
 	{
 
@@ -233,8 +209,15 @@ public:
 
 	void mainThread()
 	{
-		localPlanCycle();
-		visualizeTeb();
+		if (planner_state_machine->isReplanning())
+		{
+			localPlanCycle();
+			visualizeTeb();
+		}
+		else
+		{
+
+		}
 	}
 
 

@@ -17,6 +17,7 @@ void SyncStateMachine::handle_start()
 		case SyncStateMachine_States::PSEUDO_START:
 		{
 			state = SyncStateMachine_States::WAITING;
+			start_f();
 			break;
 		}
 	}
@@ -74,6 +75,7 @@ void SyncStateMachine::reactSig_AllStateMessagesReceived(std::shared_ptr<Abstrac
 			if (guard_def->guard_StartedState())
 			{
 				state = SyncStateMachine_States::STARTED;
+				cbAllStateMessageReceived();
 				comm_graph_notifier->notifyCommunicationGraph(sig);
 			}
 			break;

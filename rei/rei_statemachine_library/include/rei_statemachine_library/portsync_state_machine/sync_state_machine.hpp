@@ -31,6 +31,8 @@ enum class SyncStateMachine_States {
  */
 class Interface_ReactSyncSignals
 {
+protected:
+
 public:
 	virtual ~Interface_ReactSyncSignals() = 0;
 	// React to all state messages received signal
@@ -69,10 +71,8 @@ protected:
 
 	virtual void handle_startError() override;
 
-
-
-
-
+	//
+	std::function<void(void)> cbAllStateMessageReceived;
 public:
 	SyncStateMachine(
 			std::shared_ptr<Interface_CommunicationGraphNotifier> graph_notifier,
@@ -81,6 +81,11 @@ public:
 	bool isWaiting() const
 	{
 		return state == SyncStateMachine_States::WAITING;
+	}
+
+	void setCbAllStateMessageReceived(std::function<void(void)> cb)
+	{
+		cbAllStateMessageReceived = cb;
 	}
 
 	bool isStarted() const
@@ -98,6 +103,8 @@ public:
 	virtual void reactSig_AllStateMessagesReceived(std::shared_ptr<AbstractSignalInterface> sig) override;
 	virtual void reactSig_MessageTimeout(std::shared_ptr<AbstractSignalInterface> sig) override;
 	virtual void reactSig_TerminationRequest(std::shared_ptr<AbstractSignalInterface> sig) override;
+
+
 };
 
 }
