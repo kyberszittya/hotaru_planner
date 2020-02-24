@@ -50,16 +50,16 @@ public:
 class Abstract_RosPlanner
 {
 protected:
-	ros::NodeHandle nh;
 	ros::Subscriber sub_base_waypoints;
 	ros::Subscriber sub_current_pose;
 	ros::Subscriber sub_current_velocity;
 	// Subscribe to environment map
 	ros::Subscriber sub_grid_map;
 	// States
-	std::unique_ptr<hotaru::PlannerKinematicState> kinematic_state;
-	std::unique_ptr<hotaru::PlannerPerceptionState> perception_state;
+	//std::unique_ptr<hotaru::PlannerKinematicState> kinematic_state;
+	//std::unique_ptr<hotaru::PlannerPerceptionState> perception_state;
 
+	/*
 	virtual void initRos()
 	{
 		sub_current_pose = nh.subscribe("current_pose", 10,
@@ -68,14 +68,16 @@ protected:
 				&Abstract_RosPlanner::subCurrentVelocity, this);
 
 	}
+	*/
 
 public:
 	virtual ~Abstract_RosPlanner() = 0;
 
-	Abstract_RosPlanner(ros::NodeHandle& nh): nh(nh){}
+	//Abstract_RosPlanner(ros::NodeHandle& nh): nh(nh){}
 
-	virtual bool initNode() = 0;
+	//virtual bool initNode() = 0;
 
+	/*
 	virtual bool init()
 	{
 		if (!allocateState())
@@ -91,7 +93,9 @@ public:
 		}
 		return true;
 	}
+	*/
 
+	/*
 	void subCurrentPose(const geometry_msgs::PoseStamped::ConstPtr& msg)
 	{
 		kinematic_state->pose = *msg;
@@ -99,7 +103,9 @@ public:
 		kinematic_state->tf_proj_pose[0] = msg->pose.position.x;
 		kinematic_state->tf_proj_pose[1] = msg->pose.position.y;
 	}
+	*/
 
+	/*
 	bool allocateState()
 	{
 		kinematic_state = std::unique_ptr<PlannerKinematicState>(new PlannerKinematicState());
@@ -114,11 +120,13 @@ public:
 		}
 		return true;
 	}
-
+	*/
+	/*
 	void subCurrentVelocity(const geometry_msgs::TwistStamped::ConstPtr& msg)
 	{
 		kinematic_state->twist = *msg;
 	}
+	*/
 
 
 };
@@ -126,48 +134,58 @@ public:
 class Abstract_RosLocalPlanner: public Abstract_RosPlanner
 {
 protected:
+	/*
 	ros::Subscriber sub_base_waypoints;
 	ros::Publisher pub_final_waypoints;
+	*/
 	std::vector<geometry_msgs::PoseStamped> starting_plan_points;
 	std::vector<geometry_msgs::TwistStamped> original_velocity_profile;
 	autoware_msgs::Lane final_waypoints;
 	unsigned int number_of_trajectory_points;
 
+	/*
 	virtual void initRos()
 	{
 		Abstract_RosPlanner::initRos();
+
 		sub_base_waypoints = nh.subscribe("base_waypoints", 10,
 						&Abstract_RosLocalPlanner::subBaseWaypoints, this);
 		pub_final_waypoints = nh.advertise<autoware_msgs::Lane>("final_waypoints", 1);
-	}
 
-	void reconstructStartingPlanPoints(const autoware_msgs::Lane::ConstPtr& msg)
+	}
+	*/
+
+	void reconstructStartingPlanPoints(const autoware_msgs::Lane& msg,
+			geometry_msgs::PoseStamped pose)
 	{
 		starting_plan_points.clear();
 		original_velocity_profile.clear();
-		if (msg->waypoints.size() >= 2)
+		if (msg.waypoints.size() >= 2)
 		{
 			number_of_trajectory_points = 1;
-			starting_plan_points.push_back(kinematic_state->pose);
-			for (int i = 1; i < msg->waypoints.size(); i++)
+			starting_plan_points.push_back(std::move(pose));
+			for (int i = 1; i < msg.waypoints.size(); i++)
 			{
-				starting_plan_points.push_back(msg->waypoints[i].pose);
-				original_velocity_profile.push_back(msg->waypoints[i].twist);
+				starting_plan_points.push_back(msg.waypoints[i].pose);
+				original_velocity_profile.push_back(msg.waypoints[i].twist);
 				number_of_trajectory_points++;
 			}
 
 		}
 	}
 public:
-	Abstract_RosLocalPlanner(ros::NodeHandle& nh): Abstract_RosPlanner(nh), number_of_trajectory_points(0){}
+	//Abstract_RosLocalPlanner(ros::NodeHandle& nh): Abstract_RosPlanner(nh), number_of_trajectory_points(0){}
+	Abstract_RosLocalPlanner(): number_of_trajectory_points(0){}
 
 	virtual void executePlannerMethods() = 0;
 
+	/*
 	void subBaseWaypoints(const autoware_msgs::Lane::ConstPtr& msg)
 	{
 		executePlannerMethods();
 		reconstructStartingPlanPoints(msg);
 	}
+	*/
 
 	virtual void localPlanCycle() = 0;
 
@@ -180,23 +198,26 @@ class Abstract_RosGlobalPlanner: public Abstract_RosPlanner
 protected:
 	ros::Subscriber sub_current_goal;
 
+	/*
 	virtual void initRos()
 	{
 		Abstract_RosPlanner::initRos();
 		sub_current_goal = nh.subscribe("current_goal", 10,
 						&Abstract_RosGlobalPlanner::subGoal, this);
 	}
-
+	*/
 public:
-	Abstract_RosGlobalPlanner(ros::NodeHandle& nh): Abstract_RosPlanner(nh){}
+	Abstract_RosGlobalPlanner(): Abstract_RosPlanner(){}
 
 
+	/*
 	void subGoal(const geometry_msgs::PoseStamped::ConstPtr& msg)
 	{
 		kinematic_state->goal = *msg;
 		tf::poseStampedMsgToTF(kinematic_state->goal, kinematic_state->tf_goal);
 		std::cout << *msg << '\n';
 	}
+	*/
 };
 
 }

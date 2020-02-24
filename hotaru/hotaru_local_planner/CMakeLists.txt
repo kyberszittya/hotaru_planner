@@ -19,6 +19,9 @@ find_package(catkin REQUIRED COMPONENTS
   std_msgs
   visualization_msgs
   teb_local_planner
+  rei_planner_signals
+  rei_monitoring_msgs
+  rei_statemachine_library
   tf
 )
 
@@ -146,7 +149,9 @@ include_directories(
 ## Declare a C++ executable
 ## With catkin_make all packages are built within a single CMake context
 ## The recommended prefix ensures that target names across packages don't collide
-add_executable(${PROJECT_NAME}_node src/hotaru_local_planner_node.cpp)
+add_executable(${PROJECT_NAME}_node src/hotaru_local_planner_node.cpp
+	src/hotaru_local_planner_impl.cpp
+)
 
 ## Rename C++ executable without prefix
 ## The above recommended prefix causes long target names, the following renames the
@@ -214,6 +219,18 @@ target_link_libraries(${PROJECT_NAME}_node
 # if(TARGET ${PROJECT_NAME}-test)
 #   target_link_libraries(${PROJECT_NAME}-test ${PROJECT_NAME})
 # endif()
+
+# INTEGRATION tests
+if(CATKIN_ENABLE_TESTING)
+  find_package(rostest REQUIRED)
+  add_rostest_gtest(test_hotaru_local_planner_basic
+    test-launch/test-local-planner-basic.launch
+    test/test_basic_operation.cpp
+  )
+  target_link_libraries(test_hotaru_local_planner_basic ${catkin_LIBRARIES})
+  
+  
+endif()
 
 ## Add folders to be run by python nosetests
 # catkin_add_nosetests(test)

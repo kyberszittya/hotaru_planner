@@ -17,6 +17,8 @@
 #include <std_msgs/Header.h>
 #include <ros/ros.h>
 
+#include <rei_statemachine_library/testing/test_common.hpp>
+
 
 namespace rei
 {
@@ -26,7 +28,7 @@ constexpr unsigned long nsecs_l = 1000000000;
 class RosSyncStateMachine
 {
 private:
-	std::string name;
+	const std::string name;
 	std::shared_ptr<ros::NodeHandle> nh;
 protected:
 	std::shared_ptr<PortStateMonitorRos> port_state_monitor;
@@ -34,20 +36,41 @@ protected:
 	std::shared_ptr<RosCommunicationGraphNotifier> notifier;
 public:
 	RosSyncStateMachine(std::shared_ptr<ros::NodeHandle> nh,
-			const std::string& name): name(name), nh(nh){
+			const std::string name): nh(nh), name(name){
 
 	}
 
-	void initialize()
+
+
+	bool initialize()
 	{
+		ROS_INFO_STREAM("Initializing sync_state_machine: " << name);
 		port_state_monitor= std::shared_ptr<PortStateMonitorRos>(new PortStateMonitorRos());
+		if (port_state_monitor == nullptr)
+		{
+			return false;
+		}
 		std::unique_ptr<RosSyncStateGuard> guard(new RosSyncStateGuard());
 		guard->setMonitor(port_state_monitor);
 		notifier = std::shared_ptr<RosCommunicationGraphNotifier>(
 				new RosCommunicationGraphNotifier(name, nh));
-		sync_state_machine.reset(new SyncStateMachine(notifier,
-				std::move(guard)));
+		if (notifier == nullptr)
+		{
+			return false;
+		}
+		notifier->initialize();
+
+		sync_state_machine = std::shared_ptr<SyncStateMachine>(
+				new SyncStateMachine(notifier,
+						std::move(guard)));
+		if (sync_state_machine == nullptr)
+		{
+			ROS_ERROR("SYNC STATE MACHINE uninitialized");
+			return false;
+		}
+		port_state_monitor->setSyncStateMachine(sync_state_machine);
 		sync_state_machine->start();
+		return true;
 	}
 
 	void addTopicGuard(std::string name, double estimated_frequency)
@@ -56,10 +79,19 @@ public:
 				static_cast<unsigned long>(estimated_frequency*nsecs_l));
 	}
 
-	void stepMessageTopic(std::string name, std_msgs::Header& header)
+	void stepMessageTopic(std::string name, const std_msgs::Header& header)
 	{
 		port_state_monitor->updateTimestamp(name, header.stamp.toNSec());
+	}
 
+	void step()
+	{
+		sync_state_machine->stepstatemachine();
+	}
+
+	bool isReady()
+	{
+		return sync_state_machine->isStarted();
 	}
 
 };

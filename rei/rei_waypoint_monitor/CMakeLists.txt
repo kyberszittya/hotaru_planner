@@ -14,6 +14,13 @@ find_package(catkin REQUIRED COMPONENTS
   std_msgs
 )
 
+IF(CMAKE_BUILD_TYPE MATCHES Coverage)
+  MESSAGE("Coverage mode! ---         ----")
+  ADD_DEFINITIONS(--coverage)
+  set(CMAKE_SHARED_LINKER_FLAGS "--coverage")
+  set(CMAKE_EXE_LINKER_FLAGS "--coverage")
+ENDIF(CMAKE_BUILD_TYPE MATCHES Coverage)
+
 ## System dependencies are found with CMake's conventions
 # find_package(Boost REQUIRED COMPONENTS system)
 

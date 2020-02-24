@@ -31,7 +31,7 @@ SyncStateMachine::SyncStateMachine(
 			std::shared_ptr<Interface_CommunicationGraphNotifier> graph_notifier,
 			std::unique_ptr<Interface_GuardSyncStates> guard_syncstate):
 		AbstractStateMachine(SyncStateMachine_States::PSEUDO_START,
-						std::move(graph_notifier),
+						graph_notifier,
 						std::move(guard_syncstate))
 {
 

@@ -7,6 +7,8 @@
 
 #include <rei_statemachine_library/port_monitor/port_monitor.hpp>
 
+#include <iostream>
+
 
 namespace rei
 {
@@ -30,31 +32,44 @@ bool PortMonitorState::isFresh() const
 	return state == PortMonitorState_State::FRESH;
 }
 
-void PortStateMonitor::updateTimestamp(std::string portmonitorstate, unsigned long long timestamp)
+void PortStateMonitor::updateTimestamp(std::string portmonitorstate, const unsigned long long timestamp)
 {
 	updateTimestamp(signal_timestamps[portmonitorstate], timestamp);
 }
 
 
 
-void PortStateMonitor::checkStateTimestamp(std::shared_ptr<PortMonitorState> portmonitorstate, unsigned long long timestamp)
+void PortStateMonitor::checkStateTimestamp(std::shared_ptr<PortMonitorState> portmonitorstate, const unsigned long long timestamp)
 {
+	// TODO: Kekeke, this does occur, let's investigate it further
+	unsigned long long dt;
+	if (portmonitorstate->timestamp > timestamp)
+	{
+		dt = 0;
+	}
+	else
+	{
+		dt = timestamp - portmonitorstate->timestamp;
+	}
 	switch (portmonitorstate->state)
 	{
 		case PortMonitorState_State::FRESH:
 		{
-			if (timestamp - portmonitorstate->timestamp >= portmonitorstate->freq)
+			if (dt >= portmonitorstate->freq)
 			{
 				portmonitorstate->state = PortMonitorState_State::TIMEOUT;
+				react_TimeOut(timestamp);
 			}
 			break;
 		}
 		case PortMonitorState_State::TIMEOUT:
 		{
 			// TODO: I have a strange feeling that it will not work as expected, revise it!
-			if (timestamp - portmonitorstate->timestamp < portmonitorstate->freq)
+
+			if (dt < portmonitorstate->freq)
 			{
 				portmonitorstate->state = PortMonitorState_State::FRESH;
+				react_Fresh(timestamp);
 			}
 			break;
 		}
@@ -62,7 +77,7 @@ void PortStateMonitor::checkStateTimestamp(std::shared_ptr<PortMonitorState> por
 
 }
 
-void PortStateMonitor::checkAllStatesTimestamp(unsigned long long timestamp)
+void PortStateMonitor::checkAllStatesTimestamp(const unsigned long long timestamp)
 {
 	for (const auto& v: signal_timestamps)
 	{
@@ -70,18 +85,20 @@ void PortStateMonitor::checkAllStatesTimestamp(unsigned long long timestamp)
 	}
 }
 
-void PortStateMonitor::updateTimestamp(std::shared_ptr<PortMonitorState> portmonitorstate, unsigned long long timestamp)
+void PortStateMonitor::updateTimestamp(std::shared_ptr<PortMonitorState> portmonitorstate, const unsigned long long timestamp)
 {
+
+	checkAllStatesTimestamp(timestamp);
+	portmonitorstate->timestamp = timestamp;
 	switch (portmonitorstate->state)
 	{
 		case PortMonitorState_State::UNINITIALIZED:
 		{
 			portmonitorstate->state = PortMonitorState_State::FRESH;
+			react_Fresh(timestamp);
 			break;
 		}
 	}
-	checkAllStatesTimestamp(timestamp);
-	portmonitorstate->timestamp = timestamp;
 }
 
 bool PortStateMonitor::isReady()

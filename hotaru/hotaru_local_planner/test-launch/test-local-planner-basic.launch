@@ -1,0 +1,5 @@
+<launch>
+	<node pkg="hotaru_local_planner" type="hotaru_local_planner_node" name="hotaru_teb_local_planner" />
+	<node pkg="rei_perception_monitor" type="rei_obstacle_detector_node" name="rei_obstacle_detector" />
+	<test pkg="rei_statemachine_library" type="test_sync_simple_ros" test-name="test_sync_simple_ros" />
+</launch>

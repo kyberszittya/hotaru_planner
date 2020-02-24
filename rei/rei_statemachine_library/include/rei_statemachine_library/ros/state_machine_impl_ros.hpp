@@ -19,32 +19,38 @@
 namespace rei
 {
 
-class PortStateMonitorRos: public rei::PortStateMonitor
+class PortStateMonitorRos: public PortStateMonitor
 {
 private:
 	std::shared_ptr<SyncStateMachine> sm;
+	std::mutex mtx_sm;
 public:
+	PortStateMonitorRos():  PortStateMonitor(){}
+
 	virtual void react_TimeOut(unsigned long long timestamp)
 	{
 		using namespace rei::sync_signals;
-		std::shared_ptr<SignalMessageTimeOut> sig_(new SignalMessageTimeOut(timestamp));
+		std::shared_ptr<AbstractSignalInterface> sig_(new SignalMessageTimeOut(timestamp));
 		sm->propagateSignal(sig_);
+		sm->stepstatemachine();
 	}
 
 	virtual void react_Fresh(unsigned long long timestamp)
 	{
-		using namespace rei::sync_signals;
-		std::shared_ptr<SignalMessageTimeOut> sig_(new SignalMessageTimeOut(timestamp));
 		if (isReady())
 		{
+			using namespace rei::sync_signals;
+			mtx_sm.lock();
+			std::shared_ptr<AbstractSignalInterface> sig_(new SignalAllStateMessagesReceived(timestamp));
 			sm->propagateSignal(sig_);
+			sm->stepstatemachine();
+			mtx_sm.unlock();
 		}
 	}
 
 	void setSyncStateMachine(std::shared_ptr<SyncStateMachine> sm)
 	{
 		this->sm = sm;
-
 	}
 };
 

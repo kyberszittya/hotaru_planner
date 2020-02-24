@@ -130,6 +130,8 @@ add_library(${PROJECT_NAME}
   src/abstract_state_machine.cpp
   src/port_monitor/port_state_monitor.cpp
   src/sync_state_machine/sync_state_machine.cpp
+  # ROS specific stuff
+  src/sync_state_machine/ros/ros_sync_utils.cpp
 )
 
 ## Add cmake target dependencies of the library
@@ -140,7 +142,10 @@ add_library(${PROJECT_NAME}
 ## Declare a C++ executable
 ## With catkin_make all packages are built within a single CMake context
 ## The recommended prefix ensures that target names across packages don't collide
+# Tester
 add_executable(example_sync_node src/sync_state_machine/ros/example_ros_state_machine.cpp)
+# Tester pub
+add_executable(example_sync_single_publisher src/sync_state_machine/ros/example_test_publisher.cpp)
 
 ## Rename C++ executable without prefix
 ## The above recommended prefix causes long target names, the following renames the
@@ -158,6 +163,9 @@ target_link_libraries(${PROJECT_NAME}
 )
 
 target_link_libraries(example_sync_node
+  ${catkin_LIBRARIES} ${PROJECT_NAME}
+)
+target_link_libraries(example_sync_single_publisher
   ${catkin_LIBRARIES} ${PROJECT_NAME}
 )
 #############
@@ -213,6 +221,7 @@ catkin_add_gtest(statemachine-abstractdef-test test/test_abstract_definitions/te
 target_link_libraries(statemachine-abstractdef-test ${PROJECT_NAME})
 catkin_add_gtest(statemachine-portstatemonitor-test test/port_state_machine/test_port_state_machine.cpp)
 target_link_libraries(statemachine-portstatemonitor-test ${PROJECT_NAME})
+## INTEGRATION TESTS
 
 if(CATKIN_ENABLE_TESTING)
   find_package(rostest REQUIRED)
@@ -220,6 +229,14 @@ if(CATKIN_ENABLE_TESTING)
     test-launch/rosintegration/ros_sync_state_machine.launch
     test/ros_integration_tests/test_ros_integration_tests.cpp
   )
+  target_link_libraries(test_sync_simple_ros ${PROJECT_NAME})
+  # Timeout
+  #add_rostest_gtest(test_sync_simple_ros_timeout
+  #  test-launch/rosintegration/ros_sync_state_machine_timeout.launch
+  #  test/ros_integration_tests/test_ros_integration_timeout.cpp
+  #)
+  #target_link_libraries(test_sync_simple_ros_timeout ${PROJECT_NAME})
+  
 endif()
 
 # if(TARGET ${PROJECT_NAME}-test)

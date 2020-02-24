@@ -34,7 +34,7 @@ public:
 
 	bool init()
 	{
-		pub_detected_obstacles = nh.advertise<visualization_msgs::MarkerArray>("/poly_detected_obstacles", 10);
+		pub_detected_obstacles = nh.advertise<visualization_msgs::MarkerArray>("/filtered_obstacles", 10);
 		sub_current_pose = nh.subscribe("current_pose", 10, &ObstacleGridMapMonitor::cbCurrentPose, this);
 		sub_grid_map = nh.subscribe("grid_map", 1, &ObstacleGridMapMonitor::subGridMap, this);
 

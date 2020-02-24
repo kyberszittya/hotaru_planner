@@ -10,33 +10,39 @@
 
 #include <rei_statemachine_library/abstract_statemachine_definitions.hpp>
 #include <ros/ros.h>
-#include <rei_monitoring_msgs/ReiMonitorSignal.h>
+#include <rei_monitoring_msgs/ReiStateMachineTransitionSignal.h>
 
 namespace rei
 {
+
+std::string translateSignalToName(std::shared_ptr<AbstractSignalInterface> _sig);
+
 
 class RosCommunicationGraphNotifier: public Interface_CommunicationGraphNotifier
 {
 private:
 	std::string node_name;
 	std::shared_ptr<ros::NodeHandle> nh;
-	rei_monitoring_msgs::ReiMonitorSignal msg_sig;
+	rei_monitoring_msgs::ReiStateMachineTransitionSignal msg_sig;
 	ros::Publisher pub_sig_id;
 public:
-	RosCommunicationGraphNotifier(std::string& node_name,
+	RosCommunicationGraphNotifier(std::string node_name,
 			std::shared_ptr<ros::NodeHandle> nh):
-		nh(nh) {}
+				node_name(node_name), nh(nh) {}
 
 	void initialize()
 	{
-		pub_sig_id = nh->advertise<rei_monitoring_msgs::ReiMonitorSignal>(
+		ROS_INFO_STREAM("Initializing ROS communication notifier: "
+				<< node_name+"/sync_state_machine/current_state");
+		pub_sig_id = nh->advertise<rei_monitoring_msgs::ReiStateMachineTransitionSignal>(
 				node_name+"/sync_state_machine/current_state", 10);
 	}
 
 
 	virtual void notifyCommunicationGraph(std::shared_ptr<AbstractSignalInterface> sig)
 	{
-		msg_sig.sig_name = "sync_signal";
+		msg_sig.header.stamp = ros::Time::now();
+		msg_sig.signal_name = translateSignalToName(sig);
 		msg_sig.sig_id = sig->getId();
 		pub_sig_id.publish(msg_sig);
 	}

@@ -65,9 +65,6 @@ public:
 	bool isReady();
 
 
-
-
-
 };
 
 }

@@ -12,6 +12,8 @@
 #include <memory>
 #include <exception>
 #include <sstream>
+#include <mutex>
+
 
 #include "abstract_signal_definitions.hpp"
 
@@ -98,6 +100,7 @@ class StateMachineRunner
 protected:
 	std::queue<std::shared_ptr<AbstractSignalInterface>> signal_buffer;
 	std::shared_ptr<Interface_CommunicationGraphNotifier> comm_graph_notifier;
+
 	virtual ~StateMachineRunner();
 	virtual bool _isAllocated() const = 0;
 	virtual void handle_start() = 0;
@@ -129,6 +132,7 @@ protected:
 				StateMachineRunner(graph_notifier),
 				state(state),
 				guard_def(std::move(guard_def)){}
+
 
 	virtual bool _isAllocated() const
 	{

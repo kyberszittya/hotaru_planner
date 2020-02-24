@@ -7,7 +7,7 @@
 
 
 #include <rei_statemachine_library/ros/ros_sync_state_machine.hpp>
-#include <std_msgs/Float64.h>
+#include <geometry_msgs/PoseStamped.h>
 #include <std_msgs/Header.h>
 
 class SimpleSubscriber
@@ -31,12 +31,9 @@ public:
 	}
 
 
-	void cbRandomVehicleCommand(const std_msgs::Float64::ConstPtr& msg)
+	void cbRandomVehicleCommand(const geometry_msgs::PoseStamped::ConstPtr& msg)
 	{
-		std_msgs::Header h;
-		h.stamp = ros::Time::now();
-		sm->stepMessageTopic("/random_vehicle_command", h);
-
+		sm->stepMessageTopic("/random_vehicle_command", msg->header);
 	}
 };
 
@@ -47,10 +44,24 @@ int main(int argc, char** argv)
 	std::shared_ptr<ros::NodeHandle> nh(new ros::NodeHandle);
 	std::shared_ptr<RosSyncStateMachine> sm(new RosSyncStateMachine(
 			nh, "simple_sync_state"));
-	SimpleSubscriber simple_sub(nh, sm);
-	sm->addTopicGuard("/random_vehicle_command", 10);
-	sm->initialize();
-
+	if (sm->initialize())
+	{
+		SimpleSubscriber simple_sub(nh, sm);
+		sm->addTopicGuard("/random_vehicle_command", 1.5);
+		ROS_INFO("Initialized simple sync state machine");
+		simple_sub.init();
+		ros::Rate r(20.0);
+		while (ros::ok())
+		{
+			ros::spinOnce();
+			r.sleep();
+		}
+	}
+	else
+	{
+		ROS_ERROR("Unable to initialize state machine");
+		return -1;
+	}
 	return 0;
 }
 
