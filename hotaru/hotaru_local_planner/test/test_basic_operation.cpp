@@ -14,14 +14,20 @@
 #include <rei_monitoring_msgs/ReiStateMachineTransitionSignal.h>
 #include <grid_map_ros/grid_map_ros.hpp>
 #include <grid_map_ros/PolygonRosConverter.hpp>
+#include <tf2_ros/transform_broadcaster.h>
 
 // SKULL ERROR DISMISSED: this would not work any other way
 std::shared_ptr<ros::NodeHandle> nh;
 
-constexpr int N = 40;
 constexpr double XGoal = 25.0;
 
-TEST(HotaruLocalPlannerTest, BasicLocalPlannerTest)
+struct PlanarOffset
+{
+	double x;
+	double y;
+};
+
+void testPlanningScenario(const PlanarOffset& obstacle_offset, unsigned int N)
 {
 	ros::Publisher publisher_grid_map = nh->advertise<grid_map_msgs::GridMap>("grid_map", 1, true);
 	ros::Publisher publisher_pose = nh->advertise<geometry_msgs::PoseStamped>("current_pose", 1, true);
@@ -41,21 +47,29 @@ TEST(HotaruLocalPlannerTest, BasicLocalPlannerTest)
 	pose.pose.orientation.w = 1.0;
 	// Setup velocity
 	geometry_msgs::TwistStamped velocity;
-	velocity.header.frame_id = "map";
+	velocity.header.frame_id = "base_link";
 	velocity.twist.linear.x = 10;
 	velocity.twist.linear.y = 0;
 	velocity.twist.linear.z = 0;
 	velocity.twist.angular.x = 0;
 	velocity.twist.angular.y = 0;
 	velocity.twist.angular.z = 0;
-
+	// Setup transform
+	tf2_ros::TransformBroadcaster br;
+	geometry_msgs::TransformStamped transformStamped;
+	transformStamped.header.frame_id = "map";
+	transformStamped.child_frame_id = "base_link";
+	transformStamped.transform.translation.x = 0.0;
+	transformStamped.transform.translation.y = 0.0;
+	transformStamped.transform.translation.z = 0.0;
+	transformStamped.transform.rotation.w = 1.0;
 	// Base waypoints
 	autoware_msgs::Lane l;
 	l.header.frame_id = "map";
-
 	for (int i = 0; i <= N; i++)
 	{
 		autoware_msgs::Waypoint wp1;
+		wp1.pose.header.frame_id = "map";
 		wp1.pose.pose.position.x = i*(XGoal/N);
 		wp1.pose.pose.position.y = 0.0;
 		wp1.pose.pose.position.z = 0.0;
@@ -75,7 +89,7 @@ TEST(HotaruLocalPlannerTest, BasicLocalPlannerTest)
 		map.getPosition(*it, position);
 		map.at("elevation", *it) = 0.0;
 	}
-	grid_map::Position pos_obstacle(10.0, 0.0);
+	grid_map::Position pos_obstacle(obstacle_offset.x, obstacle_offset.y);
 	grid_map::Index index_obstacle;
 	map.getIndex(pos_obstacle, index_obstacle);
 	grid_map::Position rel_obstacle_pose;
@@ -87,6 +101,7 @@ TEST(HotaruLocalPlannerTest, BasicLocalPlannerTest)
 	for (unsigned int i = 0; i < 100; i++)
 	{
 		ros::Time time = ros::Time::now();
+		transformStamped.header.stamp = time;
 		pose.header.stamp = time;
 		velocity.header.stamp = time;
 		l.header.stamp = time;
@@ -94,9 +109,28 @@ TEST(HotaruLocalPlannerTest, BasicLocalPlannerTest)
 		publisher_pose.publish(pose);
 		publisher_velocity.publish(velocity);
 		publisher_base_waypoints.publish(l);
+		br.sendTransform(transformStamped);
 		publisher_grid_map.publish(message);
+		//
+
 		r.sleep();
 	}
+}
+
+TEST(HotaruLocalPlannerTest, BasicLocalPlannerTest)
+{
+	PlanarOffset planar_offset;
+	planar_offset.x = 10.0;
+	planar_offset.y = 0.0;
+	testPlanningScenario(planar_offset, 20);
+}
+
+TEST(HotaruLocalPlannerTest, BasicLocalPlannerTestObstacleNotClose)
+{
+	PlanarOffset planar_offset;
+	planar_offset.x = 10.0;
+	planar_offset.y = -3.0;
+	testPlanningScenario(planar_offset, 40);
 }
 
 int main(int argc, char **argv)

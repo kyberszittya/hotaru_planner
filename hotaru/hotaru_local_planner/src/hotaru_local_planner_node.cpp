@@ -48,7 +48,7 @@ public:
 
 	virtual void executeSynchWithPose() override
 	{
-		ROS_INFO("synchronize");
+		//ROS_INFO("synchronize");
 	}
 
 	virtual void executeUpdateObstacles() override
@@ -86,6 +86,7 @@ public:
 					pubsubstate->msg_sub_replan_request_sig.header.stamp.toNSec()
 				)
 			);
+
 		}
 		else
 		{
@@ -216,8 +217,9 @@ public:
 		}
 		else
 		{
-
+			relayCycle();
 		}
+		publishFinal_waypoints();
 	}
 
 
