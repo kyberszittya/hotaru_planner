@@ -17,6 +17,8 @@
 #include <hotaru_common/state_machine/trajectory_signal.hpp>
 
 
+
+
 class TebHotaruLocalPlanner: public hotaru::InterfaceRos_Hotarulocalplanner,
 	public hotaru::Abstract_RosLocalPlanner
 {
@@ -30,7 +32,6 @@ protected:
 	std::shared_ptr<teb_local_planner::ViaPointContainer> via_points;
 	// Starting plan as pose stamped
 	std::vector<teb_local_planner::TrajectoryPointMsg> _full_trajectory;
-
 
 
 
@@ -48,6 +49,7 @@ public:
 
 	virtual void executeSynchWithPose() override
 	{
+		syncTfPose();
 		//ROS_INFO("synchronize");
 	}
 
@@ -103,18 +105,18 @@ public:
 
 	virtual bool initNode() override
 	{
+
 		using namespace teb_local_planner;
-		conf.map_frame = "map";
+		conf.map_frame = "base_link";
 		conf.robot.wheelbase = 2.7;
 		conf.robot.min_turning_radius = 10.86;
 		conf.optim.weight_kinematics_forward_drive = 10;
-		conf.optim.weight_viapoint = 50;
-		conf.optim.weight_obstacle = 2000.0;
+		conf.optim.weight_obstacle = 20.0;
 		conf.obstacles.min_obstacle_dist = 0.2;
 		conf.robot.max_vel_x_backwards = 0.0;
 		conf.trajectory.dt_ref = 0.5;
 		conf.hcp.enable_multithreading = true;
-		conf.trajectory.max_samples = 40;
+
 		conf.trajectory.allow_init_with_backwards_motion = false;
 
 		viz = TebVisualizationPtr(new TebVisualization(*nh, conf));
@@ -134,10 +136,10 @@ public:
 			new TebOptimalPlanner(
 				conf,
 				obstacle_container.get(),
-				robot_footprint,
-				viz,
+				robot_footprint, viz,
 				via_points.get()
-				));
+			)
+		);
 		if (!initLocalPlannerStateMachine(nh, sync_state_machine))
 		{
 			return false;
@@ -152,12 +154,16 @@ public:
 		planner_state_machine->start();
 	}
 
+
+
 	virtual void localPlanCycle() override
 	{
+
+		//
 		if (starting_plan_points.size()>0)
 		{
 			//m_obstacle_update.lock();
-			conf.trajectory.max_samples = number_of_trajectory_points;
+			//conf.trajectory.max_samples = number_of_trajectory_points*2;
 			if (planner->plan(starting_plan_points))
 			{
 				planner->getFullTrajectory(_full_trajectory);
@@ -167,6 +173,12 @@ public:
 					pubsubstate->msg_final_waypoints.waypoints.clear();
 					for (unsigned int i = 0; i < _full_trajectory.size(); i++)
 					{
+						geometry_msgs::Pose _pose_0;
+						tf2::doTransform(
+								pubsubstate->msg_sub_base_waypoints.waypoints[i].pose.pose,
+								_pose_0,
+								transform_current_pose
+						);
 						autoware_msgs::Waypoint wp;
 						wp.pose.pose = _full_trajectory[i].pose;
 						//wp.twist.twist = v.velocity;
@@ -189,7 +201,7 @@ public:
 		if (starting_plan_points.size()>0)
 		{
 			pubsubstate->msg_final_waypoints.waypoints.clear();
-			for (unsigned int i = 0; i < starting_plan_points.size(); i++)
+			for (unsigned int i = 0; i < _full_trajectory.size(); i++)
 			{
 				autoware_msgs::Waypoint wp;
 				wp.pose.pose = _full_trajectory[i].pose;
@@ -233,7 +245,7 @@ int main(int argc, char** argv)
 	if (teb_planner.init())
 	{
 		ROS_INFO("Starting local planner component");
-		ros::Rate r(10.0);
+		ros::Rate r(40.0);
 		while(ros::ok())
 		{
 			teb_planner.mainThread();

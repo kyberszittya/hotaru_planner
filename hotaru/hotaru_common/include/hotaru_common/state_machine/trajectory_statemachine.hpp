@@ -12,6 +12,7 @@
 #include <rei_statemachine_library/abstract_statemachine_definitions.hpp>
 #include "trajectory_signal.hpp"
 
+
 namespace hotaru
 {
 
@@ -130,6 +131,7 @@ public:
 		{
 			case LocalPlannerStateMachine_States::RELAY:
 			{
+
 				if (guard_def->guard_Relay2ReplanningState())
 				{
 					state = LocalPlannerStateMachine_States::REPLANNING;

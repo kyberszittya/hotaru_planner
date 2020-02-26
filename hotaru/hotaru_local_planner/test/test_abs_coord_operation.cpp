@@ -1,7 +1,7 @@
 /*
- * test_basic_operation.cpp
+ * test_abs_coord_operation.cpp
  *
- *  Created on: Feb 23, 2020
+ *  Created on: Feb 25, 2020
  *      Author: kyberszittya
  */
 
@@ -9,30 +9,19 @@
 #include "test_common.hpp"
 
 // SKULL ERROR DISMISSED: this would not work any other way
+//std::shared_ptr<ros::NodeHandle> nh;
 
 
 
-
-TEST(HotaruLocalPlannerTest, BasicLocalPlannerTest)
+TEST(HotaruLocalPlannerTest, BasicLocalPlannerGeoInfTest)
 {
 	PlanarOffset planar_offset;
 	planar_offset.x = 10.0;
 	planar_offset.y = 0.0;
 	PlanarOffset pos_offset;
-	pos_offset.x = 0.0;
-	pos_offset.y = 0.0;
+	pos_offset.x = 612987.1;
+	pos_offset.y = 546120.5;
 	testPlanningScenario(planar_offset, pos_offset, 20);
-}
-
-TEST(HotaruLocalPlannerTest, BasicLocalPlannerTestObstacleNotClose)
-{
-	PlanarOffset planar_offset;
-	planar_offset.x = 10.0;
-	planar_offset.y = -3.0;
-	PlanarOffset pos_offset;
-	pos_offset.x = 0.0;
-	pos_offset.y = 0.0;
-	testPlanningScenario(planar_offset, pos_offset, 40);
 }
 
 
@@ -43,4 +32,3 @@ int main(int argc, char **argv)
   testing::InitGoogleTest(&argc, argv);
   return RUN_ALL_TESTS();
 }
-

@@ -229,6 +229,11 @@ if(CATKIN_ENABLE_TESTING)
   )
   target_link_libraries(test_hotaru_local_planner_basic ${catkin_LIBRARIES})
   
+  add_rostest_gtest(test_hotaru_local_planner_abs_pos_basic
+    test-launch/test-local-planner-abs-basic.launch
+    test/test_abs_coord_operation.cpp
+  )
+  target_link_libraries(test_hotaru_local_planner_abs_pos_basic ${catkin_LIBRARIES})
   
 endif()
 

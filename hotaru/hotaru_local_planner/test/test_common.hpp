@@ -1,0 +1,130 @@
+/*
+ * test_common.hpp
+ *
+ *  Created on: Feb 25, 2020
+ *      Author: kyberszittya
+ */
+
+#ifndef TEST_TEST_COMMON_HPP_
+#define TEST_TEST_COMMON_HPP_
+
+#include <ros/ros.h>
+
+#include <gtest/gtest.h>
+
+#include <geometry_msgs/PoseStamped.h>
+#include <geometry_msgs/TwistStamped.h>
+#include <autoware_msgs/Lane.h>
+#include <rei_monitoring_msgs/ReiStateMachineTransitionSignal.h>
+#include <grid_map_ros/grid_map_ros.hpp>
+#include <grid_map_ros/PolygonRosConverter.hpp>
+#include <tf2_ros/transform_broadcaster.h>
+
+std::shared_ptr<ros::NodeHandle> nh;
+
+struct PlanarOffset
+{
+	double x;
+	double y;
+};
+
+
+constexpr double XGoal = 25.0;
+
+void testPlanningScenario(const PlanarOffset& obstacle_offset,
+		const PlanarOffset& pos_offset,
+		unsigned int N)
+{
+	ros::Publisher publisher_grid_map = nh->advertise<grid_map_msgs::GridMap>("grid_map", 1, true);
+	ros::Publisher publisher_pose = nh->advertise<geometry_msgs::PoseStamped>("current_pose", 1, true);
+	ros::Publisher publisher_velocity = nh->advertise<geometry_msgs::TwistStamped>("current_velocity", 1, true);
+	ros::Publisher publisher_base_waypoints = nh->advertise<autoware_msgs::Lane>("base_waypoints", 1, true);
+
+	ros::Rate rate(10.0);
+	geometry_msgs::PoseStamped pose;
+	pose.header.frame_id = "map";
+	pose.pose.position.x = 0.0;
+	pose.pose.position.y = 0.0;
+	pose.pose.position.z = 0.0;
+	//
+	pose.pose.orientation.x = pos_offset.x;
+	pose.pose.orientation.y = pos_offset.y;
+	pose.pose.orientation.z = 0.0;
+	pose.pose.orientation.w = 1.0;
+	// Setup velocity
+	geometry_msgs::TwistStamped velocity;
+	velocity.header.frame_id = "base_link";
+	velocity.twist.linear.x = 10;
+	velocity.twist.linear.y = 0;
+	velocity.twist.linear.z = 0;
+	velocity.twist.angular.x = 0;
+	velocity.twist.angular.y = 0;
+	velocity.twist.angular.z = 0;
+	// Setup transform
+	tf2_ros::TransformBroadcaster br;
+	geometry_msgs::TransformStamped transformStamped;
+	transformStamped.header.frame_id = "map";
+	transformStamped.child_frame_id = "base_link";
+	transformStamped.transform.translation.x = pos_offset.x;
+	transformStamped.transform.translation.y = pos_offset.y;
+	transformStamped.transform.translation.z = 0.0;
+	transformStamped.transform.rotation.w = 1.0;
+	// Base waypoints
+	autoware_msgs::Lane l;
+	l.header.frame_id = "map";
+	for (int i = 0; i <= N; i++)
+	{
+		autoware_msgs::Waypoint wp1;
+		wp1.pose.header.frame_id = "map";
+		wp1.pose.pose.position.x = pos_offset.x + i*(XGoal/N);
+		wp1.pose.pose.position.y = pos_offset.y + 0.0;
+		wp1.pose.pose.position.z = 0.0;
+		wp1.pose.pose.orientation.w = 1.0;
+		wp1.twist.twist.linear.x = 1.0;
+		l.waypoints.push_back(std::move(wp1));
+	}
+
+	grid_map::GridMap map({"elevation"});
+	map.setFrameId("base_link");
+	map["elevation"].setZero();
+	grid_map::Position start_pos(8.0, 0.0);
+	map.setGeometry(grid_map::Length(20.0, 10.0), 0.5, start_pos);
+	for (grid_map::GridMapIterator it(map); !it.isPastEnd(); ++it)
+	{
+		grid_map::Position position;
+		map.getPosition(*it, position);
+		map.at("elevation", *it) = 0.0;
+	}
+	grid_map::Position pos_obstacle(
+			obstacle_offset.x,
+			obstacle_offset.y);
+	grid_map::Index index_obstacle;
+	map.getIndex(pos_obstacle, index_obstacle);
+	grid_map::Position rel_obstacle_pose;
+	map.getPosition(index_obstacle, rel_obstacle_pose);
+	map.atPosition("elevation", rel_obstacle_pose) = 1.0;
+	grid_map_msgs::GridMap message;
+	// Update some messages
+	ros::Rate r(20);
+	for (unsigned int i = 0; i < 100; i++)
+	{
+		ros::Time time = ros::Time::now();
+		transformStamped.header.stamp = time;
+		pose.header.stamp = time;
+		velocity.header.stamp = time;
+		l.header.stamp = time;
+		grid_map::GridMapRosConverter::toMessage(map, message);
+		publisher_pose.publish(pose);
+		publisher_velocity.publish(velocity);
+		publisher_base_waypoints.publish(l);
+		br.sendTransform(transformStamped);
+		publisher_grid_map.publish(message);
+		//
+
+		r.sleep();
+	}
+}
+
+
+
+#endif /* TEST_TEST_COMMON_HPP_ */

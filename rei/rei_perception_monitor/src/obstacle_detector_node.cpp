@@ -43,6 +43,7 @@ protected:
 	tf2_ros::Buffer tf_buffer;
 	std::unique_ptr<tf2_ros::TransformListener> tf_listener;
 	geometry_msgs::TransformStamped transform_current_pose;
+	geometry_msgs::TransformStamped inv_transform_current_pose;
 public:
 	ObstacleGridMapMonitor(ros::NodeHandle& nh): nh(nh){}
 
@@ -56,8 +57,6 @@ public:
 		sub_current_pose = nh.subscribe("current_pose", 10, &ObstacleGridMapMonitor::cbCurrentPose, this);
 		sub_grid_map = nh.subscribe("grid_map", 1, &ObstacleGridMapMonitor::subGridMap, this);
 		sub_base_waypoints = nh.subscribe("base_waypoints", 1, &ObstacleGridMapMonitor::cbBaseWaypoints, this);
-
-
 		return true;
 	}
 
@@ -70,7 +69,8 @@ public:
 	{
 		current_pose = *msg;
 		try {
-			transform_current_pose = tf_buffer.lookupTransform("map", "base_link", ros::Time(0));
+			transform_current_pose = tf_buffer.lookupTransform(
+					"base_link", "map", ros::Time(0));
 		}catch(tf2::LookupException& le){
 			std::cerr << le.what() << '\n';
 		}catch(tf2::ExtrapolationException& ee)
@@ -141,29 +141,30 @@ public:
 		double longitudinal_distance = 0.0;
 		for (unsigned int i = 1; i < msg_base_waypoints.waypoints.size(); i++)
 		{
+			geometry_msgs::PoseStamped _pose_0;
+			tf2::doTransform(
+					msg_base_waypoints.waypoints[i-1].pose,
+					_pose_0,
+					transform_current_pose
+			);
+			geometry_msgs::PoseStamped _pose_1;
+			tf2::doTransform(
+					msg_base_waypoints.waypoints[i].pose,
+					_pose_1,
+					transform_current_pose
+			);
 			longitudinal_distance += planarDistance(
-				msg_base_waypoints.waypoints[i].pose.pose.position,
-				msg_base_waypoints.waypoints[i-1].pose.pose.position
+				_pose_0.pose.position,
+				_pose_1.pose.position
 			);
 			for (const auto& m: obstacles.markers)
 			{
 
 				if (planarDistance(
-						msg_base_waypoints.waypoints[i].pose.pose.position,
+						_pose_1.pose.position,
 						m.pose.position) < 4.0)
 				{
-					geometry_msgs::PoseStamped _pose_0;
-					tf2::doTransform(
-							msg_base_waypoints.waypoints[i-1].pose,
-							_pose_0,
-							transform_current_pose
-					);
-					geometry_msgs::PoseStamped _pose_1;
-					tf2::doTransform(
-							msg_base_waypoints.waypoints[i].pose,
-							_pose_1,
-							transform_current_pose
-					);
+
 
 					// Check lateral distance
 					double d_lateral = distanceToLine(_pose_0.pose.position,
@@ -185,7 +186,6 @@ public:
 		pub_detected_obstacles.publish(obstacles);
 		// Publish replan request
 		request_msg.header.stamp = ros::Time::now();
-
 		pub_replan_signal.publish(request_msg);
 	}
 };

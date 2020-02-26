@@ -22,6 +22,10 @@
 #include <hotaru_common/state_machine/trajectory_statemachine.hpp>
 
 
+#include <tf2_ros/transform_listener.h>
+#include <tf2_ros/buffer.h>
+#include <tf2_geometry_msgs/tf2_geometry_msgs.h>
+
 namespace hotaru
 {
 
@@ -164,7 +168,31 @@ protected:
 	std::unique_ptr<hotaru::LocalPlannerStateMachine> planner_state_machine;
 	std::shared_ptr<RosReplannerGraphNotifier> comm_repl_notif;
 
+	tf2_ros::Buffer tf_buffer;
+	std::unique_ptr<tf2_ros::TransformListener> tf_listener;
+	geometry_msgs::TransformStamped transform_current_pose;
+	geometry_msgs::TransformStamped inv_transform_current_pose;
 
+
+	void syncTfPose()
+	{
+		try
+		{
+
+			transform_current_pose = tf_buffer.lookupTransform(
+				"base_link", "map", ros::Time(0)
+			);
+			inv_transform_current_pose = tf_buffer.lookupTransform(
+					"map", "base_link",  ros::Time(0)
+			);
+
+		}catch(tf2::LookupException& le){
+			std::cerr << le.what() << '\n';
+		}catch(tf2::ExtrapolationException& ee)
+		{
+			std::cerr << ee.what() << '\n';
+		}
+	}
 
 	bool initLocalPlannerStateMachine(std::shared_ptr<ros::NodeHandle> nh,
 			std::shared_ptr<rei::SyncStateMachine> sync_sm)
@@ -191,45 +219,53 @@ protected:
 		{
 			return false;
 		}
-
+		tf_listener = std::unique_ptr<tf2_ros::TransformListener>(
+			new tf2_ros::TransformListener(tf_buffer)
+		);
 		return true;
 	}
 
 	void reconstructStartingPlanPoints(const autoware_msgs::Lane& msg,
-			geometry_msgs::PoseStamped pose)
+			geometry_msgs::PoseStamped& pose)
 	{
-		starting_plan_points.clear();
-		original_velocity_profile.clear();
-		if (msg.waypoints.size() >= 2)
+		if (planner_state_machine->isRelay()||starting_plan_points.size()<2)
 		{
-			number_of_trajectory_points = 1;
-			starting_plan_points.push_back(std::move(pose));
-			for (int i = 1; i < msg.waypoints.size(); i++)
+			starting_plan_points.clear();
+			original_velocity_profile.clear();
+
+			if (msg.waypoints.size() >= 2)
 			{
-				starting_plan_points.push_back(msg.waypoints[i].pose);
-				original_velocity_profile.push_back(msg.waypoints[i].twist);
+				number_of_trajectory_points = 1;
+				geometry_msgs::PoseStamped _pose;
+				for (int i = 0; i < msg.waypoints.size(); i++)
+				{
+					geometry_msgs::PoseStamped _wp;
+					tf2::doTransform(msg.waypoints[i].pose, _wp, transform_current_pose);
+					starting_plan_points.push_back(std::move(_wp));
+					original_velocity_profile.push_back(msg.waypoints[i].twist);
+					number_of_trajectory_points++;
+				}
+				/*
+				geometry_msgs::PoseStamped _wp;
+				tf2::doTransform(msg.waypoints[0].pose, _wp, transform_current_pose);
+				starting_plan_points.push_back(std::move(_wp));
+				original_velocity_profile.push_back(msg.waypoints[0].twist);
+				geometry_msgs::PoseStamped _wp1;
+				tf2::doTransform(msg.waypoints[0].pose, _wp1, transform_current_pose);
+				starting_plan_points.push_back(std::move(_wp1));
+				original_velocity_profile.push_back(msg.waypoints[0].twist);
+				*/
 				number_of_trajectory_points++;
 			}
-
 		}
+
 	}
 public:
 	Abstract_RosLocalPlanner(): number_of_trajectory_points(0){}
 
 	virtual void executePlannerMethods() = 0;
-
 	virtual void relayCycle() = 0;
-
-	/*
-	void subBaseWaypoints(const autoware_msgs::Lane::ConstPtr& msg)
-	{
-		executePlannerMethods();
-		reconstructStartingPlanPoints(msg);
-	}
-	*/
-
 	virtual void localPlanCycle() = 0;
-
 };
 
 
