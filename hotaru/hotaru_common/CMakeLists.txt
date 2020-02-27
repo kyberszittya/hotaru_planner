@@ -13,6 +13,7 @@ find_package(catkin REQUIRED COMPONENTS
   roscpp
   rospy
   std_msgs
+  rei_common
   rei_monitoring_msgs
   rei_statemachine_library
   autoware_msgs
@@ -144,6 +145,7 @@ include_directories(
 add_library(${PROJECT_NAME} 
 	src/common_building_blocks/common_planner.cpp
 	src/local_planner/local_planner_building_blocks.cpp
+	src/trajectory_utilities/trajectory_utilities.cpp
 )
 ## Declare a C++ executable
 ## With catkin_make all packages are built within a single CMake context

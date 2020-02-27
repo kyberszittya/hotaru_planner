@@ -85,6 +85,7 @@ void InterfaceRos_Hotarulocalplanner::cbSub_current_velocity(const geometry_msgs
 	pubsubstate->msg_sub_current_velocity = *msg;
 	// Synchronize with state machine: sync_sm_sync_state
 	sync_sm_sync_state->stepMessageTopic("/current_velocity", msg->header);
+	executeUpdateVelocity();
 	
 }
 void InterfaceRos_Hotarulocalplanner::cbSub_filtered_obstacles(const visualization_msgs::MarkerArray::ConstPtr& msg)

@@ -20,6 +20,7 @@
 #include "common_building_blocks.hpp"
 #include <rei_monitoring_msgs/ReiStateMachineTransitionSignal.h>
 #include <hotaru_common/state_machine/trajectory_statemachine.hpp>
+#include <hotaru_common/trajectory_utilities/trajectory_utilities.hpp>
 
 
 #include <tf2_ros/transform_listener.h>
@@ -172,6 +173,7 @@ protected:
 	std::unique_ptr<tf2_ros::TransformListener> tf_listener;
 	geometry_msgs::TransformStamped transform_current_pose;
 	geometry_msgs::TransformStamped inv_transform_current_pose;
+	hotaru::TrajectorySlicer trajectory_slicer;
 
 
 	void syncTfPose()
@@ -230,14 +232,14 @@ protected:
 	{
 		if (planner_state_machine->isRelay()||starting_plan_points.size()<2)
 		{
-			starting_plan_points.clear();
 			original_velocity_profile.clear();
-
 			if (msg.waypoints.size() >= 2)
 			{
+				starting_plan_points.clear();
 				number_of_trajectory_points = 1;
 				geometry_msgs::PoseStamped _pose;
-				for (int i = 0; i < msg.waypoints.size(); i++)
+
+				for (int i = 0; i < trajectory_slicer.getLookaheadIndex(); i++)
 				{
 					geometry_msgs::PoseStamped _wp;
 					tf2::doTransform(msg.waypoints[i].pose, _wp, transform_current_pose);

@@ -13,6 +13,7 @@ find_package(catkin REQUIRED COMPONENTS
   grid_map_ros
   rei_monitoring_msgs
   rei_planner_signals
+  rei_common
   roscpp
   rospy
   sensor_msgs

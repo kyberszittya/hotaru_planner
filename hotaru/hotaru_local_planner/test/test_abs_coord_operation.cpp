@@ -21,7 +21,7 @@ TEST(HotaruLocalPlannerTest, BasicLocalPlannerGeoInfTest)
 	PlanarOffset pos_offset;
 	pos_offset.x = 612987.1;
 	pos_offset.y = 546120.5;
-	testPlanningScenario(planar_offset, pos_offset, 20);
+	testPlanningScenario(planar_offset, pos_offset, 20, 2);
 }
 
 

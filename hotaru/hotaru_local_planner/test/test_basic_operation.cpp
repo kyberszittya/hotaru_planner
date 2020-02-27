@@ -21,8 +21,9 @@ TEST(HotaruLocalPlannerTest, BasicLocalPlannerTest)
 	PlanarOffset pos_offset;
 	pos_offset.x = 0.0;
 	pos_offset.y = 0.0;
-	testPlanningScenario(planar_offset, pos_offset, 20);
+	testPlanningScenario(planar_offset, pos_offset, 200, 2);
 }
+
 
 TEST(HotaruLocalPlannerTest, BasicLocalPlannerTestObstacleNotClose)
 {
@@ -32,9 +33,37 @@ TEST(HotaruLocalPlannerTest, BasicLocalPlannerTestObstacleNotClose)
 	PlanarOffset pos_offset;
 	pos_offset.x = 0.0;
 	pos_offset.y = 0.0;
-	testPlanningScenario(planar_offset, pos_offset, 40);
+	testPlanningScenario(planar_offset, pos_offset, 200, 2);
 }
 
+TEST(HotaruLocalPlannerTest, BasicLocalPlannerTestObstacleLong)
+{
+	PlanarOffset planar_offset;
+	planar_offset.x = 10.0;
+	planar_offset.y = 0.0;
+	PlanarOffset pos_offset;
+	pos_offset.x = 0.0;
+	pos_offset.y = 0.0;
+	testPlanningScenario(planar_offset, pos_offset, 200, 2, 100);
+}
+
+
+
+/*
+TEST(HotaruLocalPlannerTest, BasicLocalPlannerContinousObstacle)
+{
+	PlanarOffset obs_offset_0;
+	obs_offset_0.x = 10.0;
+	obs_offset_0.y = 0.0;
+	PlanarOffset obs_offset_1;
+	obs_offset_1.x = 10.0;
+	obs_offset_1.y = -3.0;
+	PlanarOffset pos_offset;
+	pos_offset.x = 0.0;
+	pos_offset.y = 0.0;
+	testPlanningScenarioLinearMovingObstacle(obs_offset_0, obs_offset_1, pos_offset, 4.0, 40);
+}
+*/
 
 int main(int argc, char **argv)
 {

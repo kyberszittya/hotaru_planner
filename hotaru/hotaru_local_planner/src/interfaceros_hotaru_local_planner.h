@@ -94,6 +94,7 @@ public:
 	 * Callback method for current_velocity
 	 */
 	void cbSub_current_velocity(const geometry_msgs::TwistStamped::ConstPtr& msg); ///< sub_current_velocity subscriber to geometry_msgs/TwistStamped
+	virtual void executeUpdateVelocity() = 0;
 	/**
 	 * Callback method for filtered_obstacles
 	 */

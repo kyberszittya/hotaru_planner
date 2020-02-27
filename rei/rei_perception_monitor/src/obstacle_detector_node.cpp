@@ -20,6 +20,8 @@
 #include <tf2_ros/buffer.h>
 #include <tf2_geometry_msgs/tf2_geometry_msgs.h>
 
+#include <rei_common/geometric_utilities.hpp>
+
 namespace rei
 {
 
@@ -79,24 +81,9 @@ public:
 		}
 	}
 
-	inline double distanceToLine(const geometry_msgs::Point& p0,
-			const geometry_msgs::Point& p1,
-			const geometry_msgs::Point& o)
-	{
-		double dxe = p1.x - p0.x;
-		double dye = p1.y - p0.y;
 
-		return (dye*o.x - dxe*o.y + p1.x * p0.y - p1.y * p0.x)/
-				std::sqrt(dye*dye+dxe*dxe);
-	}
 
-	double planarDistance(const geometry_msgs::Point& msg0,
-			const geometry_msgs::Point& msg1)
-	{
-		double dx = msg0.x - msg1.x;
-		double dy = msg0.y - msg1.y;
-		return std::sqrt(dx*dx+dy*dy);
-	}
+
 
 	void subGridMap(const grid_map_msgs::GridMap::ConstPtr& msg)
 	{

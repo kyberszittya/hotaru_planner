@@ -1,32 +1,18 @@
 cmake_minimum_required(VERSION 2.8.3)
-project(hotaru_local_planner)
+project(rei_common)
 
 ## Compile as C++11, supported in ROS Kinetic and newer
-add_compile_options(-std=c++11)
+# add_compile_options(-std=c++11)
 
 ## Find catkin macros and libraries
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 ## is used, also find other catkin packages
 find_package(catkin REQUIRED COMPONENTS
-  hotaru_common
-  autoware_msgs
   geometry_msgs
-  nav_msgs
   roscpp
-  grid_map_ros
-  grid_map_msgs
-  rospy
   std_msgs
-  visualization_msgs
-  teb_local_planner
-  rei_common
-  rei_planner_signals
-  rei_monitoring_msgs
-  rei_statemachine_library
-  tf
 )
 
-find_package(Eigen3)
 ## System dependencies are found with CMake's conventions
 # find_package(Boost REQUIRED COMPONENTS system)
 
@@ -84,7 +70,7 @@ find_package(Eigen3)
 ## Generate added messages and services with any dependencies listed here
 # generate_messages(
 #   DEPENDENCIES
-#   geometry_msgs#   nav_msgs#   std_msgs
+#   geometry_msgs#   std_msgs
 # )
 
 ################################################
@@ -117,9 +103,9 @@ find_package(Eigen3)
 ## CATKIN_DEPENDS: catkin_packages dependent projects also need
 ## DEPENDS: system dependencies of this project that dependent projects also need
 catkin_package(
-#  INCLUDE_DIRS include
-#  LIBRARIES hotaru_local_planner
-#  CATKIN_DEPENDS geometry_msgs nav_msgs roscpp rospy std_msgs
+  INCLUDE_DIRS include
+  LIBRARIES rei_common
+#  CATKIN_DEPENDS geometry_msgs roscpp std_msgs
 #  DEPENDS system_lib
 )
 
@@ -130,17 +116,14 @@ catkin_package(
 ## Specify additional locations of header files
 ## Your package locations should be listed before other locations
 include_directories(
-# include
+  include
   ${catkin_INCLUDE_DIRS}
-  ${EIGEN3_INCLUDE_DIR}
-  /usr/include/suitesparse
-  ${SUITESPARSE_INCLUDE_DIRS} ${G2O_INCLUDE_DIR}
 )
 
 ## Declare a C++ library
-# add_library(${PROJECT_NAME}
-#   src/${PROJECT_NAME}/hotaru_local_planner.cpp
-# )
+add_library(${PROJECT_NAME}
+   src/lib_rei_common.cpp
+)
 
 ## Add cmake target dependencies of the library
 ## as an example, code may need to be generated before libraries
@@ -150,9 +133,7 @@ include_directories(
 ## Declare a C++ executable
 ## With catkin_make all packages are built within a single CMake context
 ## The recommended prefix ensures that target names across packages don't collide
-add_executable(${PROJECT_NAME}_node src/hotaru_local_planner_node.cpp
-	src/hotaru_local_planner_impl.cpp
-)
+# add_executable(${PROJECT_NAME}_node src/rei_common_node.cpp)
 
 ## Rename C++ executable without prefix
 ## The above recommended prefix causes long target names, the following renames the
@@ -165,8 +146,8 @@ add_executable(${PROJECT_NAME}_node src/hotaru_local_planner_node.cpp
 # add_dependencies(${PROJECT_NAME}_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
 ## Specify libraries to link a library or executable target against
-target_link_libraries(${PROJECT_NAME}_node
-  ${catkin_LIBRARIES}
+target_link_libraries(${PROJECT_NAME}
+   ${catkin_LIBRARIES}
 )
 
 #############
@@ -216,27 +197,10 @@ target_link_libraries(${PROJECT_NAME}_node
 #############
 
 ## Add gtest based cpp test target and link libraries
-# catkin_add_gtest(${PROJECT_NAME}-test test/test_hotaru_local_planner.cpp)
+# catkin_add_gtest(${PROJECT_NAME}-test test/test_rei_common.cpp)
 # if(TARGET ${PROJECT_NAME}-test)
 #   target_link_libraries(${PROJECT_NAME}-test ${PROJECT_NAME})
 # endif()
-
-# INTEGRATION tests
-if(CATKIN_ENABLE_TESTING)
-  find_package(rostest REQUIRED)
-  add_rostest_gtest(test_hotaru_local_planner_basic
-    test-launch/test-local-planner-basic.launch
-    test/test_basic_operation.cpp
-  )
-  target_link_libraries(test_hotaru_local_planner_basic ${catkin_LIBRARIES})
-  
-  add_rostest_gtest(test_hotaru_local_planner_abs_pos_basic
-    test-launch/test-local-planner-abs-basic.launch
-    test/test_abs_coord_operation.cpp
-  )
-  target_link_libraries(test_hotaru_local_planner_abs_pos_basic ${catkin_LIBRARIES})
-  
-endif()
 
 ## Add folders to be run by python nosetests
 # catkin_add_nosetests(test)
