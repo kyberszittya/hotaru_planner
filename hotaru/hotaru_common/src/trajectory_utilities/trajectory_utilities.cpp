@@ -12,6 +12,7 @@ namespace hotaru
 {
 
 TrajectorySlicer::TrajectorySlicer(double start_section_ratio):
+		offset(0),
 		lookahead_distance(0.0),
 		lookahead_index(0.0),
 		section_ratio(start_section_ratio){}
@@ -36,7 +37,7 @@ void TrajectorySlicer::calcLookaheadIndex(const autoware_msgs::Lane& lane)
 	if (lane.waypoints.size() > 2)
 	{
 		double distance = 0.0;
-		for (lookahead_index = 1; lookahead_index < lane.waypoints.size(); lookahead_index++)
+		for (lookahead_index = offset + 1; offset+lookahead_index < lane.waypoints.size(); lookahead_index++)
 		{
 			distance += rei::spatialDistance(lane.waypoints[lookahead_index-1].pose.pose.position,
 					lane.waypoints[lookahead_index].pose.pose.position);
@@ -53,7 +54,7 @@ void TrajectorySlicer::sliceFromStartToLookahead(
 	std::vector<geometry_msgs::PoseStamped>& starting_plan)
 {
 	starting_plan.clear();
-	for (unsigned int i = 0; i < lookahead_index; i++)
+	for (unsigned int i = offset; i < offset+lookahead_index; i++)
 	{
 		starting_plan.push_back(lane.waypoints[i].pose);
 	}

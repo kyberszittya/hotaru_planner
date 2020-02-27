@@ -116,7 +116,6 @@ public:
 
 	virtual bool initNode() override
 	{
-
 		using namespace teb_local_planner;
 		conf.map_frame = "base_link";
 		conf.robot.wheelbase = 2.7;
@@ -165,7 +164,10 @@ public:
 		planner_state_machine->start();
 	}
 
-
+	void executeUpdateClosestWaypoint()
+	{
+		trajectory_slicer.setOffset(pubsubstate->msg_closest_waypoint.data);
+	}
 
 	virtual void localPlanCycle() override
 	{
@@ -215,16 +217,18 @@ public:
 
 	virtual void relayCycle() override
 	{
-
 		pubsubstate->msg_final_waypoints.waypoints.clear();
-		for (unsigned int i = 0; i < pubsubstate->msg_sub_base_waypoints.waypoints.size(); i++)
+		if (pubsubstate->msg_closest_waypoint.data >= 0)
 		{
-			autoware_msgs::Waypoint wp;
-			wp = pubsubstate->msg_sub_base_waypoints.waypoints[i];
-			//wp.twist.twist = v.velocity;
-			//wp.twist = original_velocity_profile[i];
-			pubsubstate->msg_final_waypoints.waypoints.push_back(
-					std::move(wp));
+			for (unsigned int i = pubsubstate->msg_closest_waypoint.data; i < pubsubstate->msg_sub_base_waypoints.waypoints.size(); i++)
+			{
+				autoware_msgs::Waypoint wp;
+				wp = pubsubstate->msg_sub_base_waypoints.waypoints[i];
+				//wp.twist.twist = v.velocity;
+				//wp.twist = original_velocity_profile[i];
+				pubsubstate->msg_final_waypoints.waypoints.push_back(
+						std::move(wp));
+			}
 		}
 
 	}

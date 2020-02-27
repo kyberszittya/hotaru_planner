@@ -259,6 +259,8 @@ protected:
 				*/
 				number_of_trajectory_points++;
 			}
+
+
 		}
 
 	}

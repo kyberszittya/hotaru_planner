@@ -47,6 +47,7 @@ bool InterfaceRos_Hotarulocalplanner::init()
 	sub_current_pose = nh->subscribe("current_pose", 10, &InterfaceRos_Hotarulocalplanner::cbSub_current_pose, this);
 	sub_current_velocity = nh->subscribe("current_velocity", 10, &InterfaceRos_Hotarulocalplanner::cbSub_current_velocity, this);
 	sub_filtered_obstacles = nh->subscribe("filtered_obstacles", 10, &InterfaceRos_Hotarulocalplanner::cbSub_filtered_obstacles, this);
+	sub_closest_waypoints = nh->subscribe("closest_waypoint", 10, &InterfaceRos_Hotarulocalplanner::cbSub_closest_waypoints, this);
 	if (!initNode())
 	{
 		return false;
@@ -59,7 +60,9 @@ void InterfaceRos_Hotarulocalplanner::cbSub_base_waypoints(const autoware_msgs::
 {
 	pubsubstate->msg_sub_base_waypoints = *msg;
 	// Synchronize with state machine: sync_sm_sync_state
+	sm_mutex.lock();
 	sync_sm_sync_state->stepMessageTopic("/base_waypoints", msg->header);
+	sm_mutex.unlock();
 	if (sync_sm_sync_state->isReady()){
 		executeReconstructWaypoints();
 	}
@@ -74,7 +77,9 @@ void InterfaceRos_Hotarulocalplanner::cbSub_current_pose(const geometry_msgs::Po
 {
 	pubsubstate->msg_sub_current_pose = *msg;
 	// Synchronize with state machine: sync_sm_sync_state
+	sm_mutex.lock();
 	sync_sm_sync_state->stepMessageTopic("/current_pose", msg->header);
+	sm_mutex.unlock();
 	if (sync_sm_sync_state->isReady()){
 		executeSynchWithPose();
 	}
@@ -84,7 +89,9 @@ void InterfaceRos_Hotarulocalplanner::cbSub_current_velocity(const geometry_msgs
 {
 	pubsubstate->msg_sub_current_velocity = *msg;
 	// Synchronize with state machine: sync_sm_sync_state
+	sm_mutex.lock();
 	sync_sm_sync_state->stepMessageTopic("/current_velocity", msg->header);
+	sm_mutex.unlock();
 	executeUpdateVelocity();
 	
 }
@@ -95,6 +102,12 @@ void InterfaceRos_Hotarulocalplanner::cbSub_filtered_obstacles(const visualizati
 	
 }
 
+void InterfaceRos_Hotarulocalplanner::cbSub_closest_waypoints(const std_msgs::Int32::ConstPtr& msg)
+{
+	pubsubstate->msg_closest_waypoint = *msg;
+	executeUpdateClosestWaypoint();
+}
+
 void InterfaceRos_Hotarulocalplanner::publishFinal_waypoints()
 {
 	final_waypoints.publish(pubsubstate->msg_final_waypoints);
@@ -103,6 +116,8 @@ void InterfaceRos_Hotarulocalplanner::publishState_machine_signal()
 {
 	pub_state_machine_output_signal.publish(pubsubstate->msg_pub_state_machine_output_signal);
 }
+
+
 
 }
 

@@ -21,6 +21,7 @@ protected:
 	double lookahead_distance;
 	unsigned int lookahead_index;
 	double section_ratio;
+	unsigned int offset;
 public:
 	TrajectorySlicer(double start_section_ratio = 2.0);
 
@@ -37,6 +38,14 @@ public:
 			const std::vector<geometry_msgs::Pose>& starting_plan,
 			const geometry_msgs::TwistStamped& current_velocity,
 			autoware_msgs::Lane& output_lane);
+
+	void setOffset(int offset)
+	{
+		if (offset > -1)
+		{
+			this->offset = offset;
+		}
+	}
 };
 
 }

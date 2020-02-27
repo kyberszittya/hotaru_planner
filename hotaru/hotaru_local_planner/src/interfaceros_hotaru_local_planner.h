@@ -10,6 +10,7 @@
 #include <rei_monitoring_msgs/ReiStateMachineTransitionSignal.h>		
 #include <visualization_msgs/MarkerArray.h>		
 #include <rei_statemachine_library/ros/ros_sync_state_machine.hpp>
+#include <std_msgs/Int32.h>
 
 #include <memory>
 
@@ -22,6 +23,7 @@ struct StateHotarulocalplanner
 	geometry_msgs::PoseStamped msg_sub_current_pose; ///< sub_current_pose store to geometry_msgs/PoseStamped
 	geometry_msgs::TwistStamped msg_sub_current_velocity; ///< sub_current_velocity store to geometry_msgs/TwistStamped
 	visualization_msgs::MarkerArray msg_sub_filtered_obstacles; ///< sub_filtered_obstacles store to visualization_msgs/MarkerArray
+	std_msgs::Int32 msg_closest_waypoint;
 	/// ROS Publishers
 	autoware_msgs::Lane msg_final_waypoints; ///< final_waypoints store to autoware_msgs/Lane
 	rei_monitoring_msgs::ReiStateMachineTransitionSignal msg_pub_state_machine_output_signal; ///< pub_state_machine_output_signal store to rei_monitoring_msgs/ReiStateMachineTransitionSignal
@@ -49,6 +51,7 @@ protected:
 	ros::Subscriber sub_current_pose; ///< sub_current_pose subscriber to geometry_msgs/PoseStamped
 	ros::Subscriber sub_current_velocity; ///< sub_current_velocity subscriber to geometry_msgs/TwistStamped
 	ros::Subscriber sub_filtered_obstacles; ///< sub_filtered_obstacles subscriber to visualization_msgs/MarkerArray
+	ros::Subscriber sub_closest_waypoints;  ///< sub_closest_waypoint
 	/// ROS Publishers
 	ros::Publisher final_waypoints; ///< final_waypoints publisher to autoware_msgs/Lane
 	ros::Publisher pub_state_machine_output_signal; ///< pub_state_machine_output_signal publisher to rei_monitoring_msgs/ReiStateMachineTransitionSignal
@@ -61,6 +64,7 @@ protected:
 	std::shared_ptr<rei::SyncStateMachine> sync_state_machine;
 	std::shared_ptr<rei::PortStateMonitorRos> port_state_monitor;
 	std::shared_ptr<rei::RosCommunicationGraphNotifier> notifier;
+	std::mutex sm_mutex;
 public:
 	InterfaceRos_Hotarulocalplanner(std::shared_ptr<ros::NodeHandle> nh): nh(nh){}
 	
@@ -101,6 +105,12 @@ public:
 	void cbSub_filtered_obstacles(const visualization_msgs::MarkerArray::ConstPtr& msg); ///< sub_filtered_obstacles subscriber to visualization_msgs/MarkerArray
 	virtual void executeUpdateObstacles() = 0;
 	
+	/**
+	 * Callback method for closest waypoints
+	 */
+	void cbSub_closest_waypoints(const std_msgs::Int32::ConstPtr& msg);
+	virtual void executeUpdateClosestWaypoint() = 0;
+
 	/**
 	 * Publish method to publish message to final_waypoints
 	 */
