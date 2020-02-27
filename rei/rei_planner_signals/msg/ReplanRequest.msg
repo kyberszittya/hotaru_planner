@@ -1,0 +1,7 @@
+std_msgs/Header header
+bool is_fallback
+uint64 obj_id
+float64 obstacle_min_distance
+float64 obstacle_min_longitudinal_distance
+float64 obstacle_min_lateral_distance
+bool eval
