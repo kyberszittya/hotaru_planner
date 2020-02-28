@@ -16,9 +16,11 @@
 #include <hotaru_common/state_machine/trajectory_statemachine.hpp>
 #include <hotaru_common/state_machine/trajectory_signal.hpp>
 
+#include <rei_common/geometric_utilities.hpp>
 
 
-
+constexpr unsigned int PLANNER_SM_HZ = { 40 };
+constexpr unsigned int PLANNER_SYNC_HZ = { 100 };
 
 class TebHotaruLocalPlanner: public hotaru::InterfaceRos_Hotarulocalplanner,
 	public hotaru::Abstract_RosLocalPlanner
@@ -33,6 +35,12 @@ protected:
 	std::shared_ptr<teb_local_planner::ViaPointContainer> via_points;
 	// Starting plan as pose stamped
 	std::vector<teb_local_planner::TrajectoryPointMsg> _full_trajectory;
+	// Timers
+	ros::Timer timer_cycle;
+	ros::Timer timer_planner_sm;
+	ros::Timer timer_sync_sm;
+
+	std::mutex plan_source_modification;
 
 
 	std::vector<geometry_msgs::Pose> transformed_poses_current_pose;
@@ -40,9 +48,11 @@ protected:
 
 
 	virtual void executeReconstructWaypoints() override {
+		plan_source_modification.lock();
 		trajectory_slicer.calcLookaheadIndex(pubsubstate->msg_sub_base_waypoints);
 		reconstructStartingPlanPoints(pubsubstate->msg_sub_base_waypoints,
 				pubsubstate->msg_sub_current_pose);
+		plan_source_modification.unlock();
 	}
 
 	virtual void executePlannerMethods() override {
@@ -54,13 +64,16 @@ public:
 
 	virtual void executeSynchWithPose() override
 	{
+		plan_source_modification.lock();
 		syncTfPose();
+		plan_source_modification.unlock();
 		//ROS_INFO("synchronize");
 	}
 
 	virtual void executeUpdateObstacles() override
 	{
 		//m_obstacle_update.lock();
+		plan_source_modification.lock();
 		obstacle_container->clear();
 		using namespace teb_local_planner;
 
@@ -78,6 +91,8 @@ public:
 				}
 			}
 		}
+
+		plan_source_modification.unlock();
 		//m_obstacle_update.unlock();
 	}
 
@@ -106,7 +121,6 @@ public:
 			);
 		}
 		planner_state_machine->propagateSignal(_sig);
-		planner_state_machine->stepstatemachine();
 	}
 
 	virtual void executeUpdateVelocity()
@@ -154,14 +168,42 @@ public:
 		{
 			return false;
 		}
+		timer_planner_sm = nh->createTimer(ros::Duration(1.0/(double)PLANNER_SYNC_HZ), &TebHotaruLocalPlanner::cycleSyncStateMachine, this);
+		timer_planner_sm.start();
 		sync_state_machine->setCbAllStateMessageReceived(
 				std::bind(&TebHotaruLocalPlanner::startAfterAllMessagesReceived, this));
 		return true;
 	}
 
+	void cycleSyncStateMachine(const ros::TimerEvent& event)
+	{
+		try
+		{
+			sync_state_machine->stepstatemachine();
+		}
+		catch(rei::StateMachineEmptySignalBuffer& e)
+		{
+
+		}
+	}
+
+	void cyclePlannerStateMachine(const ros::TimerEvent& event)
+	{
+		try
+		{
+			planner_state_machine->stepstatemachine();
+		}
+		catch(rei::StateMachineEmptySignalBuffer& e)
+		{
+
+		}
+	}
+
 	void startAfterAllMessagesReceived()
 	{
 		planner_state_machine->start();
+		timer_planner_sm = nh->createTimer(ros::Duration(1.0/(double)PLANNER_SM_HZ), &TebHotaruLocalPlanner::cyclePlannerStateMachine, this);
+		timer_planner_sm.start();
 	}
 
 	void executeUpdateClosestWaypoint()
@@ -177,43 +219,58 @@ public:
 		{
 			//m_obstacle_update.lock();
 			//conf.trajectory.max_samples = number_of_trajectory_points*2;
-			if (planner->plan(starting_plan_points))
-			{
-				pubsubstate->msg_final_waypoints.waypoints.clear();
-				transformed_poses_current_pose.clear();
-				planner->getFullTrajectory(_full_trajectory);
-				if (pubsubstate->msg_sub_current_pose.pose.orientation.w != 0.0)
+			try{
+				plan_source_modification.lock();
+				bool plan_success = planner->plan(starting_plan_points);
+				plan_source_modification.unlock();
+				if (plan_success)
 				{
-					planner->visualize();
 					pubsubstate->msg_final_waypoints.waypoints.clear();
-					for (unsigned int i = 0; i < _full_trajectory.size(); i++)
+					transformed_poses_current_pose.clear();
+					planner->getFullTrajectory(_full_trajectory);
+					if (pubsubstate->msg_sub_current_pose.pose.orientation.w != 0.0)
 					{
-						geometry_msgs::Pose _pose_0;
-						tf2::doTransform(
-								_full_trajectory[i].pose,
-								_pose_0,
-								inv_transform_current_pose
-						);
-						//autoware_msgs::Waypoint wp;
-						//wp.pose.pose = _full_trajectory[i].pose;
-						//wp.twist.twist = v.velocity;
-						//wp.twist = original_velocity_profile[i];
-						//wp.twist.twist.linear.x = 10/3.6;
-						//pubsubstate->msg_final_waypoints.waypoints.push_back(
-						//		std::move(wp));
-						transformed_poses_current_pose.push_back(_pose_0);
+						planner->visualize();
+						pubsubstate->msg_final_waypoints.waypoints.clear();
+						geometry_msgs::Pose _prev_pose;
+						for (unsigned int i = 0; i < _full_trajectory.size(); i++)
+						{
+							geometry_msgs::Pose _pose_0;
+							tf2::doTransform(
+									_full_trajectory[i].pose,
+									_pose_0,
+									inv_transform_current_pose
+							);
+							//autoware_msgs::Waypoint wp;
+							//wp.pose.pose = _full_trajectory[i].pose;
+							//wp.twist.twist = v.velocity;
+							//wp.twist = original_velocity_profile[i];
+							//wp.twist.twist.linear.x = 10/3.6;
+							//pubsubstate->msg_final_waypoints.waypoints.push_back(
+							//		std::move(wp));
+							if (rei::planarDistance(_prev_pose.position, _pose_0.position) > 0.4)
+							{
+								transformed_poses_current_pose.push_back(_pose_0);
+								_prev_pose = _pose_0;
+							}
+						}
 					}
+					trajectory_slicer.joinWaypointsWithLocalPlan(
+							pubsubstate->msg_sub_base_waypoints,
+							transformed_poses_current_pose, pubsubstate->msg_sub_current_velocity,
+							pubsubstate->msg_final_waypoints);
 				}
-				trajectory_slicer.joinWaypointsWithLocalPlan(
-						pubsubstate->msg_sub_base_waypoints,
-						transformed_poses_current_pose, pubsubstate->msg_sub_current_velocity,
-						pubsubstate->msg_final_waypoints);
+
+			}catch(std::runtime_error& e){
+
 			}
 			//m_obstacle_update.unlock();
 			//pub_final_waypoints.publish(final_waypoints);
 		}
 
 	}
+
+
 
 	virtual void relayCycle() override
 	{
@@ -239,7 +296,7 @@ public:
 
 	}
 
-	void mainThread()
+	void maintThreadEvent(const ros::TimerEvent& e)
 	{
 		if (planner_state_machine->isReplanning())
 		{
@@ -253,6 +310,12 @@ public:
 		publishFinal_waypoints();
 	}
 
+	void mainThread()
+	{
+		timer_cycle = nh->createTimer(ros::Duration(1.0/((double)PLANNER_SM_HZ/2.0)), &TebHotaruLocalPlanner::maintThreadEvent, this);
+		timer_cycle.start();
+	}
+
 
 };
 
@@ -264,13 +327,10 @@ int main(int argc, char** argv)
 	if (teb_planner.init())
 	{
 		ROS_INFO("Starting local planner component");
-		ros::Rate r(40.0);
-		while(ros::ok())
-		{
-			teb_planner.mainThread();
-			ros::spinOnce();
-			r.sleep();
-		}
+		teb_planner.mainThread();
+		ros::AsyncSpinner async_spinner(4);
+		async_spinner.start();
+		ros::waitForShutdown();
 		return 0;
 	}
 	else

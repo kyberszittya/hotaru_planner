@@ -47,6 +47,17 @@ TEST(HotaruLocalPlannerTest, BasicLocalPlannerTestObstacleLong)
 	testPlanningScenario(planar_offset, pos_offset, 200, 2, 100);
 }
 
+TEST(HotaruLocalPlannerTest, BasicLocalPlannerTestObstacleMiddle)
+{
+	PlanarOffset planar_offset;
+	planar_offset.x = 17.0;
+	planar_offset.y = 0.0;
+	PlanarOffset pos_offset;
+	pos_offset.x = 10.0;
+	pos_offset.y = 0.0;
+	testPlanningScenario(planar_offset, pos_offset, 200, 2, 100, 100);
+}
+
 
 
 /*

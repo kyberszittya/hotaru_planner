@@ -35,6 +35,7 @@ protected:
 	ros::Subscriber sub_grid_map;
 	ros::Subscriber sub_current_pose;
 	ros::Subscriber sub_base_waypoints;
+	ros::Subscriber sub_obstacle_marker;
 	ros::Publisher pub_detected_obstacles;
 	ros::Publisher pub_replan_signal;
 	grid_map::GridMap global_map;
@@ -59,6 +60,7 @@ public:
 		sub_current_pose = nh.subscribe("current_pose", 10, &ObstacleGridMapMonitor::cbCurrentPose, this);
 		sub_grid_map = nh.subscribe("grid_map", 1, &ObstacleGridMapMonitor::subGridMap, this);
 		sub_base_waypoints = nh.subscribe("base_waypoints", 1, &ObstacleGridMapMonitor::cbBaseWaypoints, this);
+		sub_obstacle_marker = nh.subscribe("/detection/lidar_detector/objects_markers", 1, &ObstacleGridMapMonitor::cbObstacleCluster, this);
 		return true;
 	}
 
@@ -81,9 +83,70 @@ public:
 		}
 	}
 
+	void cbObstacleCluster(const visualization_msgs::MarkerArray::ConstPtr& msg)
+	{
+		std::cout << msg->markers.size() << '\n';
+		obstacles.markers.clear();
+		// TODO: this part is pretty nasty, check it
+		for (const auto& m: msg->markers)
+		{
+			obstacles.markers.push_back(m);
+		}
+		filterObstacles();
+		pub_detected_obstacles.publish(obstacles);
+		// Publish replan request
+		request_msg.header.stamp = ros::Time::now();
+		pub_replan_signal.publish(request_msg);
+	}
+
+	void filterObstacles()
+	{
+		double longitudinal_distance = 0.0;
+		for (unsigned int i = 1; i < msg_base_waypoints.waypoints.size(); i++)
+		{
+			geometry_msgs::PoseStamped _pose_0;
+			tf2::doTransform(
+					msg_base_waypoints.waypoints[i-1].pose,
+					_pose_0,
+					transform_current_pose
+			);
+			geometry_msgs::PoseStamped _pose_1;
+			tf2::doTransform(
+					msg_base_waypoints.waypoints[i].pose,
+					_pose_1,
+					transform_current_pose
+			);
+			longitudinal_distance += planarDistance(
+				_pose_0.pose.position,
+				_pose_1.pose.position
+			);
+			for (const auto& m: obstacles.markers)
+			{
+
+				if (planarDistance(
+						_pose_1.pose.position,
+						m.pose.position) < 4.0 && longitudinal_distance >= 2.0)
+				{
 
 
+					// Check lateral distance
+					double d_lateral = distanceToLine(_pose_0.pose.position,
+							_pose_1.pose.position, m.pose.position);
+					if (d_lateral <= 2.75)
+					{
+						///ROS_INFO("Obstacle detected");
+						if (request_msg.obstacle_min_lateral_distance > d_lateral)
+						{
+							request_msg.obstacle_min_lateral_distance = d_lateral;
+							request_msg.obstacle_min_longitudinal_distance = longitudinal_distance;
+						}
+						request_msg.eval = true;
+					}
+				}
+			}
 
+		}
+	}
 
 	void subGridMap(const grid_map_msgs::GridMap::ConstPtr& msg)
 	{
@@ -125,51 +188,7 @@ public:
 			}
 
 		}
-		double longitudinal_distance = 0.0;
-		for (unsigned int i = 1; i < msg_base_waypoints.waypoints.size(); i++)
-		{
-			geometry_msgs::PoseStamped _pose_0;
-			tf2::doTransform(
-					msg_base_waypoints.waypoints[i-1].pose,
-					_pose_0,
-					transform_current_pose
-			);
-			geometry_msgs::PoseStamped _pose_1;
-			tf2::doTransform(
-					msg_base_waypoints.waypoints[i].pose,
-					_pose_1,
-					transform_current_pose
-			);
-			longitudinal_distance += planarDistance(
-				_pose_0.pose.position,
-				_pose_1.pose.position
-			);
-			for (const auto& m: obstacles.markers)
-			{
-
-				if (planarDistance(
-						_pose_1.pose.position,
-						m.pose.position) < 4.0)
-				{
-
-
-					// Check lateral distance
-					double d_lateral = distanceToLine(_pose_0.pose.position,
-							_pose_1.pose.position, m.pose.position);
-					if (d_lateral <= 2.75)
-					{
-						///ROS_INFO("Obstacle detected");
-						if (request_msg.obstacle_min_lateral_distance > d_lateral)
-						{
-							request_msg.obstacle_min_lateral_distance = d_lateral;
-							request_msg.obstacle_min_longitudinal_distance = longitudinal_distance;
-						}
-						request_msg.eval = true;
-					}
-				}
-			}
-
-		}
+		filterObstacles();
 		pub_detected_obstacles.publish(obstacles);
 		// Publish replan request
 		request_msg.header.stamp = ros::Time::now();

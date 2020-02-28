@@ -99,6 +99,11 @@ public:
 				static_cast<unsigned long>(estimated_frequency*nsecs_l));
 	}
 
+	void stepMessageTopic(std::string name, const ros::Time& header)
+	{
+		port_state_monitor->updateTimestamp(name, header.toNSec());
+	}
+
 	void stepMessageTopic(std::string name, const std_msgs::Header& header)
 	{
 		port_state_monitor->updateTimestamp(name, header.stamp.toNSec());

@@ -48,7 +48,7 @@ void StateMachineRunner::stepstatemachine()
 	}
 	else
 	{
-		throw StateMachineEmptySignalBuffer("state_machine_runner", "step_state_machine");
+		//throw StateMachineEmptySignalBuffer("state_machine_runner", "step_state_machine");
 	}
 }
 
