@@ -10,6 +10,8 @@
 
 #include <geometry_msgs/PoseStamped.h>
 
+#include <std_msgs/Int32.h>
+
 #include <visualization_msgs/MarkerArray.h>
 #include <autoware_msgs/Lane.h>
 
@@ -28,7 +30,7 @@ namespace rei
 class ObstacleGridMapMonitor
 {
 private:
-
+	int closest_waypoint;
 protected:
 	geometry_msgs::PoseStamped current_pose;
 	ros::NodeHandle nh;
@@ -36,19 +38,21 @@ protected:
 	ros::Subscriber sub_current_pose;
 	ros::Subscriber sub_base_waypoints;
 	ros::Subscriber sub_obstacle_marker;
+	ros::Subscriber sub_closest_waypoint;
 	ros::Publisher pub_detected_obstacles;
 	ros::Publisher pub_replan_signal;
 	grid_map::GridMap global_map;
 	rei_planner_signals::ReplanRequest request_msg;
 	autoware_msgs::Lane msg_base_waypoints;
 	// Detect polygon obstacles
+	visualization_msgs::MarkerArray input_obstacles;
 	visualization_msgs::MarkerArray obstacles;
 	tf2_ros::Buffer tf_buffer;
 	std::unique_ptr<tf2_ros::TransformListener> tf_listener;
 	geometry_msgs::TransformStamped transform_current_pose;
 	geometry_msgs::TransformStamped inv_transform_current_pose;
 public:
-	ObstacleGridMapMonitor(ros::NodeHandle& nh): nh(nh){}
+	ObstacleGridMapMonitor(ros::NodeHandle& nh): closest_waypoint(-1), nh(nh){}
 
 	bool init()
 	{
@@ -58,6 +62,7 @@ public:
 		pub_detected_obstacles = nh.advertise<visualization_msgs::MarkerArray>("/filtered_obstacles", 10);
 		pub_replan_signal = nh.advertise<rei_planner_signals::ReplanRequest>("/replan_request_sig",10);
 		sub_current_pose = nh.subscribe("current_pose", 10, &ObstacleGridMapMonitor::cbCurrentPose, this);
+		sub_closest_waypoint = nh.subscribe("/closest_waypoint", 10, &ObstacleGridMapMonitor::cbClosestWaypoint, this);
 		sub_grid_map = nh.subscribe("grid_map", 1, &ObstacleGridMapMonitor::subGridMap, this);
 		sub_base_waypoints = nh.subscribe("base_waypoints", 1, &ObstacleGridMapMonitor::cbBaseWaypoints, this);
 		sub_obstacle_marker = nh.subscribe("/detection/lidar_detector/objects_markers", 1, &ObstacleGridMapMonitor::cbObstacleCluster, this);
@@ -67,6 +72,11 @@ public:
 	void cbBaseWaypoints(const autoware_msgs::Lane::ConstPtr& msg)
 	{
 		msg_base_waypoints = *msg;
+	}
+
+	void cbClosestWaypoint(const std_msgs::Int32::ConstPtr& msg)
+	{
+		closest_waypoint = msg->data;
 	}
 
 	void cbCurrentPose(const geometry_msgs::PoseStamped::ConstPtr& msg)
@@ -85,13 +95,9 @@ public:
 
 	void cbObstacleCluster(const visualization_msgs::MarkerArray::ConstPtr& msg)
 	{
-		std::cout << msg->markers.size() << '\n';
 		obstacles.markers.clear();
 		// TODO: this part is pretty nasty, check it
-		for (const auto& m: msg->markers)
-		{
-			obstacles.markers.push_back(m);
-		}
+		input_obstacles = *msg;
 		filterObstacles();
 		pub_detected_obstacles.publish(obstacles);
 		// Publish replan request
@@ -102,50 +108,62 @@ public:
 	void filterObstacles()
 	{
 		double longitudinal_distance = 0.0;
-		for (unsigned int i = 1; i < msg_base_waypoints.waypoints.size(); i++)
+
+		if (closest_waypoint >= 1)
 		{
-			geometry_msgs::PoseStamped _pose_0;
-			tf2::doTransform(
-					msg_base_waypoints.waypoints[i-1].pose,
-					_pose_0,
-					transform_current_pose
-			);
-			geometry_msgs::PoseStamped _pose_1;
-			tf2::doTransform(
-					msg_base_waypoints.waypoints[i].pose,
-					_pose_1,
-					transform_current_pose
-			);
-			longitudinal_distance += planarDistance(
-				_pose_0.pose.position,
-				_pose_1.pose.position
-			);
-			for (const auto& m: obstacles.markers)
+			for (unsigned int i = closest_waypoint; i < msg_base_waypoints.waypoints.size(); i++)
 			{
-
-				if (planarDistance(
-						_pose_1.pose.position,
-						m.pose.position) < 4.0 && longitudinal_distance >= 2.0)
+				geometry_msgs::PoseStamped _pose_0;
+				tf2::doTransform(
+						msg_base_waypoints.waypoints[i-1].pose,
+						_pose_0,
+						transform_current_pose
+				);
+				geometry_msgs::PoseStamped _pose_1;
+				tf2::doTransform(
+						msg_base_waypoints.waypoints[i].pose,
+						_pose_1,
+						transform_current_pose
+				);
+				longitudinal_distance += planarDistance(
+					_pose_0.pose.position,
+					_pose_1.pose.position
+				);
+				for (const auto& m: input_obstacles.markers)
 				{
-
-
-					// Check lateral distance
-					double d_lateral = distanceToLine(_pose_0.pose.position,
-							_pose_1.pose.position, m.pose.position);
-					if (d_lateral <= 2.75)
+					if (planarDistance(
+							_pose_1.pose.position, m.pose.position) < 4.0
+							&& longitudinal_distance >= 6.0)
 					{
-						///ROS_INFO("Obstacle detected");
-						if (request_msg.obstacle_min_lateral_distance > d_lateral)
+						// Check lateral distance
+						double d_lateral = distanceToLine(_pose_0.pose.position,
+								_pose_1.pose.position, m.pose.position);
+						if (d_lateral <= 2.75)
 						{
-							request_msg.obstacle_min_lateral_distance = d_lateral;
-							request_msg.obstacle_min_longitudinal_distance = longitudinal_distance;
+							///ROS_INFO("Obstacle detected");
+							if (request_msg.obstacle_min_lateral_distance > d_lateral)
+							{
+								request_msg.obstacle_min_lateral_distance = d_lateral;
+								request_msg.obstacle_min_longitudinal_distance = longitudinal_distance;
+							}
+							request_msg.eval = true;
+							obstacles.markers.push_back(m);
 						}
-						request_msg.eval = true;
+
 					}
 				}
-			}
 
+			}
+			if (obstacles.markers.size()==0)
+			{
+				request_msg.eval = false;
+			}
 		}
+		else
+		{
+			request_msg.eval = false;
+		}
+
 	}
 
 	void subGridMap(const grid_map_msgs::GridMap::ConstPtr& msg)

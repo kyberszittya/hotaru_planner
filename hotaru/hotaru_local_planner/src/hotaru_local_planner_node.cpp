@@ -26,6 +26,8 @@ class TebHotaruLocalPlanner: public hotaru::InterfaceRos_Hotarulocalplanner,
 	public hotaru::Abstract_RosLocalPlanner
 {
 private:
+	double current_speed;
+	double ref_velocity;
 protected:
 	std::shared_ptr<teb_local_planner::ObstContainer> obstacle_container;
 	teb_local_planner::RobotFootprintModelPtr robot_footprint;
@@ -51,7 +53,8 @@ protected:
 		plan_source_modification.lock();
 		trajectory_slicer.calcLookaheadIndex(pubsubstate->msg_sub_base_waypoints);
 		reconstructStartingPlanPoints(pubsubstate->msg_sub_base_waypoints,
-				pubsubstate->msg_sub_current_pose);
+				pubsubstate->msg_sub_current_pose,
+				pubsubstate->msg_closest_waypoint.data);
 		plan_source_modification.unlock();
 	}
 
@@ -60,6 +63,7 @@ protected:
 	}
 public:
 	TebHotaruLocalPlanner(std::shared_ptr<ros::NodeHandle> nh):
+		ref_velocity(0.0),
 		InterfaceRos_Hotarulocalplanner(nh){}
 
 	virtual void executeSynchWithPose() override
@@ -72,11 +76,11 @@ public:
 
 	virtual void executeUpdateObstacles() override
 	{
-		//m_obstacle_update.lock();
+
 		plan_source_modification.lock();
 		obstacle_container->clear();
-		using namespace teb_local_planner;
 
+		using namespace teb_local_planner;
 		for (auto& marker: pubsubstate->msg_sub_filtered_obstacles.markers)
 		{
 			switch(marker.type)
@@ -91,9 +95,8 @@ public:
 				}
 			}
 		}
-
 		plan_source_modification.unlock();
-		//m_obstacle_update.unlock();
+
 	}
 
 	virtual void executeReplanRequest()
@@ -125,7 +128,13 @@ public:
 
 	virtual void executeUpdateVelocity()
 	{
-		trajectory_slicer.calcLookaheadDistance(pubsubstate->msg_sub_current_velocity);
+		current_speed = std::sqrt(
+			pubsubstate->msg_sub_current_velocity.twist.linear.x*pubsubstate->msg_sub_current_velocity.twist.linear.x
+			+ pubsubstate->msg_sub_current_velocity.twist.linear.y*pubsubstate->msg_sub_current_velocity.twist.linear.y
+			+ pubsubstate->msg_sub_current_velocity.twist.linear.z*pubsubstate->msg_sub_current_velocity.twist.linear.z
+		);
+		trajectory_slicer.calcLookaheadDistance(pubsubstate->msg_sub_current_velocity,
+			ref_velocity);
 	}
 
 	virtual bool initNode() override
@@ -138,7 +147,8 @@ public:
 		conf.optim.weight_obstacle = 20.0;
 		conf.obstacles.min_obstacle_dist = 0.2;
 		conf.robot.max_vel_x_backwards = 0.0;
-		conf.trajectory.dt_ref = 0.5;
+		conf.trajectory.dt_ref = 0.7;
+		//conf.trajectory.max_samples = 100;
 		conf.hcp.enable_multithreading = true;
 
 		conf.trajectory.allow_init_with_backwards_motion = false;
@@ -209,6 +219,8 @@ public:
 	void executeUpdateClosestWaypoint()
 	{
 		trajectory_slicer.setOffset(pubsubstate->msg_closest_waypoint.data);
+		// TODO: calculate waypoint velocity somehow
+		ref_velocity = 5.0;
 	}
 
 	virtual void localPlanCycle() override
@@ -220,6 +232,7 @@ public:
 			//m_obstacle_update.lock();
 			//conf.trajectory.max_samples = number_of_trajectory_points*2;
 			try{
+				std::cout << starting_plan_points.size() << '\n';
 				plan_source_modification.lock();
 				bool plan_success = planner->plan(starting_plan_points);
 				plan_source_modification.unlock();
@@ -241,13 +254,6 @@ public:
 									_pose_0,
 									inv_transform_current_pose
 							);
-							//autoware_msgs::Waypoint wp;
-							//wp.pose.pose = _full_trajectory[i].pose;
-							//wp.twist.twist = v.velocity;
-							//wp.twist = original_velocity_profile[i];
-							//wp.twist.twist.linear.x = 10/3.6;
-							//pubsubstate->msg_final_waypoints.waypoints.push_back(
-							//		std::move(wp));
 							if (rei::planarDistance(_prev_pose.position, _pose_0.position) > 0.4)
 							{
 								transformed_poses_current_pose.push_back(_pose_0);
@@ -257,7 +263,7 @@ public:
 					}
 					trajectory_slicer.joinWaypointsWithLocalPlan(
 							pubsubstate->msg_sub_base_waypoints,
-							transformed_poses_current_pose, pubsubstate->msg_sub_current_velocity,
+							transformed_poses_current_pose, current_speed,
 							pubsubstate->msg_final_waypoints);
 				}
 
@@ -293,7 +299,6 @@ public:
 	void visualizeTeb()
 	{
 
-
 	}
 
 	void maintThreadEvent(const ros::TimerEvent& e)
@@ -303,10 +308,11 @@ public:
 			localPlanCycle();
 			visualizeTeb();
 		}
-		else
+		else if (planner_state_machine->isRelay())
 		{
 			relayCycle();
 		}
+
 		publishFinal_waypoints();
 	}
 

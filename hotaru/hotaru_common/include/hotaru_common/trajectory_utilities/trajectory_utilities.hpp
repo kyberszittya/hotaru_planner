@@ -18,14 +18,17 @@ namespace hotaru
 class TrajectorySlicer
 {
 protected:
+	double min_lookahead_distance;
 	double lookahead_distance;
 	unsigned int lookahead_index;
 	double section_ratio;
 	unsigned int offset;
 public:
-	TrajectorySlicer(double start_section_ratio = 2.0);
+	TrajectorySlicer(double start_section_ratio = 2.0, double min_lookahead_distance = 3.0);
 
-	double calcLookaheadDistance(const geometry_msgs::TwistStamped& msg_velocity);
+	double calcLookaheadDistance(
+			const geometry_msgs::TwistStamped& msg_velocity,
+			const double& ref_velocity);
 
 	void calcLookaheadIndex(const autoware_msgs::Lane& lane);
 
@@ -36,7 +39,7 @@ public:
 
 	void joinWaypointsWithLocalPlan(const autoware_msgs::Lane& lane,
 			const std::vector<geometry_msgs::Pose>& starting_plan,
-			const geometry_msgs::TwistStamped& current_velocity,
+			const double& current_velocity,
 			autoware_msgs::Lane& output_lane);
 
 	void setOffset(int offset)

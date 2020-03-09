@@ -193,6 +193,9 @@ protected:
 		}catch(tf2::ExtrapolationException& ee)
 		{
 			std::cerr << ee.what() << '\n';
+		}catch(tf2::ConnectivityException& ce)
+		{
+			std::cerr << ce.what() << '\n';
 		}
 	}
 
@@ -228,18 +231,19 @@ protected:
 	}
 
 	void reconstructStartingPlanPoints(const autoware_msgs::Lane& msg,
-			geometry_msgs::PoseStamped& pose)
+			geometry_msgs::PoseStamped& pose, int offset)
 	{
+		/*
 		if (planner_state_machine->isRelay()||starting_plan_points.size()<2)
 		{
+			*/
 			original_velocity_profile.clear();
 			if (msg.waypoints.size() >= 2)
 			{
 				starting_plan_points.clear();
 				number_of_trajectory_points = 1;
 				geometry_msgs::PoseStamped _pose;
-
-				for (int i = 0; i < trajectory_slicer.getLookaheadIndex(); i++)
+				for (int i = offset; i < trajectory_slicer.getLookaheadIndex(); i++)
 				{
 					geometry_msgs::PoseStamped _wp;
 					tf2::doTransform(msg.waypoints[i].pose, _wp, transform_current_pose);
@@ -247,21 +251,9 @@ protected:
 					original_velocity_profile.push_back(msg.waypoints[i].twist);
 					number_of_trajectory_points++;
 				}
-				/*
-				geometry_msgs::PoseStamped _wp;
-				tf2::doTransform(msg.waypoints[0].pose, _wp, transform_current_pose);
-				starting_plan_points.push_back(std::move(_wp));
-				original_velocity_profile.push_back(msg.waypoints[0].twist);
-				geometry_msgs::PoseStamped _wp1;
-				tf2::doTransform(msg.waypoints[0].pose, _wp1, transform_current_pose);
-				starting_plan_points.push_back(std::move(_wp1));
-				original_velocity_profile.push_back(msg.waypoints[0].twist);
-				*/
 				number_of_trajectory_points++;
 			}
-
-
-		}
+		//}
 
 	}
 public:
