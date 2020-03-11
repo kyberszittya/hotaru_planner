@@ -31,7 +31,7 @@ double TrajectorySlicer::calcLookaheadDistance(
 	double speed = std::sqrt(msg_velocity.twist.linear.x*msg_velocity.twist.linear.x+
 			msg_velocity.twist.linear.y*msg_velocity.twist.linear.y +
 			msg_velocity.twist.linear.z*msg_velocity.twist.linear.z);
-	lookahead_distance = 20;
+	lookahead_distance = 25+min_lookahead_distance;
 	return std::max(lookahead_distance, min_lookahead_distance);
 }
 
@@ -55,10 +55,12 @@ void TrajectorySlicer::calcLookaheadIndex(const autoware_msgs::Lane& lane)
 
 void TrajectorySlicer::sliceFromStartToLookahead(
 	const autoware_msgs::Lane& lane,
+	const geometry_msgs::PoseStamped current_pose,
 	std::vector<geometry_msgs::PoseStamped>& starting_plan)
 {
 	starting_plan.clear();
-	for (unsigned int i = offset; i < offset+lookahead_index; i++)
+	starting_plan.push_back(current_pose);
+	for (unsigned int i = offset+7; i < offset+lookahead_index; i++)
 	{
 		starting_plan.push_back(lane.waypoints[i].pose);
 	}

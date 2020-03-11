@@ -125,13 +125,13 @@ private:
 
 protected:
 	StateDef state;
-	std::unique_ptr<GuardDef> guard_def;
+	std::shared_ptr<GuardDef> guard_def;
 	AbstractStateMachine(StateDef state,
 			std::shared_ptr<Interface_CommunicationGraphNotifier> graph_notifier,
-			std::unique_ptr<GuardDef> guard_def):
+			std::shared_ptr<GuardDef> guard_def):
 				StateMachineRunner(graph_notifier),
 				state(state),
-				guard_def(std::move(guard_def)){}
+				guard_def(guard_def){}
 
 
 	virtual bool _isAllocated() const

@@ -46,7 +46,7 @@ bool InterfaceRos_Hotarulocalplanner::init()
 	sub_replan_request_sig = nh->subscribe("replan_request_sig", 10, &InterfaceRos_Hotarulocalplanner::cbSub_replan_request_sig, this);
 	sub_current_pose = nh->subscribe("current_pose", 10, &InterfaceRos_Hotarulocalplanner::cbSub_current_pose, this);
 	sub_current_velocity = nh->subscribe("current_velocity", 10, &InterfaceRos_Hotarulocalplanner::cbSub_current_velocity, this);
-	sub_filtered_obstacles = nh->subscribe("filtered_obstacles", 10, &InterfaceRos_Hotarulocalplanner::cbSub_filtered_obstacles, this);
+	sub_filtered_obstacles = nh->subscribe("filtered_obstacles_poly", 10, &InterfaceRos_Hotarulocalplanner::cbSub_filtered_obstacles, this);
 	sub_closest_waypoints = nh->subscribe("closest_waypoint", 10, &InterfaceRos_Hotarulocalplanner::cbSub_closest_waypoints, this);
 	if (!initNode())
 	{
@@ -95,7 +95,7 @@ void InterfaceRos_Hotarulocalplanner::cbSub_current_velocity(const geometry_msgs
 	executeUpdateVelocity();
 	
 }
-void InterfaceRos_Hotarulocalplanner::cbSub_filtered_obstacles(const visualization_msgs::MarkerArray::ConstPtr& msg)
+void InterfaceRos_Hotarulocalplanner::cbSub_filtered_obstacles(const autoware_msgs::DetectedObjectArray::ConstPtr& msg)
 {
 	pubsubstate->msg_sub_filtered_obstacles = *msg;
 	executeUpdateObstacles();

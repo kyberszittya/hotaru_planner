@@ -18,6 +18,8 @@
 
 #include <rei_common/geometric_utilities.hpp>
 
+#include <rei_monitoring_msgs/ReiStateTransition.h>
+
 
 constexpr unsigned int PLANNER_SM_HZ = { 40 };
 constexpr unsigned int PLANNER_SYNC_HZ = { 100 };
@@ -41,6 +43,8 @@ protected:
 	ros::Timer timer_cycle;
 	ros::Timer timer_planner_sm;
 	ros::Timer timer_sync_sm;
+	// State transition
+	ros::Publisher pub_replanner_sm_state;
 
 	std::mutex plan_source_modification;
 
@@ -62,14 +66,17 @@ protected:
 
 	}
 public:
-	TebHotaruLocalPlanner(std::shared_ptr<ros::NodeHandle> nh):
+	TebHotaruLocalPlanner(std::shared_ptr<ros::NodeHandle> private_nh,
+			std::shared_ptr<ros::NodeHandle> nh):
 		ref_velocity(0.0),
-		InterfaceRos_Hotarulocalplanner(nh){}
+		InterfaceRos_Hotarulocalplanner(private_nh, nh){}
 
 	virtual void executeSynchWithPose() override
 	{
 		plan_source_modification.lock();
 		syncTfPose();
+		guard_local_planner->setCurrentPoint(pubsubstate->msg_sub_current_pose.pose.position);
+		guard_local_planner->setCurrentLookaheadIndex(pubsubstate->msg_closest_waypoint.data);
 		plan_source_modification.unlock();
 		//ROS_INFO("synchronize");
 	}
@@ -81,6 +88,7 @@ public:
 		obstacle_container->clear();
 
 		using namespace teb_local_planner;
+		/*
 		for (auto& marker: pubsubstate->msg_sub_filtered_obstacles.markers)
 		{
 			switch(marker.type)
@@ -94,6 +102,19 @@ public:
 					break;
 				}
 			}
+		}*/
+		for (const auto &o: pubsubstate->msg_sub_filtered_obstacles.objects)
+		{
+			Point2dContainer points;
+			points.reserve(o.convex_hull.polygon.points.size());
+			for (const auto& p: o.convex_hull.polygon.points)
+			{
+				Eigen::Vector2d p1(p.x, p.y);
+				points.push_back(p1);
+			}
+			obstacle_container->push_back(ObstaclePtr(
+					new PolygonObstacle(points))
+			);
 		}
 		plan_source_modification.unlock();
 
@@ -139,20 +160,77 @@ public:
 
 	virtual bool initNode() override
 	{
+		// State machine
+		pub_replanner_sm_state = nh->advertise<rei_monitoring_msgs::ReiStateTransition>(
+				"/hotaru_local_planner/state_transition", 10);
+		// Configure teb
 		using namespace teb_local_planner;
 		conf.map_frame = "base_link";
-		conf.robot.wheelbase = 2.7;
-		conf.robot.min_turning_radius = 10.86;
-		conf.optim.weight_kinematics_forward_drive = 10;
-		conf.optim.weight_obstacle = 20.0;
-		conf.obstacles.min_obstacle_dist = 0.2;
+		// Set parameters from private node handle
+		// Wheelbase parameter
+		double wheelbase = 2.7;
+		if (!private_nh->getParam("wheelbase", wheelbase))
+		{
+			ROS_WARN_STREAM("Using default wheelbase: " << wheelbase);
+		}
+		conf.robot.wheelbase = wheelbase;
+		// Minimal turning radius
+		double min_turning_radius = 10.86;
+		if (!private_nh->getParam("min_turning_radius", min_turning_radius))
+		{
+			ROS_WARN_STREAM("Using default minimum turning radius: " << min_turning_radius);
+		}
+		conf.robot.min_turning_radius = min_turning_radius;
+		// Kinematics forward drive
+		double weight_kinematics_forward_drive = 10;
+		if (!private_nh->getParam("weight_kinematics_forward_drive", weight_kinematics_forward_drive))
+		{
+			ROS_WARN_STREAM("Using default weight kinematics forward drive: " << weight_kinematics_forward_drive);
+		}
+		conf.optim.weight_kinematics_forward_drive = weight_kinematics_forward_drive;
+		// Obstacle weight
+		double weight_obstacle = 20;
+		if (!private_nh->getParam("weight_obstacle", weight_obstacle))
+		{
+			ROS_WARN_STREAM("Using default weight kinematics forward drive: " << weight_obstacle);
+		}
+		conf.optim.weight_obstacle = weight_obstacle;
+		// Minimal distance
+		double min_obstacle_distance = 2.0;
+		if (!private_nh->getParam("min_obstacle_distance", min_obstacle_distance))
+		{
+			ROS_WARN_STREAM("Using min obstacle distance " << min_obstacle_distance);
+		}
+		conf.obstacles.min_obstacle_dist = min_obstacle_distance;
+		// Weight adapt factor
+		double weight_adapt_factor = 2.5;
+		if (!private_nh->getParam("weight_adapt_factor", weight_adapt_factor))
+		{
+			ROS_WARN_STREAM("Using weight adapt factor " << weight_adapt_factor);
+		}
+		//conf.optim.weight_adapt_factor = weight_adapt_factor;
+		// Obstacle cost exponent
+		//double obstacle_cost_exponent = 1.15;
+		//if (!private_nh->getParam("obstacle_cost_exponent", obstacle_cost_exponent))
+		//{
+		//	ROS_WARN_STREAM("Using obstacle cost exponent " << obstacle_cost_exponent);
+		//}
+		//conf.optim.obstacle_cost_exponent = obstacle_cost_exponent;
+		// Config max vel backwards
 		conf.robot.max_vel_x_backwards = 0.0;
-		conf.trajectory.dt_ref = 0.7;
-		//conf.trajectory.max_samples = 100;
+		conf.trajectory.dt_ref = 0.8;
+		//conf.optim.weight_max_vel_x = 10;
+		//conf.trajectory.max_samples = 250;
+		// No omni-directional motion
+		conf.optim.weight_acc_lim_x = 0.0;
+		conf.optim.weight_max_vel_y = 0.0;
+		conf.optim.weight_viapoint = 200.0;
+		//conf.optim.weight_kinematics_turning_radius = 20.0;
+		//conf.optim.weight_shortest_path = 10;
 		conf.hcp.enable_multithreading = true;
-
+		//conf.hcp.delete_detours_backwards = true;
 		conf.trajectory.allow_init_with_backwards_motion = false;
-
+		conf.trajectory.feasibility_check_no_poses = 2;
 		viz = TebVisualizationPtr(new TebVisualization(*nh, conf));
 		Point2dContainer robot_footprint_points;
 		Eigen::Vector2d p0(-0.15, -0.55);
@@ -163,6 +241,8 @@ public:
 		robot_footprint_points.push_back(p1);
 		robot_footprint_points.push_back(p2);
 		robot_footprint_points.push_back(p3);
+		//robot_footprint = RobotFootprintModelPtr(
+				//new TwoCirclesRobotFootprint(2.0, 1.5, 2.0, 1.5));
 		robot_footprint = RobotFootprintModelPtr(new CircularRobotFootprint(2.0));
 		obstacle_container = std::make_shared<ObstContainer>();
 		// ROS
@@ -174,14 +254,27 @@ public:
 				via_points.get()
 			)
 		);
+		// Initialize sync state machine
 		if (!initLocalPlannerStateMachine(nh, sync_state_machine))
 		{
 			return false;
 		}
+		// Set callbacks for replanning state machine
+		planner_state_machine->setCbRelay(
+			std::bind(&TebHotaruLocalPlanner::actRelayState, this)
+		);
+		planner_state_machine->setCbWaiting(
+			std::bind(&TebHotaruLocalPlanner::actWaitingState, this)
+		);
+		planner_state_machine->setCbReplanning(
+			std::bind(&TebHotaruLocalPlanner::actReplanningState, this)
+		);
+		// Start planner SM
 		timer_planner_sm = nh->createTimer(ros::Duration(1.0/(double)PLANNER_SYNC_HZ), &TebHotaruLocalPlanner::cycleSyncStateMachine, this);
 		timer_planner_sm.start();
 		sync_state_machine->setCbAllStateMessageReceived(
-				std::bind(&TebHotaruLocalPlanner::startAfterAllMessagesReceived, this));
+			std::bind(&TebHotaruLocalPlanner::startAfterAllMessagesReceived, this)
+		);
 		return true;
 	}
 
@@ -209,6 +302,36 @@ public:
 		}
 	}
 
+	void actRelayState()
+	{
+		rei_monitoring_msgs::ReiStateTransition sig;
+		sig.header.stamp = ros::Time::now();
+		sig.transition_signal = "RELAY";
+		pub_replanner_sm_state.publish(sig);
+	}
+
+	void actReplanningState()
+	{
+		guard_local_planner->setLookaheadPoint(
+			pubsubstate->msg_sub_base_waypoints
+				.waypoints[trajectory_slicer.getLookaheadIndex()]
+				.pose.pose.position, trajectory_slicer.getLookaheadIndex(),
+			pubsubstate->msg_sub_base_waypoints.waypoints.size()
+		);
+		rei_monitoring_msgs::ReiStateTransition sig;
+		sig.header.stamp = ros::Time::now();
+		sig.transition_signal = "REPLANNING";
+		pub_replanner_sm_state.publish(sig);
+	}
+
+	void actWaitingState()
+	{
+		rei_monitoring_msgs::ReiStateTransition sig;
+		sig.header.stamp = ros::Time::now();
+		sig.transition_signal = "WAITING";
+		pub_replanner_sm_state.publish(sig);
+	}
+
 	void startAfterAllMessagesReceived()
 	{
 		planner_state_machine->start();
@@ -225,16 +348,13 @@ public:
 
 	virtual void localPlanCycle() override
 	{
-
-		//
+		geometry_msgs::Pose p0;
 		if (starting_plan_points.size()>0)
 		{
-			//m_obstacle_update.lock();
-			//conf.trajectory.max_samples = number_of_trajectory_points*2;
 			try{
-				std::cout << starting_plan_points.size() << '\n';
 				plan_source_modification.lock();
 				bool plan_success = planner->plan(starting_plan_points);
+
 				plan_source_modification.unlock();
 				if (plan_success)
 				{
@@ -270,8 +390,6 @@ public:
 			}catch(std::runtime_error& e){
 
 			}
-			//m_obstacle_update.unlock();
-			//pub_final_waypoints.publish(final_waypoints);
 		}
 
 	}
@@ -312,7 +430,6 @@ public:
 		{
 			relayCycle();
 		}
-
 		publishFinal_waypoints();
 	}
 
@@ -329,7 +446,8 @@ int main(int argc, char** argv)
 {
 	ros::init(argc, argv, "hotaru_teb_local_planner");
 	std::shared_ptr<ros::NodeHandle> nh(new ros::NodeHandle());
-	TebHotaruLocalPlanner teb_planner(nh);
+	std::shared_ptr<ros::NodeHandle> private_nh(new ros::NodeHandle("~"));
+	TebHotaruLocalPlanner teb_planner(private_nh, nh);
 	if (teb_planner.init())
 	{
 		ROS_INFO("Starting local planner component");

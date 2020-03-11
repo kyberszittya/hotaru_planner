@@ -9,6 +9,7 @@
 #include <grid_map_ros/grid_map_ros.hpp>
 
 #include <geometry_msgs/PoseStamped.h>
+#include <geometry_msgs/Point32.h>
 
 #include <std_msgs/Int32.h>
 
@@ -23,6 +24,12 @@
 #include <tf2_geometry_msgs/tf2_geometry_msgs.h>
 
 #include <rei_common/geometric_utilities.hpp>
+
+#include <autoware_msgs/DetectedObjectArray.h>
+
+
+constexpr double D_LATERAL_THRESHOLD = 2.75;
+constexpr double D_LONGITUDINAL_THRESHOLD = 5.75;
 
 namespace rei
 {
@@ -39,13 +46,16 @@ protected:
 	ros::Subscriber sub_base_waypoints;
 	ros::Subscriber sub_obstacle_marker;
 	ros::Subscriber sub_closest_waypoint;
+	ros::Subscriber sub_obstacle_poly;
 	ros::Publisher pub_detected_obstacles;
+	ros::Publisher pub_detected_obstacles_array;
 	ros::Publisher pub_replan_signal;
 	grid_map::GridMap global_map;
 	rei_planner_signals::ReplanRequest request_msg;
 	autoware_msgs::Lane msg_base_waypoints;
 	// Detect polygon obstacles
 	visualization_msgs::MarkerArray input_obstacles;
+	autoware_msgs::DetectedObjectArray poly_obstacle_array;
 	visualization_msgs::MarkerArray obstacles;
 	tf2_ros::Buffer tf_buffer;
 	std::unique_ptr<tf2_ros::TransformListener> tf_listener;
@@ -66,7 +76,78 @@ public:
 		sub_grid_map = nh.subscribe("grid_map", 1, &ObstacleGridMapMonitor::subGridMap, this);
 		sub_base_waypoints = nh.subscribe("base_waypoints", 1, &ObstacleGridMapMonitor::cbBaseWaypoints, this);
 		sub_obstacle_marker = nh.subscribe("/detection/lidar_detector/objects_markers", 1, &ObstacleGridMapMonitor::cbObstacleCluster, this);
+		// Sub polygon obstacles
+		pub_detected_obstacles_array = nh.advertise<autoware_msgs::DetectedObjectArray>("/filtered_obstacles_poly", 10);
+		sub_obstacle_poly = nh.subscribe("/detection/lidar_detector/objects", 1, &ObstacleGridMapMonitor::cbPolyObj, this);
+
 		return true;
+	}
+
+	void cbPolyObj(const autoware_msgs::DetectedObjectArray::ConstPtr& msg)
+	{
+		poly_obstacle_array.objects.clear();
+		// Filter obstacles of interest
+		double longitudinal_distance = 0.0;
+		if (closest_waypoint >= 1)
+		{
+
+			for (unsigned int i = closest_waypoint; i < msg_base_waypoints.waypoints.size(); i++)
+			{
+				geometry_msgs::PoseStamped _pose_0;
+				tf2::doTransform(
+						msg_base_waypoints.waypoints[i-1].pose,
+						_pose_0,
+						transform_current_pose
+				);
+				geometry_msgs::PoseStamped _pose_1;
+				tf2::doTransform(
+						msg_base_waypoints.waypoints[i].pose,
+						_pose_1,
+						transform_current_pose
+				);
+				longitudinal_distance += planarDistance(
+					_pose_0.pose.position,
+					_pose_1.pose.position
+				);
+				if (longitudinal_distance >= 6.0)
+				{
+					// Typical application of polytopes!
+					// QHULL or CCD should be included or FCL
+					for (const auto& o: msg->objects)
+					{
+						std::cout << o.pose.position.x << '\n';
+						if (o.pose.position.x > 1.0)
+						{
+							for (const auto p: o.convex_hull.polygon.points)
+							{
+								double d_lateral = distanceToLine(_pose_0.pose.position,
+										_pose_1.pose.position, p);
+								if (d_lateral <= D_LATERAL_THRESHOLD)
+								{
+									///ROS_INFO("Obstacle detected");
+									if (request_msg.obstacle_min_lateral_distance > d_lateral)
+									{
+										request_msg.obstacle_min_lateral_distance = d_lateral;
+										request_msg.obstacle_min_longitudinal_distance = longitudinal_distance;
+									}
+									request_msg.eval = true;
+									poly_obstacle_array.objects.push_back(o);
+									break;
+								}
+							}
+						}
+					}
+				}
+			}
+			if (poly_obstacle_array.objects.size()==0)
+			{
+				request_msg.eval = false;
+			}
+		}
+		pub_detected_obstacles_array.publish(poly_obstacle_array);
+		// Publish replan request
+		request_msg.header.stamp = ros::Time::now();
+		pub_replan_signal.publish(request_msg);
 	}
 
 	void cbBaseWaypoints(const autoware_msgs::Lane::ConstPtr& msg)
@@ -138,7 +219,7 @@ public:
 						// Check lateral distance
 						double d_lateral = distanceToLine(_pose_0.pose.position,
 								_pose_1.pose.position, m.pose.position);
-						if (d_lateral <= 2.75)
+						if (d_lateral <= D_LATERAL_THRESHOLD)
 						{
 							///ROS_INFO("Obstacle detected");
 							if (request_msg.obstacle_min_lateral_distance > d_lateral)
