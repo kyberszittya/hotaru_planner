@@ -19,6 +19,8 @@
 #include <rei_common/geometric_utilities.hpp>
 
 #include <rei_monitoring_msgs/ReiStateTransition.h>
+#include <std_msgs/Float64.h>
+#include <autoware_msgs/VehicleStatus.h>
 
 
 constexpr unsigned int PLANNER_SM_HZ = { 40 };
@@ -47,18 +49,53 @@ protected:
 	ros::Publisher pub_replanner_sm_state;
 
 	std::mutex plan_source_modification;
-
-
 	std::vector<geometry_msgs::Pose> transformed_poses_current_pose;
+	// Quantitative information
+	ros::Publisher pub_plan_time;
+	ros::Subscriber sub_vehicle_status;
+	ros::Publisher pub_marker_end_index;
+	ros::Publisher pub_marker_velocity_index;
+	int relay_minimalObstacleIndex;
+	int minimalObstacleIndex;
+	visualization_msgs::Marker marker_obstacle_end_index;
+	visualization_msgs::Marker marker_obstacle_velocity_index;
 
 
 
 	virtual void executeReconstructWaypoints() override {
 		plan_source_modification.lock();
 		trajectory_slicer.calcLookaheadIndex(pubsubstate->msg_sub_base_waypoints);
-		reconstructStartingPlanPoints(pubsubstate->msg_sub_base_waypoints,
+		if (planner_state_machine->isRelay())
+		{
+			reconstructStartingPlanPoints(
+				pubsubstate->msg_sub_base_waypoints,
 				pubsubstate->msg_sub_current_pose,
-				pubsubstate->msg_closest_waypoint.data);
+				pubsubstate->msg_closest_waypoint.data
+			);
+		}
+		else if (planner_state_machine->isReplanning())
+		{
+			reconstructStartingPlanPoints(
+				pubsubstate->msg_sub_base_waypoints,
+				pubsubstate->msg_sub_current_pose,
+				pubsubstate->msg_closest_waypoint.data, 10
+			);
+		}
+		// Via points
+		/*
+		via_points->clear();
+		for (int i = pubsubstate->msg_closest_waypoint.data;
+				i < trajectory_slicer.getLookaheadIndex(); i++)
+		{
+			geometry_msgs::Point p0;
+			tf2::doTransform(
+				pubsubstate->msg_sub_base_waypoints.waypoints[i].pose.pose.position,
+				p0, transform_current_pose);
+			Eigen::Vector2d v(p0.x, p0.y);
+			via_points->push_back(v);
+		}
+		*/
+		// Unlock source modification
 		plan_source_modification.unlock();
 	}
 
@@ -78,7 +115,6 @@ public:
 		guard_local_planner->setCurrentPoint(pubsubstate->msg_sub_current_pose.pose.position);
 		guard_local_planner->setCurrentLookaheadIndex(pubsubstate->msg_closest_waypoint.data);
 		plan_source_modification.unlock();
-		//ROS_INFO("synchronize");
 	}
 
 	virtual void executeUpdateObstacles() override
@@ -88,6 +124,7 @@ public:
 		obstacle_container->clear();
 
 		using namespace teb_local_planner;
+
 		/*
 		for (auto& marker: pubsubstate->msg_sub_filtered_obstacles.markers)
 		{
@@ -115,6 +152,38 @@ public:
 			obstacle_container->push_back(ObstaclePtr(
 					new PolygonObstacle(points))
 			);
+			if (planner_state_machine->isReplanning())
+			{
+				relay_minimalObstacleIndex = calcObstacleMinimalIndex(
+					o.pose.position,
+					pubsubstate->msg_sub_base_waypoints.waypoints.size(),
+					2.5
+				);
+				int new_index = calcObstacleMinimalIndex(
+					o.pose.position,
+					pubsubstate->msg_sub_base_waypoints.waypoints.size(),
+					2.5
+				);
+				if (new_index > relay_minimalObstacleIndex)
+				{
+					relay_minimalObstacleIndex = new_index;
+				}
+				// Calculate minimal velocity distance index
+				marker_obstacle_end_index.pose.position =
+						pubsubstate->msg_sub_base_waypoints
+							.waypoints[relay_minimalObstacleIndex].pose.pose.position;
+				marker_obstacle_end_index.header.frame_id = pubsubstate->msg_sub_base_waypoints.header.frame_id;
+				guard_local_planner->setLookaheadPoint(
+					pubsubstate->msg_sub_base_waypoints
+						.waypoints[trajectory_slicer.getLookaheadIndex()]
+						.pose.pose.position,
+					minimalObstacleIndex,
+					relay_minimalObstacleIndex,
+					pubsubstate->msg_sub_base_waypoints.waypoints.size()
+				);
+				pub_marker_end_index.publish(marker_obstacle_end_index);
+				pub_marker_velocity_index.publish(marker_obstacle_velocity_index);
+			}
 		}
 		plan_source_modification.unlock();
 
@@ -145,6 +214,7 @@ public:
 			);
 		}
 		planner_state_machine->propagateSignal(_sig);
+		planner_state_machine->stepstatemachine();
 	}
 
 	virtual void executeUpdateVelocity()
@@ -156,10 +226,40 @@ public:
 		);
 		trajectory_slicer.calcLookaheadDistance(pubsubstate->msg_sub_current_velocity,
 			ref_velocity);
+
 	}
 
 	virtual bool initNode() override
 	{
+		// Visualization
+		pub_marker_end_index = nh->advertise<visualization_msgs::Marker>(
+				"/hotaru_local_planner/obstacle_index",1);
+		pub_marker_velocity_index = nh->advertise<visualization_msgs::Marker>(
+						"/hotaru_local_planner/velocity_index",1);
+		marker_obstacle_end_index.color.r = 0.0;
+		marker_obstacle_end_index.color.g = 1.0;
+		marker_obstacle_end_index.color.b = 1.0;
+		marker_obstacle_end_index.color.a = 1.0;
+		marker_obstacle_end_index.scale.x = 1.0;
+		marker_obstacle_end_index.scale.y = 1.0;
+		marker_obstacle_end_index.scale.z = 1.0;
+		marker_obstacle_end_index.pose.orientation.w = 1.0;
+		marker_obstacle_end_index.type = visualization_msgs::Marker::SPHERE;
+		marker_obstacle_end_index.text = "OBSTACLE_END";
+		marker_obstacle_velocity_index.color.r = 1.0;
+		marker_obstacle_velocity_index.color.g = 0.0;
+		marker_obstacle_velocity_index.color.b = 0.0;
+		marker_obstacle_velocity_index.color.a = 1.0;
+		marker_obstacle_velocity_index.scale.x = 1.0;
+		marker_obstacle_velocity_index.scale.y = 1.0;
+		marker_obstacle_velocity_index.scale.z = 1.0;
+		marker_obstacle_velocity_index.pose.orientation.w = 1.0;
+		marker_obstacle_velocity_index.type = visualization_msgs::Marker::SPHERE;
+		marker_obstacle_velocity_index.text = "OBSTACLE_END";
+		//
+		sub_vehicle_status = nh->subscribe("/vehicle_status", 10, &TebHotaruLocalPlanner::cbVehicleStatue, this);
+		// Benchmark
+		pub_plan_time = nh->advertise<std_msgs::Float64>("/hotaru_local_planner/plan_time", 10);
 		// State machine
 		pub_replanner_sm_state = nh->advertise<rei_monitoring_msgs::ReiStateTransition>(
 				"/hotaru_local_planner/state_transition", 10);
@@ -189,14 +289,14 @@ public:
 		}
 		conf.optim.weight_kinematics_forward_drive = weight_kinematics_forward_drive;
 		// Obstacle weight
-		double weight_obstacle = 20;
+		double weight_obstacle = 65;
 		if (!private_nh->getParam("weight_obstacle", weight_obstacle))
 		{
 			ROS_WARN_STREAM("Using default weight kinematics forward drive: " << weight_obstacle);
 		}
 		conf.optim.weight_obstacle = weight_obstacle;
 		// Minimal distance
-		double min_obstacle_distance = 2.0;
+		double min_obstacle_distance = 1.2;
 		if (!private_nh->getParam("min_obstacle_distance", min_obstacle_distance))
 		{
 			ROS_WARN_STREAM("Using min obstacle distance " << min_obstacle_distance);
@@ -224,7 +324,7 @@ public:
 		// No omni-directional motion
 		conf.optim.weight_acc_lim_x = 0.0;
 		conf.optim.weight_max_vel_y = 0.0;
-		conf.optim.weight_viapoint = 200.0;
+		conf.optim.weight_viapoint = 1.0;
 		//conf.optim.weight_kinematics_turning_radius = 20.0;
 		//conf.optim.weight_shortest_path = 10;
 		conf.hcp.enable_multithreading = true;
@@ -241,10 +341,11 @@ public:
 		robot_footprint_points.push_back(p1);
 		robot_footprint_points.push_back(p2);
 		robot_footprint_points.push_back(p3);
-		//robot_footprint = RobotFootprintModelPtr(
-				//new TwoCirclesRobotFootprint(2.0, 1.5, 2.0, 1.5));
-		robot_footprint = RobotFootprintModelPtr(new CircularRobotFootprint(2.0));
+		robot_footprint = RobotFootprintModelPtr(
+				new TwoCirclesRobotFootprint(2.0, 1.5, 2.0, 1.5));
+		//robot_footprint = RobotFootprintModelPtr(new CircularRobotFootprint(2.0));
 		obstacle_container = std::make_shared<ObstContainer>();
+		via_points = std::make_shared<ViaPointContainer>();
 		// ROS
 		planner = std::unique_ptr<teb_local_planner::TebOptimalPlanner>(
 			new TebOptimalPlanner(
@@ -254,6 +355,7 @@ public:
 				via_points.get()
 			)
 		);
+		planner->registerG2OTypes();
 		// Initialize sync state machine
 		if (!initLocalPlannerStateMachine(nh, sync_state_machine))
 		{
@@ -266,7 +368,7 @@ public:
 		planner_state_machine->setCbWaiting(
 			std::bind(&TebHotaruLocalPlanner::actWaitingState, this)
 		);
-		planner_state_machine->setCbReplanning(
+		planner_state_machine->setCbReplanningEnter(
 			std::bind(&TebHotaruLocalPlanner::actReplanningState, this)
 		);
 		// Start planner SM
@@ -308,20 +410,29 @@ public:
 		sig.header.stamp = ros::Time::now();
 		sig.transition_signal = "RELAY";
 		pub_replanner_sm_state.publish(sig);
+		plan_source_modification.lock();
+		planner->clearPlanner();
+		plan_source_modification.unlock();
+		this->relay_minimalObstacleIndex = 0;
 	}
 
 	void actReplanningState()
 	{
-		guard_local_planner->setLookaheadPoint(
-			pubsubstate->msg_sub_base_waypoints
-				.waypoints[trajectory_slicer.getLookaheadIndex()]
-				.pose.pose.position, trajectory_slicer.getLookaheadIndex(),
-			pubsubstate->msg_sub_base_waypoints.waypoints.size()
-		);
 		rei_monitoring_msgs::ReiStateTransition sig;
 		sig.header.stamp = ros::Time::now();
 		sig.transition_signal = "REPLANNING";
 		pub_replanner_sm_state.publish(sig);
+		geometry_msgs::Point _p0;
+		tf2::doTransform(
+			pubsubstate->msg_sub_current_pose.pose.position,
+			_p0, transform_current_pose
+		);
+		minimalObstacleIndex = calcObstacleMinimalIndex(
+			_p0,
+			pubsubstate->msg_sub_base_waypoints.waypoints.size());
+		marker_obstacle_velocity_index.pose.position =
+		pubsubstate->msg_sub_base_waypoints.waypoints[minimalObstacleIndex].pose.pose.position;
+		marker_obstacle_velocity_index.header.frame_id = pubsubstate->msg_sub_base_waypoints.header.frame_id;
 	}
 
 	void actWaitingState()
@@ -348,13 +459,14 @@ public:
 
 	virtual void localPlanCycle() override
 	{
-		geometry_msgs::Pose p0;
+
 		if (starting_plan_points.size()>0)
 		{
 			try{
+
+
 				plan_source_modification.lock();
 				bool plan_success = planner->plan(starting_plan_points);
-
 				plan_source_modification.unlock();
 				if (plan_success)
 				{
@@ -386,15 +498,63 @@ public:
 							transformed_poses_current_pose, current_speed,
 							pubsubstate->msg_final_waypoints);
 				}
-
 			}catch(std::runtime_error& e){
 
+			}catch(std::out_of_range& e){
+				ROS_ERROR("ERROR");
 			}
 		}
 
 	}
 
-
+	int calcObstacleMinimalIndex(const geometry_msgs::Point& obstacle_position,
+			int max_length, const double scale = 1.0)
+	{
+		double speed = sqrt(
+			pubsubstate->msg_sub_current_velocity.twist.linear.x*
+			pubsubstate->msg_sub_current_velocity.twist.linear.x+
+			pubsubstate->msg_sub_current_velocity.twist.linear.y*
+			pubsubstate->msg_sub_current_velocity.twist.linear.y
+		);
+		double longitude_distance = 0.0;
+		int dindex = 0;
+		int obstacle_index = 0;
+		for (int i = pubsubstate->msg_closest_waypoint.data+1;
+				i < pubsubstate->msg_sub_base_waypoints.waypoints.size(); i++)
+		{
+			geometry_msgs::Point _p0;
+			geometry_msgs::Point _p1;
+			tf2::doTransform(
+				pubsubstate->msg_sub_base_waypoints.waypoints[i-1].pose.pose.position,
+				_p0, transform_current_pose
+			);
+			tf2::doTransform(
+				pubsubstate->msg_sub_base_waypoints.waypoints[i].pose.pose.position,
+				_p1, transform_current_pose
+			);
+			if (rei::planarDistance(obstacle_position, _p1) < 3.0
+			)
+			{
+				obstacle_index = i;
+			}
+			if (obstacle_index > 0)
+			{
+				double d = rei::planarDistance(
+					_p0, _p1
+				);
+				longitude_distance += d;
+				if (longitude_distance > speed)
+				{
+					return std::min(
+						max_length,
+						static_cast<int>(i + dindex*scale)
+					);
+				}
+				dindex++;
+			}
+		}
+		return 0;
+	}
 
 	virtual void relayCycle() override
 	{
@@ -414,6 +574,22 @@ public:
 
 	}
 
+	void cbVehicleStatue(const autoware_msgs::VehicleStatus::ConstPtr& msg)
+	{
+		if (msg->angle > 0.095)
+		{
+			planner->setPreferredTurningDir(teb_local_planner::RotType::left);
+		}
+		else if (msg->angle < -0.095)
+		{
+			planner->setPreferredTurningDir(teb_local_planner::RotType::right);
+		}
+		else
+		{
+			planner->setPreferredTurningDir(teb_local_planner::RotType::none);
+		}
+	}
+
 	void visualizeTeb()
 	{
 
@@ -421,6 +597,7 @@ public:
 
 	void maintThreadEvent(const ros::TimerEvent& e)
 	{
+		std_msgs::Float64 plan_time;
 		if (planner_state_machine->isReplanning())
 		{
 			localPlanCycle();
@@ -431,6 +608,8 @@ public:
 			relayCycle();
 		}
 		publishFinal_waypoints();
+		plan_time.data = e.current_expired.toSec() - e.last_expired.toSec();
+		pub_plan_time.publish(plan_time);
 	}
 
 	void mainThread()

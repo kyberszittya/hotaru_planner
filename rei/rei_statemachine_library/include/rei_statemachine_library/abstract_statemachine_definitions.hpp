@@ -105,6 +105,7 @@ protected:
 	virtual bool _isAllocated() const = 0;
 	virtual void handle_start() = 0;
 	virtual void handle_startError() = 0;
+	std::mutex mtx_step;
 public:
 	StateMachineRunner(std::shared_ptr<Interface_CommunicationGraphNotifier> graph_notifier):
 		comm_graph_notifier(std::move(graph_notifier)){}

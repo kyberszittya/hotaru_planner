@@ -36,6 +36,7 @@ bool StateMachineRunner::start()
 
 void StateMachineRunner::stepstatemachine()
 {
+	mtx_step.lock();
 	if (signal_buffer.size() > 0)
 	{
 		std::shared_ptr<AbstractSignalInterface> sig = signal_buffer.front();
@@ -50,6 +51,7 @@ void StateMachineRunner::stepstatemachine()
 	{
 		//throw StateMachineEmptySignalBuffer("state_machine_runner", "step_state_machine");
 	}
+	mtx_step.unlock();
 }
 
 void StateMachineRunner::propagateSignal(std::shared_ptr<AbstractSignalInterface> sig)

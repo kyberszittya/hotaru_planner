@@ -70,13 +70,31 @@ protected:
 		throw  rei::StateMachineStartFailure("local_planner_state_machine", "start");
 	}
 
+	std::function<void(void)> cbRelay;
+	std::function<void(void)> cbReplanningEnter;
+	std::function<void(void)> cbWaiting;
 public:
+	void setCbRelay(std::function<void(void)> cb)
+	{
+		cbRelay = cb;
+	}
+
+	void setCbReplanningEnter(std::function<void(void)> cb)
+	{
+		cbReplanningEnter = cb;
+	}
+
+	void setCbWaiting(std::function<void(void)> cb)
+	{
+		cbWaiting = cb;
+	}
+
 	LocalPlannerStateMachine(
 		std::shared_ptr<rei::Interface_CommunicationGraphNotifier> graph_notifier,
-		std::unique_ptr<Interface_GuardLocalPlanner> guard_syncstate):
+		std::shared_ptr<Interface_GuardLocalPlanner> guard_syncstate):
 			AbstractStateMachine(LocalPlannerStateMachine_States::PSEUDO_START,
 					graph_notifier,
-					std::move(guard_syncstate))
+					guard_syncstate)
 	{
 
 	}
@@ -134,6 +152,7 @@ public:
 
 				if (guard_def->guard_Relay2ReplanningState())
 				{
+					cbReplanningEnter();
 					state = LocalPlannerStateMachine_States::REPLANNING;
 					sig->effect();
 				}
@@ -153,6 +172,7 @@ public:
 				{
 					state = LocalPlannerStateMachine_States::RELAY;
 					sig->effect();
+					cbRelay();
 				}
 				break;
 			}
@@ -169,6 +189,7 @@ public:
 				{
 					state = LocalPlannerStateMachine_States::WAITING;
 					sig->effect();
+					cbWaiting();
 				}
 				break;
 			}
@@ -185,11 +206,14 @@ public:
 				{
 					state = LocalPlannerStateMachine_States::RELAY;
 					sig->effect();
+					cbRelay();
 				}
 				break;
 			}
 		}
 	}
+
+
 };
 
 }

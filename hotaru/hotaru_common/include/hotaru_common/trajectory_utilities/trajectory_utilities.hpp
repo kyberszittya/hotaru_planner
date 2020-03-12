@@ -35,7 +35,9 @@ public:
 	unsigned int getLookaheadIndex() const;
 
 	void sliceFromStartToLookahead(const autoware_msgs::Lane& lane,
-			std::vector<geometry_msgs::PoseStamped>& starting_plan);
+			const geometry_msgs::PoseStamped current_pose,
+			std::vector<geometry_msgs::PoseStamped>& starting_plan,
+			int skip=0);
 
 	void joinWaypointsWithLocalPlan(const autoware_msgs::Lane& lane,
 			const std::vector<geometry_msgs::Pose>& starting_plan,

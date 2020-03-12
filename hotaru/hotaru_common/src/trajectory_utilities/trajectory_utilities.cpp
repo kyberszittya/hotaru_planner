@@ -56,14 +56,14 @@ void TrajectorySlicer::calcLookaheadIndex(const autoware_msgs::Lane& lane)
 void TrajectorySlicer::sliceFromStartToLookahead(
 	const autoware_msgs::Lane& lane,
 	const geometry_msgs::PoseStamped current_pose,
-	std::vector<geometry_msgs::PoseStamped>& starting_plan)
+	std::vector<geometry_msgs::PoseStamped>& starting_plan, int skip)
 {
 	starting_plan.clear();
-	starting_plan.push_back(current_pose);
-	for (unsigned int i = offset+7; i < offset+lookahead_index; i++)
+	for (unsigned int i = offset+skip; i < offset+lookahead_index; i++)
 	{
 		starting_plan.push_back(lane.waypoints[i].pose);
 	}
+	starting_plan.front() = current_pose;
 }
 
 void TrajectorySlicer::joinWaypointsWithLocalPlan(
