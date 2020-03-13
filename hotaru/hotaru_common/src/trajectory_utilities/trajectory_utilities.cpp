@@ -25,13 +25,13 @@ unsigned int TrajectorySlicer::getLookaheadIndex() const
 
 double TrajectorySlicer::calcLookaheadDistance(
 		const geometry_msgs::TwistStamped& msg_velocity,
-		const double& ref_velocity)
+		const double& ref_velocity, int velocity_length)
 {
 
 	double speed = std::sqrt(msg_velocity.twist.linear.x*msg_velocity.twist.linear.x+
 			msg_velocity.twist.linear.y*msg_velocity.twist.linear.y +
 			msg_velocity.twist.linear.z*msg_velocity.twist.linear.z);
-	lookahead_distance = 25+min_lookahead_distance;
+	lookahead_distance = velocity_length+min_lookahead_distance;
 	return std::max(lookahead_distance, min_lookahead_distance);
 }
 

@@ -26,6 +26,8 @@
 constexpr unsigned int PLANNER_SM_HZ = { 40 };
 constexpr unsigned int PLANNER_SYNC_HZ = { 100 };
 
+
+
 class TebHotaruLocalPlanner: public hotaru::InterfaceRos_Hotarulocalplanner,
 	public hotaru::Abstract_RosLocalPlanner
 {
@@ -33,6 +35,10 @@ private:
 	double current_speed;
 	double ref_velocity;
 protected:
+	// Obstacle handling
+	std::map<unsigned int, teb_local_planner::ObstaclePtr> semantic_perimeter;
+	std::vector<teb_local_planner::ObstaclePtr> lookahead_obstacles_instances;
+	//
 	std::shared_ptr<teb_local_planner::ObstContainer> obstacle_container;
 	teb_local_planner::RobotFootprintModelPtr robot_footprint;
 	teb_local_planner::TebConfig conf;
@@ -45,6 +51,7 @@ protected:
 	ros::Timer timer_cycle;
 	ros::Timer timer_planner_sm;
 	ros::Timer timer_sync_sm;
+	ros::Timer timer_obstacle_update;
 	// State transition
 	ros::Publisher pub_replanner_sm_state;
 
@@ -55,8 +62,11 @@ protected:
 	ros::Subscriber sub_vehicle_status;
 	ros::Publisher pub_marker_end_index;
 	ros::Publisher pub_marker_velocity_index;
-	int relay_minimalObstacleIndex;
+	ros::Subscriber sub_semantic_obstacles;
+	ros::Subscriber sub_semantic_road_line;
+	int relay_minimal_obstacle_index;
 	int minimalObstacleIndex;
+	int horizon_length;
 	visualization_msgs::Marker marker_obstacle_end_index;
 	visualization_msgs::Marker marker_obstacle_velocity_index;
 
@@ -81,20 +91,6 @@ protected:
 				pubsubstate->msg_closest_waypoint.data, 10
 			);
 		}
-		// Via points
-		/*
-		via_points->clear();
-		for (int i = pubsubstate->msg_closest_waypoint.data;
-				i < trajectory_slicer.getLookaheadIndex(); i++)
-		{
-			geometry_msgs::Point p0;
-			tf2::doTransform(
-				pubsubstate->msg_sub_base_waypoints.waypoints[i].pose.pose.position,
-				p0, transform_current_pose);
-			Eigen::Vector2d v(p0.x, p0.y);
-			via_points->push_back(v);
-		}
-		*/
 		// Unlock source modification
 		plan_source_modification.unlock();
 	}
@@ -106,6 +102,10 @@ public:
 	TebHotaruLocalPlanner(std::shared_ptr<ros::NodeHandle> private_nh,
 			std::shared_ptr<ros::NodeHandle> nh):
 		ref_velocity(0.0),
+		current_speed(0.0),
+		horizon_length(0),
+		minimalObstacleIndex(0),
+		relay_minimal_obstacle_index(0),
 		InterfaceRos_Hotarulocalplanner(private_nh, nh){}
 
 	virtual void executeSynchWithPose() override
@@ -119,9 +119,19 @@ public:
 
 	virtual void executeUpdateObstacles() override
 	{
+		// Store current index
+		int current_wp_index = pubsubstate->msg_closest_waypoint.data;
+		//
 
-		plan_source_modification.lock();
-		obstacle_container->clear();
+		if (planner_state_machine->isRelay() ||
+				pubsubstate->msg_sub_filtered_obstacles.objects.size() > 0)
+		{
+			//obstacle_container->clear();
+			//poly_objects.clear();
+			plan_source_modification.lock();
+			lookahead_obstacles_instances.clear();
+			plan_source_modification.unlock();
+		}
 
 		using namespace teb_local_planner;
 
@@ -140,6 +150,19 @@ public:
 				}
 			}
 		}*/
+
+		if (lookahead_obstacles_instances.size() != pubsubstate->msg_sub_filtered_obstacles.objects.size())
+		{
+			plan_source_modification.lock();
+			lookahead_obstacles_instances.clear();
+			lookahead_obstacles_instances.reserve(pubsubstate->msg_sub_filtered_obstacles.objects.size());
+			for (int i = 0; i < pubsubstate->msg_sub_filtered_obstacles.objects.size(); i++)
+			{
+				lookahead_obstacles_instances.push_back();
+			}
+			plan_source_modification.unlock();
+		}
+		int objects = 0;
 		for (const auto &o: pubsubstate->msg_sub_filtered_obstacles.objects)
 		{
 			Point2dContainer points;
@@ -149,43 +172,62 @@ public:
 				Eigen::Vector2d p1(p.x, p.y);
 				points.push_back(p1);
 			}
-			obstacle_container->push_back(ObstaclePtr(
-					new PolygonObstacle(points))
-			);
+
 			if (planner_state_machine->isReplanning())
 			{
-				relay_minimalObstacleIndex = calcObstacleMinimalIndex(
+				// Set new obstacle index
+				int raw_obstacle_index = current_wp_index + calcObstacleMinimalIndex(
+					o.pose.position,
+					pubsubstate->msg_sub_base_waypoints.waypoints.size()
+				);
+				int new_index = current_wp_index + calcObstacleMinimalIndex(
 					o.pose.position,
 					pubsubstate->msg_sub_base_waypoints.waypoints.size(),
 					2.5
 				);
-				int new_index = calcObstacleMinimalIndex(
-					o.pose.position,
-					pubsubstate->msg_sub_base_waypoints.waypoints.size(),
-					2.5
-				);
-				if (new_index > relay_minimalObstacleIndex)
+				if (new_index > relay_minimal_obstacle_index)
 				{
-					relay_minimalObstacleIndex = new_index;
+					relay_minimal_obstacle_index = new_index;
 				}
+				// All in all: TEB implementation acts strange on obstacle handling.
+				// That should be reviewed. Also, why not utilize FCL or any other library
+				// for computing distances? That would be cool
+				// Push into the tree
+				plan_source_modification.lock();
+
+				if (lookahead_obstacles_instances.push_back(objects)!=lookahead_obstacles_instances.end())
+				{
+					auto p = dynamic_cast<PolygonObstacle*>(lookahead_obstacles_instances[objects].get());
+					p->clearVertices();
+					p->vertices().reserve(points.size());
+					p->vertices().assign(points.begin(), points.end());
+				}
+				else
+				{
+					lookahead_obstacles_instances.insert(
+						std::pair<unsigned int, ObstaclePtr>(objects, new PolygonObstacle(points))
+					);
+				}
+				plan_source_modification.unlock();
 				// Calculate minimal velocity distance index
 				marker_obstacle_end_index.pose.position =
 						pubsubstate->msg_sub_base_waypoints
-							.waypoints[relay_minimalObstacleIndex].pose.pose.position;
+							.waypoints[relay_minimal_obstacle_index].pose.pose.position;
 				marker_obstacle_end_index.header.frame_id = pubsubstate->msg_sub_base_waypoints.header.frame_id;
 				guard_local_planner->setLookaheadPoint(
 					pubsubstate->msg_sub_base_waypoints
 						.waypoints[trajectory_slicer.getLookaheadIndex()]
 						.pose.pose.position,
 					minimalObstacleIndex,
-					relay_minimalObstacleIndex,
+					relay_minimal_obstacle_index,
 					pubsubstate->msg_sub_base_waypoints.waypoints.size()
 				);
 				pub_marker_end_index.publish(marker_obstacle_end_index);
 				pub_marker_velocity_index.publish(marker_obstacle_velocity_index);
 			}
+			objects++;
 		}
-		plan_source_modification.unlock();
+
 
 	}
 
@@ -225,17 +267,17 @@ public:
 			+ pubsubstate->msg_sub_current_velocity.twist.linear.z*pubsubstate->msg_sub_current_velocity.twist.linear.z
 		);
 		trajectory_slicer.calcLookaheadDistance(pubsubstate->msg_sub_current_velocity,
-			ref_velocity);
-
+			ref_velocity,
+			horizon_length);
 	}
 
 	virtual bool initNode() override
 	{
 		// Visualization
 		pub_marker_end_index = nh->advertise<visualization_msgs::Marker>(
-				"/hotaru_local_planner/obstacle_index",1);
+			"/hotaru_local_planner/obstacle_index",1);
 		pub_marker_velocity_index = nh->advertise<visualization_msgs::Marker>(
-						"/hotaru_local_planner/velocity_index",1);
+			"/hotaru_local_planner/velocity_index",1);
 		marker_obstacle_end_index.color.r = 0.0;
 		marker_obstacle_end_index.color.g = 1.0;
 		marker_obstacle_end_index.color.b = 1.0;
@@ -282,14 +324,14 @@ public:
 		}
 		conf.robot.min_turning_radius = min_turning_radius;
 		// Kinematics forward drive
-		double weight_kinematics_forward_drive = 10;
+		double weight_kinematics_forward_drive = 100;
 		if (!private_nh->getParam("weight_kinematics_forward_drive", weight_kinematics_forward_drive))
 		{
 			ROS_WARN_STREAM("Using default weight kinematics forward drive: " << weight_kinematics_forward_drive);
 		}
 		conf.optim.weight_kinematics_forward_drive = weight_kinematics_forward_drive;
 		// Obstacle weight
-		double weight_obstacle = 65;
+		double weight_obstacle = 95;
 		if (!private_nh->getParam("weight_obstacle", weight_obstacle))
 		{
 			ROS_WARN_STREAM("Using default weight kinematics forward drive: " << weight_obstacle);
@@ -302,6 +344,9 @@ public:
 			ROS_WARN_STREAM("Using min obstacle distance " << min_obstacle_distance);
 		}
 		conf.obstacles.min_obstacle_dist = min_obstacle_distance;
+		// Acc lim theta
+		double weight_theta = 0.1;
+		conf.optim.weight_acc_lim_theta = weight_theta;
 		// Weight adapt factor
 		double weight_adapt_factor = 2.5;
 		if (!private_nh->getParam("weight_adapt_factor", weight_adapt_factor))
@@ -318,19 +363,27 @@ public:
 		//conf.optim.obstacle_cost_exponent = obstacle_cost_exponent;
 		// Config max vel backwards
 		conf.robot.max_vel_x_backwards = 0.0;
-		conf.trajectory.dt_ref = 0.8;
+		conf.trajectory.dt_ref = 1.5;
 		//conf.optim.weight_max_vel_x = 10;
 		//conf.trajectory.max_samples = 250;
 		// No omni-directional motion
-		conf.optim.weight_acc_lim_x = 0.0;
+		conf.optim.weight_kinematics_nh = 2000; /// This must be kurva nagy
+		conf.optim.weight_acc_lim_x = 0.5;
+		conf.optim.weight_acc_lim_y = 0.0;
 		conf.optim.weight_max_vel_y = 0.0;
 		conf.optim.weight_viapoint = 1.0;
+		conf.optim.penalty_epsilon = 0.6;
+		conf.optim.weight_prefer_rotdir = 100;
+		conf.goal_tolerance.xy_goal_tolerance = 1.0;
+		conf.goal_tolerance.yaw_goal_tolerance = 1.0;
 		//conf.optim.weight_kinematics_turning_radius = 20.0;
 		//conf.optim.weight_shortest_path = 10;
 		conf.hcp.enable_multithreading = true;
+		conf.hcp.simple_exploration = true;
 		//conf.hcp.delete_detours_backwards = true;
 		conf.trajectory.allow_init_with_backwards_motion = false;
-		conf.trajectory.feasibility_check_no_poses = 2;
+		conf.trajectory.feasibility_check_no_poses = 7;
+
 		viz = TebVisualizationPtr(new TebVisualization(*nh, conf));
 		Point2dContainer robot_footprint_points;
 		Eigen::Vector2d p0(-0.15, -0.55);
@@ -355,7 +408,6 @@ public:
 				via_points.get()
 			)
 		);
-		planner->registerG2OTypes();
 		// Initialize sync state machine
 		if (!initLocalPlannerStateMachine(nh, sync_state_machine))
 		{
@@ -377,7 +429,32 @@ public:
 		sync_state_machine->setCbAllStateMessageReceived(
 			std::bind(&TebHotaruLocalPlanner::startAfterAllMessagesReceived, this)
 		);
+		// Semantic line subscriber
+		sub_semantic_road_line = nh->subscribe("/map_semantic_line", 1,
+			&TebHotaruLocalPlanner::cbSemanticLineObstacles, this
+		);
+		// Start obstacle update
+		timer_obstacle_update = nh->createTimer(
+			ros::Duration(1.0/(double)PLANNER_SYNC_HZ),
+			&TebHotaruLocalPlanner::cycleObstacleUpdate, this);
+		timer_obstacle_update.start();
+		// Return everything is OK
 		return true;
+	}
+
+	void cycleObstacleUpdate(const ros::TimerEvent& event)
+	{
+		plan_source_modification.lock();
+		obstacle_container->clear();
+		for (const auto& o: lookahead_obstacles_instances)
+		{
+			obstacle_container->push_back(o.second);
+		}
+		for (const auto& o: semantic_perimeter)
+		{
+			obstacle_container->push_back(o.second);
+		}
+		plan_source_modification.unlock();
 	}
 
 	void cycleSyncStateMachine(const ros::TimerEvent& event)
@@ -413,11 +490,15 @@ public:
 		plan_source_modification.lock();
 		planner->clearPlanner();
 		plan_source_modification.unlock();
-		this->relay_minimalObstacleIndex = 0;
+		obstacle_container->clear();
+		this->relay_minimal_obstacle_index = 0;
 	}
 
 	void actReplanningState()
 	{
+		// Current waypoint index
+		int current_index = pubsubstate->msg_closest_waypoint.data;
+		//
 		rei_monitoring_msgs::ReiStateTransition sig;
 		sig.header.stamp = ros::Time::now();
 		sig.transition_signal = "REPLANNING";
@@ -428,8 +509,14 @@ public:
 			_p0, transform_current_pose
 		);
 		minimalObstacleIndex = calcObstacleMinimalIndex(
-			_p0,
-			pubsubstate->msg_sub_base_waypoints.waypoints.size());
+			_p0, pubsubstate->msg_sub_base_waypoints.waypoints.size()
+			) + current_index;
+		// Horizon calculation
+		/*horizon_length = calcObstacleMinimalIndex(
+			_p0, pubsubstate->msg_sub_base_waypoints.waypoints.size(),
+			1.5, 5
+		);*/
+		horizon_length = 20;
 		marker_obstacle_velocity_index.pose.position =
 		pubsubstate->msg_sub_base_waypoints.waypoints[minimalObstacleIndex].pose.pose.position;
 		marker_obstacle_velocity_index.header.frame_id = pubsubstate->msg_sub_base_waypoints.header.frame_id;
@@ -463,15 +550,19 @@ public:
 		if (starting_plan_points.size()>0)
 		{
 			try{
-
-
+				auto t_start = std::chrono::steady_clock::now();
 				plan_source_modification.lock();
-				bool plan_success = planner->plan(starting_plan_points);
+				bool plan_success = planner->plan(starting_plan_points,
+						&(pubsubstate->msg_sub_current_velocity.twist), true);
 				plan_source_modification.unlock();
+				auto t_end = std::chrono::steady_clock::now();
+				std::chrono::duration<double> elps = t_end-t_start;
+				std::cout << elps.count() << std::endl;
 				if (plan_success)
 				{
 					pubsubstate->msg_final_waypoints.waypoints.clear();
 					transformed_poses_current_pose.clear();
+
 					planner->getFullTrajectory(_full_trajectory);
 					if (pubsubstate->msg_sub_current_pose.pose.orientation.w != 0.0)
 					{
@@ -507,9 +598,10 @@ public:
 
 	}
 
-	int calcObstacleMinimalIndex(const geometry_msgs::Point& obstacle_position,
-			int max_length, const double scale = 1.0)
+	int calcObstacleMinimalIndex(const geometry_msgs::Point& ref_position,
+			int max_length, const double scale = 1.0, const double minimal_distance = 0.0)
 	{
+		if (std::isnan(ref_position.x)) return 0;
 		double speed = sqrt(
 			pubsubstate->msg_sub_current_velocity.twist.linear.x*
 			pubsubstate->msg_sub_current_velocity.twist.linear.x+
@@ -518,8 +610,10 @@ public:
 		);
 		double longitude_distance = 0.0;
 		int dindex = 0;
-		int obstacle_index = 0;
-		for (int i = pubsubstate->msg_closest_waypoint.data+1;
+		int obstacle_index = -1;
+		int start_index = pubsubstate->msg_closest_waypoint.data;
+		double threshold_distance = std::max(speed*scale, minimal_distance);
+		for (int i = start_index+1;
 				i < pubsubstate->msg_sub_base_waypoints.waypoints.size(); i++)
 		{
 			geometry_msgs::Point _p0;
@@ -532,22 +626,23 @@ public:
 				pubsubstate->msg_sub_base_waypoints.waypoints[i].pose.pose.position,
 				_p1, transform_current_pose
 			);
-			if (rei::planarDistance(obstacle_position, _p1) < 3.0
-			)
+			//double d = rei::planarDistance(ref_position, _p0);
+			double d = ref_position.x - _p0.x;
+			if (d < 1.0)
 			{
-				obstacle_index = i;
+				obstacle_index = i - start_index;
 			}
-			if (obstacle_index > 0)
+			if (obstacle_index > -1)
 			{
 				double d = rei::planarDistance(
 					_p0, _p1
 				);
 				longitude_distance += d;
-				if (longitude_distance > speed)
+				if (longitude_distance > threshold_distance)
 				{
 					return std::min(
 						max_length,
-						static_cast<int>(i + dindex*scale)
+						static_cast<int>(obstacle_index + dindex)
 					);
 				}
 				dindex++;
@@ -576,17 +671,42 @@ public:
 
 	void cbVehicleStatue(const autoware_msgs::VehicleStatus::ConstPtr& msg)
 	{
-		if (msg->angle > 0.095)
+
+	}
+
+	void cbSemanticLineObstacles(const visualization_msgs::MarkerArray::ConstPtr& msg)
+	{
+		using namespace teb_local_planner;
+		for (const auto m: msg->markers)
 		{
-			planner->setPreferredTurningDir(teb_local_planner::RotType::left);
-		}
-		else if (msg->angle < -0.095)
-		{
-			planner->setPreferredTurningDir(teb_local_planner::RotType::right);
-		}
-		else
-		{
-			planner->setPreferredTurningDir(teb_local_planner::RotType::none);
+			plan_source_modification.lock();
+			if (m.points.size()==2)
+			{
+				geometry_msgs::Point _lp0;
+				geometry_msgs::Point _lp1;
+				tf2::doTransform(m.points[0], _lp0, transform_current_pose);
+				tf2::doTransform(m.points[1], _lp1, transform_current_pose);
+				const Eigen::Vector2d l0(_lp0.x, _lp0.y);
+				const Eigen::Vector2d l1(_lp1.x, _lp1.y);
+				if (semantic_perimeter.find(m.id)!=semantic_perimeter.end())
+				{
+					auto p = dynamic_cast<LineObstacle*>(semantic_perimeter[m.id].get());
+					p->setStart(l0);
+					p->setEnd(l1);
+				}
+				else
+				{
+					semantic_perimeter.insert(std::pair<unsigned int, ObstaclePtr>(m.id,
+						ObstaclePtr(
+							new LineObstacle(
+								_lp0.x, _lp0.y,
+								_lp1.x, _lp1.y)
+							)
+						)
+					);
+				}
+			}
+			plan_source_modification.unlock();
 		}
 	}
 

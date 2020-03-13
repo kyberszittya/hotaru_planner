@@ -101,7 +101,7 @@ public:
 	{
 		return sync_sm->isStarted() &&
 			(current_lookahead_index > lookahead_index
-				|| minimal_velocity_distance_index < current_lookahead_index);
+				|| minimal_velocity_distance_index > current_lookahead_index);
 
 	}
 	virtual bool guard_Relay2Waiting() override

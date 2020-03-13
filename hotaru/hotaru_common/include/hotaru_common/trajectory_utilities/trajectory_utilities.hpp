@@ -28,7 +28,8 @@ public:
 
 	double calcLookaheadDistance(
 			const geometry_msgs::TwistStamped& msg_velocity,
-			const double& ref_velocity);
+			const double& ref_velocity,
+			int velocity_length = 10);
 
 	void calcLookaheadIndex(const autoware_msgs::Lane& lane);
 
