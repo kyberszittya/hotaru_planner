@@ -9,6 +9,9 @@
 #include <grid_map_ros/grid_map_ros.hpp>
 
 #include <geometry_msgs/PoseStamped.h>
+#include <geometry_msgs/Point32.h>
+
+#include <std_msgs/Int32.h>
 
 #include <visualization_msgs/MarkerArray.h>
 #include <autoware_msgs/Lane.h>
@@ -22,32 +25,44 @@
 
 #include <rei_common/geometric_utilities.hpp>
 
+#include <autoware_msgs/DetectedObjectArray.h>
+
+
+constexpr double D_LATERAL_THRESHOLD = 2.75;
+constexpr double D_LONGITUDINAL_THRESHOLD = 5.75;
+
 namespace rei
 {
 
 class ObstacleGridMapMonitor
 {
 private:
-
+	int closest_waypoint;
 protected:
 	geometry_msgs::PoseStamped current_pose;
 	ros::NodeHandle nh;
 	ros::Subscriber sub_grid_map;
 	ros::Subscriber sub_current_pose;
 	ros::Subscriber sub_base_waypoints;
+	ros::Subscriber sub_obstacle_marker;
+	ros::Subscriber sub_closest_waypoint;
+	ros::Subscriber sub_obstacle_poly;
 	ros::Publisher pub_detected_obstacles;
+	ros::Publisher pub_detected_obstacles_array;
 	ros::Publisher pub_replan_signal;
 	grid_map::GridMap global_map;
 	rei_planner_signals::ReplanRequest request_msg;
 	autoware_msgs::Lane msg_base_waypoints;
 	// Detect polygon obstacles
+	visualization_msgs::MarkerArray input_obstacles;
+	autoware_msgs::DetectedObjectArray poly_obstacle_array;
 	visualization_msgs::MarkerArray obstacles;
 	tf2_ros::Buffer tf_buffer;
 	std::unique_ptr<tf2_ros::TransformListener> tf_listener;
 	geometry_msgs::TransformStamped transform_current_pose;
 	geometry_msgs::TransformStamped inv_transform_current_pose;
 public:
-	ObstacleGridMapMonitor(ros::NodeHandle& nh): nh(nh){}
+	ObstacleGridMapMonitor(ros::NodeHandle& nh): closest_waypoint(-1), nh(nh){}
 
 	bool init()
 	{
@@ -57,14 +72,92 @@ public:
 		pub_detected_obstacles = nh.advertise<visualization_msgs::MarkerArray>("/filtered_obstacles", 10);
 		pub_replan_signal = nh.advertise<rei_planner_signals::ReplanRequest>("/replan_request_sig",10);
 		sub_current_pose = nh.subscribe("current_pose", 10, &ObstacleGridMapMonitor::cbCurrentPose, this);
+		sub_closest_waypoint = nh.subscribe("/closest_waypoint", 10, &ObstacleGridMapMonitor::cbClosestWaypoint, this);
 		sub_grid_map = nh.subscribe("grid_map", 1, &ObstacleGridMapMonitor::subGridMap, this);
 		sub_base_waypoints = nh.subscribe("base_waypoints", 1, &ObstacleGridMapMonitor::cbBaseWaypoints, this);
+		sub_obstacle_marker = nh.subscribe("/detection/lidar_detector/objects_markers", 1, &ObstacleGridMapMonitor::cbObstacleCluster, this);
+		// Sub polygon obstacles
+		pub_detected_obstacles_array = nh.advertise<autoware_msgs::DetectedObjectArray>("/filtered_obstacles_poly", 10);
+		sub_obstacle_poly = nh.subscribe("/detection/lidar_detector/objects", 1, &ObstacleGridMapMonitor::cbPolyObj, this);
+
 		return true;
+	}
+
+	void cbPolyObj(const autoware_msgs::DetectedObjectArray::ConstPtr& msg)
+	{
+		poly_obstacle_array.objects.clear();
+		// Filter obstacles of interest
+		double longitudinal_distance = 0.0;
+		if (closest_waypoint >= 1)
+		{
+
+			for (unsigned int i = closest_waypoint; i < msg_base_waypoints.waypoints.size(); i++)
+			{
+				geometry_msgs::PoseStamped _pose_0;
+				tf2::doTransform(
+						msg_base_waypoints.waypoints[i-1].pose,
+						_pose_0,
+						transform_current_pose
+				);
+				geometry_msgs::PoseStamped _pose_1;
+				tf2::doTransform(
+						msg_base_waypoints.waypoints[i].pose,
+						_pose_1,
+						transform_current_pose
+				);
+				longitudinal_distance += planarDistance(
+					_pose_0.pose.position,
+					_pose_1.pose.position
+				);
+				if (longitudinal_distance >= 6.0)
+				{
+					// Typical application of polytopes!
+					// QHULL or CCD should be included or FCL
+					for (const auto& o: msg->objects)
+					{
+						std::cout << o.pose.position.x << '\n';
+						if (o.pose.position.x > 1.0)
+						{
+							for (const auto p: o.convex_hull.polygon.points)
+							{
+								double d_lateral = distanceToLine(_pose_0.pose.position,
+										_pose_1.pose.position, p);
+								if (d_lateral <= D_LATERAL_THRESHOLD)
+								{
+									///ROS_INFO("Obstacle detected");
+									if (request_msg.obstacle_min_lateral_distance > d_lateral)
+									{
+										request_msg.obstacle_min_lateral_distance = d_lateral;
+										request_msg.obstacle_min_longitudinal_distance = longitudinal_distance;
+									}
+									request_msg.eval = true;
+									poly_obstacle_array.objects.push_back(o);
+									break;
+								}
+							}
+						}
+					}
+				}
+			}
+			if (poly_obstacle_array.objects.size()==0)
+			{
+				request_msg.eval = false;
+			}
+		}
+		pub_detected_obstacles_array.publish(poly_obstacle_array);
+		// Publish replan request
+		request_msg.header.stamp = ros::Time::now();
+		pub_replan_signal.publish(request_msg);
 	}
 
 	void cbBaseWaypoints(const autoware_msgs::Lane::ConstPtr& msg)
 	{
 		msg_base_waypoints = *msg;
+	}
+
+	void cbClosestWaypoint(const std_msgs::Int32::ConstPtr& msg)
+	{
+		closest_waypoint = msg->data;
 	}
 
 	void cbCurrentPose(const geometry_msgs::PoseStamped::ConstPtr& msg)
@@ -81,9 +174,78 @@ public:
 		}
 	}
 
+	void cbObstacleCluster(const visualization_msgs::MarkerArray::ConstPtr& msg)
+	{
+		obstacles.markers.clear();
+		// TODO: this part is pretty nasty, check it
+		input_obstacles = *msg;
+		filterObstacles();
+		pub_detected_obstacles.publish(obstacles);
+		// Publish replan request
+		request_msg.header.stamp = ros::Time::now();
+		pub_replan_signal.publish(request_msg);
+	}
 
+	void filterObstacles()
+	{
+		double longitudinal_distance = 0.0;
 
+		if (closest_waypoint >= 1)
+		{
+			for (unsigned int i = closest_waypoint; i < msg_base_waypoints.waypoints.size(); i++)
+			{
+				geometry_msgs::PoseStamped _pose_0;
+				tf2::doTransform(
+						msg_base_waypoints.waypoints[i-1].pose,
+						_pose_0,
+						transform_current_pose
+				);
+				geometry_msgs::PoseStamped _pose_1;
+				tf2::doTransform(
+						msg_base_waypoints.waypoints[i].pose,
+						_pose_1,
+						transform_current_pose
+				);
+				longitudinal_distance += planarDistance(
+					_pose_0.pose.position,
+					_pose_1.pose.position
+				);
+				for (const auto& m: input_obstacles.markers)
+				{
+					if (planarDistance(
+							_pose_1.pose.position, m.pose.position) < 4.0
+							&& longitudinal_distance >= 6.0)
+					{
+						// Check lateral distance
+						double d_lateral = distanceToLine(_pose_0.pose.position,
+								_pose_1.pose.position, m.pose.position);
+						if (d_lateral <= D_LATERAL_THRESHOLD)
+						{
+							///ROS_INFO("Obstacle detected");
+							if (request_msg.obstacle_min_lateral_distance > d_lateral)
+							{
+								request_msg.obstacle_min_lateral_distance = d_lateral;
+								request_msg.obstacle_min_longitudinal_distance = longitudinal_distance;
+							}
+							request_msg.eval = true;
+							obstacles.markers.push_back(m);
+						}
 
+					}
+				}
+
+			}
+			if (obstacles.markers.size()==0)
+			{
+				request_msg.eval = false;
+			}
+		}
+		else
+		{
+			request_msg.eval = false;
+		}
+
+	}
 
 	void subGridMap(const grid_map_msgs::GridMap::ConstPtr& msg)
 	{
@@ -125,51 +287,7 @@ public:
 			}
 
 		}
-		double longitudinal_distance = 0.0;
-		for (unsigned int i = 1; i < msg_base_waypoints.waypoints.size(); i++)
-		{
-			geometry_msgs::PoseStamped _pose_0;
-			tf2::doTransform(
-					msg_base_waypoints.waypoints[i-1].pose,
-					_pose_0,
-					transform_current_pose
-			);
-			geometry_msgs::PoseStamped _pose_1;
-			tf2::doTransform(
-					msg_base_waypoints.waypoints[i].pose,
-					_pose_1,
-					transform_current_pose
-			);
-			longitudinal_distance += planarDistance(
-				_pose_0.pose.position,
-				_pose_1.pose.position
-			);
-			for (const auto& m: obstacles.markers)
-			{
-
-				if (planarDistance(
-						_pose_1.pose.position,
-						m.pose.position) < 4.0)
-				{
-
-
-					// Check lateral distance
-					double d_lateral = distanceToLine(_pose_0.pose.position,
-							_pose_1.pose.position, m.pose.position);
-					if (d_lateral <= 2.75)
-					{
-						///ROS_INFO("Obstacle detected");
-						if (request_msg.obstacle_min_lateral_distance > d_lateral)
-						{
-							request_msg.obstacle_min_lateral_distance = d_lateral;
-							request_msg.obstacle_min_longitudinal_distance = longitudinal_distance;
-						}
-						request_msg.eval = true;
-					}
-				}
-			}
-
-		}
+		filterObstacles();
 		pub_detected_obstacles.publish(obstacles);
 		// Publish replan request
 		request_msg.header.stamp = ros::Time::now();

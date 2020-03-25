@@ -9,6 +9,7 @@
 #define INCLUDE_REI_COMMON_GEOMETRIC_UTILITIES_HPP_
 
 #include <geometry_msgs/Point.h>
+#include <geometry_msgs/Point32.h>
 
 namespace rei
 {
@@ -16,6 +17,9 @@ namespace rei
 double distanceToLine(const geometry_msgs::Point& p0,
 		const geometry_msgs::Point& p1,
 		const geometry_msgs::Point& o);
+double distanceToLine(const geometry_msgs::Point& p0,
+		const geometry_msgs::Point& p1,
+		const geometry_msgs::Point32& o);
 double spatialDistance(const geometry_msgs::Point& msg0,
 		const geometry_msgs::Point& msg1);
 double planarDistance(const geometry_msgs::Point& msg0,

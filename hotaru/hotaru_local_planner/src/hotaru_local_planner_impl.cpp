@@ -27,10 +27,10 @@ bool InterfaceRos_Hotarulocalplanner::init()
 		{
 			return false;
 		}
-		sync_sm_sync_state->addTopicGuard("/base_waypoints", 0.1);
-		sync_sm_sync_state->addTopicGuard("/current_pose", 0.1);
-		sync_sm_sync_state->addTopicGuard("/current_velocity", 0.1);
-
+		//sync_sm_sync_state->addTopicGuard("/base_waypoints", 0.1);
+		sync_sm_sync_state->addTopicGuard("/current_pose", 10.0);
+		sync_sm_sync_state->addTopicGuard("/current_velocity", 10.0);
+		sync_sm_sync_state->addTopicGuard("/closest_waypoint", 10.0);
 	}
 	else
 	{
@@ -46,7 +46,8 @@ bool InterfaceRos_Hotarulocalplanner::init()
 	sub_replan_request_sig = nh->subscribe("replan_request_sig", 10, &InterfaceRos_Hotarulocalplanner::cbSub_replan_request_sig, this);
 	sub_current_pose = nh->subscribe("current_pose", 10, &InterfaceRos_Hotarulocalplanner::cbSub_current_pose, this);
 	sub_current_velocity = nh->subscribe("current_velocity", 10, &InterfaceRos_Hotarulocalplanner::cbSub_current_velocity, this);
-	sub_filtered_obstacles = nh->subscribe("filtered_obstacles", 10, &InterfaceRos_Hotarulocalplanner::cbSub_filtered_obstacles, this);
+	sub_filtered_obstacles = nh->subscribe("filtered_obstacles_poly", 10, &InterfaceRos_Hotarulocalplanner::cbSub_filtered_obstacles, this);
+	sub_closest_waypoints = nh->subscribe("closest_waypoint", 10, &InterfaceRos_Hotarulocalplanner::cbSub_closest_waypoints, this);
 	if (!initNode())
 	{
 		return false;
@@ -59,10 +60,12 @@ void InterfaceRos_Hotarulocalplanner::cbSub_base_waypoints(const autoware_msgs::
 {
 	pubsubstate->msg_sub_base_waypoints = *msg;
 	// Synchronize with state machine: sync_sm_sync_state
-	sync_sm_sync_state->stepMessageTopic("/base_waypoints", msg->header);
-	if (sync_sm_sync_state->isReady()){
+	sm_mutex.lock();
+	//sync_sm_sync_state->stepMessageTopic("/base_waypoints", msg->header);
+	sm_mutex.unlock();
+	//if (sync_sm_sync_state->isReady()){
 		executeReconstructWaypoints();
-	}
+	//}
 	
 }
 void InterfaceRos_Hotarulocalplanner::cbSub_replan_request_sig(const rei_planner_signals::ReplanRequest::ConstPtr& msg)
@@ -74,7 +77,9 @@ void InterfaceRos_Hotarulocalplanner::cbSub_current_pose(const geometry_msgs::Po
 {
 	pubsubstate->msg_sub_current_pose = *msg;
 	// Synchronize with state machine: sync_sm_sync_state
+	sm_mutex.lock();
 	sync_sm_sync_state->stepMessageTopic("/current_pose", msg->header);
+	sm_mutex.unlock();
 	if (sync_sm_sync_state->isReady()){
 		executeSynchWithPose();
 	}
@@ -84,15 +89,27 @@ void InterfaceRos_Hotarulocalplanner::cbSub_current_velocity(const geometry_msgs
 {
 	pubsubstate->msg_sub_current_velocity = *msg;
 	// Synchronize with state machine: sync_sm_sync_state
+	sm_mutex.lock();
 	sync_sm_sync_state->stepMessageTopic("/current_velocity", msg->header);
+	sm_mutex.unlock();
 	executeUpdateVelocity();
 	
 }
-void InterfaceRos_Hotarulocalplanner::cbSub_filtered_obstacles(const visualization_msgs::MarkerArray::ConstPtr& msg)
+void InterfaceRos_Hotarulocalplanner::cbSub_filtered_obstacles(const autoware_msgs::DetectedObjectArray::ConstPtr& msg)
 {
 	pubsubstate->msg_sub_filtered_obstacles = *msg;
 	executeUpdateObstacles();
 	
+}
+
+void InterfaceRos_Hotarulocalplanner::cbSub_closest_waypoints(const std_msgs::Int32::ConstPtr& msg)
+{
+	pubsubstate->msg_closest_waypoint = *msg;
+	sm_mutex.lock();
+	sync_sm_sync_state->stepMessageTopic("/closest_waypoint", ros::Time::now());
+	sm_mutex.unlock();
+
+	executeUpdateClosestWaypoint();
 }
 
 void InterfaceRos_Hotarulocalplanner::publishFinal_waypoints()
@@ -103,6 +120,8 @@ void InterfaceRos_Hotarulocalplanner::publishState_machine_signal()
 {
 	pub_state_machine_output_signal.publish(pubsubstate->msg_pub_state_machine_output_signal);
 }
+
+
 
 }
 

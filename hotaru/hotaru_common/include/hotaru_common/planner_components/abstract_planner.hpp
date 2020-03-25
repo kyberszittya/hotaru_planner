@@ -77,19 +77,32 @@ class SyncGuardLocalPlanner: public hotaru::Interface_GuardLocalPlanner
 {
 protected:
 	std::shared_ptr<rei::SyncStateMachine> sync_sm;
+
+	geometry_msgs::Point lookahead_point;
+	geometry_msgs::Point current_point;
+	int lookahead_index;
+	int current_lookahead_index;
+	int minimal_velocity_distance_index;
 public:
-	SyncGuardLocalPlanner(std::shared_ptr<rei::SyncStateMachine> sync_sm): sync_sm(sync_sm)
+	SyncGuardLocalPlanner(std::shared_ptr<rei::SyncStateMachine> sync_sm):
+		sync_sm(sync_sm),
+		lookahead_index(0),
+		current_lookahead_index(0),
+		minimal_velocity_distance_index(0)
 	{
 	}
 
 	virtual bool guard_Relay2ReplanningState() override
 	{
 		return sync_sm->isStarted();
-		//return true;
 	}
+
 	virtual bool guard_Replanning2RelayState() override
 	{
-		return sync_sm->isStarted();
+		return sync_sm->isStarted() &&
+			(current_lookahead_index > lookahead_index
+				|| minimal_velocity_distance_index > current_lookahead_index);
+
 	}
 	virtual bool guard_Relay2Waiting() override
 	{
@@ -98,6 +111,25 @@ public:
 	virtual bool guard_Waiting2Relay() override
 	{
 		return sync_sm->isStarted();
+	}
+	void setLookaheadPoint(geometry_msgs::Point msg,
+			int speed_minimal_index,
+			int lookahead_index,
+			int trajectory_length)
+	{
+		minimal_velocity_distance_index = speed_minimal_index;
+		lookahead_point = msg;
+		this->lookahead_index = std::min(lookahead_index, trajectory_length);
+	}
+
+	void setCurrentLookaheadIndex(int index)
+	{
+		current_lookahead_index = index;
+	}
+
+	void setCurrentPoint(geometry_msgs::Point msg)
+	{
+		current_point = msg;
 	}
 };
 
@@ -167,6 +199,7 @@ protected:
 	unsigned int number_of_trajectory_points;
 	// ROS communication graph as notifier of replanner state
 	std::unique_ptr<hotaru::LocalPlannerStateMachine> planner_state_machine;
+	std::shared_ptr<hotaru::SyncGuardLocalPlanner> guard_local_planner;
 	std::shared_ptr<RosReplannerGraphNotifier> comm_repl_notif;
 
 	tf2_ros::Buffer tf_buffer;
@@ -180,7 +213,6 @@ protected:
 	{
 		try
 		{
-
 			transform_current_pose = tf_buffer.lookupTransform(
 				"base_link", "map", ros::Time(0)
 			);
@@ -193,6 +225,9 @@ protected:
 		}catch(tf2::ExtrapolationException& ee)
 		{
 			std::cerr << ee.what() << '\n';
+		}catch(tf2::ConnectivityException& ce)
+		{
+			std::cerr << ce.what() << '\n';
 		}
 	}
 
@@ -208,15 +243,15 @@ protected:
 			return false;
 		}
 		comm_repl_notif->initialize();
-		std::unique_ptr<hotaru::SyncGuardLocalPlanner> guard_local_planner =
-				std::unique_ptr<hotaru::SyncGuardLocalPlanner>(new hotaru::SyncGuardLocalPlanner(sync_sm));
+		guard_local_planner = std::unique_ptr<hotaru::SyncGuardLocalPlanner>(
+				new hotaru::SyncGuardLocalPlanner(sync_sm));
 		if (guard_local_planner == nullptr)
 		{
 			return false;
 		}
 		planner_state_machine = std::unique_ptr<hotaru::LocalPlannerStateMachine>(
 				new hotaru::LocalPlannerStateMachine(comm_repl_notif,
-						std::move(guard_local_planner)));
+						guard_local_planner));
 		if (planner_state_machine == nullptr)
 		{
 			return false;
@@ -228,39 +263,29 @@ protected:
 	}
 
 	void reconstructStartingPlanPoints(const autoware_msgs::Lane& msg,
-			geometry_msgs::PoseStamped& pose)
+			geometry_msgs::PoseStamped& pose, int offset, int skip = 0)
 	{
-		if (planner_state_machine->isRelay()||starting_plan_points.size()<2)
+		original_velocity_profile.clear();
+		if (msg.waypoints.size() >= 2)
 		{
-			original_velocity_profile.clear();
-			if (msg.waypoints.size() >= 2)
+			starting_plan_points.clear();
+			number_of_trajectory_points = 1;
+			geometry_msgs::PoseStamped _pose;
+			tf2::doTransform(pose, _pose, transform_current_pose);
+			starting_plan_points.push_back(_pose);
+			for (int i = offset + skip; i < trajectory_slicer.getLookaheadIndex(); i++)
 			{
-				starting_plan_points.clear();
-				number_of_trajectory_points = 1;
-				geometry_msgs::PoseStamped _pose;
-
-				for (int i = 0; i < trajectory_slicer.getLookaheadIndex(); i++)
-				{
-					geometry_msgs::PoseStamped _wp;
-					tf2::doTransform(msg.waypoints[i].pose, _wp, transform_current_pose);
-					starting_plan_points.push_back(std::move(_wp));
-					original_velocity_profile.push_back(msg.waypoints[i].twist);
-					number_of_trajectory_points++;
-				}
-				/*
 				geometry_msgs::PoseStamped _wp;
-				tf2::doTransform(msg.waypoints[0].pose, _wp, transform_current_pose);
+				tf2::doTransform(msg.waypoints[i].pose, _wp, transform_current_pose);
 				starting_plan_points.push_back(std::move(_wp));
-				original_velocity_profile.push_back(msg.waypoints[0].twist);
-				geometry_msgs::PoseStamped _wp1;
-				tf2::doTransform(msg.waypoints[0].pose, _wp1, transform_current_pose);
-				starting_plan_points.push_back(std::move(_wp1));
-				original_velocity_profile.push_back(msg.waypoints[0].twist);
-				*/
+				original_velocity_profile.push_back(msg.waypoints[i].twist);
+
 				number_of_trajectory_points++;
 			}
-		}
 
+			//starting_plan_points.push_backfront() = _pose;
+			number_of_trajectory_points++;
+		}
 	}
 public:
 	Abstract_RosLocalPlanner(): number_of_trajectory_points(0){}

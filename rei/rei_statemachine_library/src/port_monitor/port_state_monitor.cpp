@@ -51,6 +51,7 @@ void PortStateMonitor::checkStateTimestamp(std::shared_ptr<PortMonitorState> por
 	{
 		dt = timestamp - portmonitorstate->timestamp;
 	}
+	//std::cout << portmonitorstate->name << ": "<< dt << '\n';
 	switch (portmonitorstate->state)
 	{
 		case PortMonitorState_State::FRESH:

@@ -105,6 +105,7 @@ protected:
 	virtual bool _isAllocated() const = 0;
 	virtual void handle_start() = 0;
 	virtual void handle_startError() = 0;
+	std::mutex mtx_step;
 public:
 	StateMachineRunner(std::shared_ptr<Interface_CommunicationGraphNotifier> graph_notifier):
 		comm_graph_notifier(std::move(graph_notifier)){}
@@ -125,13 +126,13 @@ private:
 
 protected:
 	StateDef state;
-	std::unique_ptr<GuardDef> guard_def;
+	std::shared_ptr<GuardDef> guard_def;
 	AbstractStateMachine(StateDef state,
 			std::shared_ptr<Interface_CommunicationGraphNotifier> graph_notifier,
-			std::unique_ptr<GuardDef> guard_def):
+			std::shared_ptr<GuardDef> guard_def):
 				StateMachineRunner(graph_notifier),
 				state(state),
-				guard_def(std::move(guard_def)){}
+				guard_def(guard_def){}
 
 
 	virtual bool _isAllocated() const

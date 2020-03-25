@@ -15,6 +15,7 @@
 #include <geometry_msgs/PoseStamped.h>
 #include <geometry_msgs/TwistStamped.h>
 #include <autoware_msgs/Lane.h>
+#include <std_msgs/Int32.h>
 #include <rei_monitoring_msgs/ReiStateMachineTransitionSignal.h>
 #include <grid_map_ros/grid_map_ros.hpp>
 #include <grid_map_ros/PolygonRosConverter.hpp>
@@ -39,6 +40,7 @@ struct RosInterfaceTest
 	ros::Publisher publisher_pose = nh->advertise<geometry_msgs::PoseStamped>("current_pose", 1, true);
 	ros::Publisher publisher_velocity = nh->advertise<geometry_msgs::TwistStamped>("current_velocity", 1, true);
 	ros::Publisher publisher_base_waypoints = nh->advertise<autoware_msgs::Lane>("base_waypoints", 1, true);
+	ros::Publisher publisher_closest_waypoint = nh->advertise<std_msgs::Int32>("closest_waypoint", 1, true);
 	tf2_ros::TransformBroadcaster br;
 };
 
@@ -48,17 +50,20 @@ struct TestDynamics
 	geometry_msgs::PoseStamped pose;
 	geometry_msgs::TransformStamped transformStamped;
 	autoware_msgs::Lane l;
+	std_msgs::Int32 closest_waypoint;
 };
 
 void setupTestCase(RosInterfaceTest& rostestinterface,
 		TestDynamics& dyn, const PlanarOffset& pos_offset,
 		unsigned int N,
-		double length = XGoal)
+		double length = XGoal,
+		int closest_waypoint = 0)
 {
 	rostestinterface.publisher_grid_map = nh->advertise<grid_map_msgs::GridMap>("grid_map", 1, true);
 	rostestinterface.publisher_pose = nh->advertise<geometry_msgs::PoseStamped>("current_pose", 1, true);
 	rostestinterface.publisher_velocity = nh->advertise<geometry_msgs::TwistStamped>("current_velocity", 1, true);
 	rostestinterface.publisher_base_waypoints = nh->advertise<autoware_msgs::Lane>("base_waypoints", 1, true);
+	rostestinterface.publisher_closest_waypoint = nh->advertise<std_msgs::Int32>("closest_waypoint", 1, true);
 
 	dyn.pose.header.frame_id = "map";
 	dyn.pose.pose.position.x = pos_offset.x;
@@ -79,8 +84,6 @@ void setupTestCase(RosInterfaceTest& rostestinterface,
 	dyn.velocity.twist.angular.y = 0;
 	dyn.velocity.twist.angular.z = 0;
 	// Setup transform
-
-
 	dyn.transformStamped.header.frame_id = "map";
 	dyn.transformStamped.child_frame_id = "base_link";
 	dyn.transformStamped.transform.translation.x = pos_offset.x;
@@ -88,7 +91,6 @@ void setupTestCase(RosInterfaceTest& rostestinterface,
 	dyn.transformStamped.transform.translation.z = 0.0;
 	dyn.transformStamped.transform.rotation.w = 1.0;
 	// Base waypoints
-
 	dyn.l.header.frame_id = "map";
 	for (int i = 0; i <= N; i++)
 	{
@@ -101,17 +103,20 @@ void setupTestCase(RosInterfaceTest& rostestinterface,
 		wp1.twist.twist.linear.x = 1.0;
 		dyn.l.waypoints.push_back(std::move(wp1));
 	}
+	// Closest waypoint
+	dyn.closest_waypoint.data = closest_waypoint;
 }
 
 void testPlanningScenario(const PlanarOffset& obstacle_offset,
 		const PlanarOffset& pos_offset,
 		unsigned int N,
 		unsigned int T_test,
-		double length = XGoal)
+		double length = XGoal,
+		int closest_waypoint = 0)
 {
 	TestDynamics dyn;
 	RosInterfaceTest rostestinterface;
-	setupTestCase(rostestinterface, dyn, pos_offset, N, length);
+	setupTestCase(rostestinterface, dyn, pos_offset, N, length, closest_waypoint);
 
 	grid_map::GridMap map({"elevation"});
 	map.setFrameId("base_link");
@@ -148,6 +153,7 @@ void testPlanningScenario(const PlanarOffset& obstacle_offset,
 		rostestinterface.publisher_base_waypoints.publish(dyn.l);
 		rostestinterface.br.sendTransform(dyn.transformStamped);
 		rostestinterface.publisher_grid_map.publish(message);
+		rostestinterface.publisher_closest_waypoint.publish(dyn.closest_waypoint);
 		//
 
 		r.sleep();
