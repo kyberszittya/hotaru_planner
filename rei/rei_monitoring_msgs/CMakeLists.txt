@@ -52,6 +52,7 @@ add_message_files(
   FILES
   ReiMonitorSignal.msg
   ReiStateMachineSignature.msg
+  ReiStateMachineTransitionSignal.msg
 )
 
 ## Generate services in the 'srv' folder
