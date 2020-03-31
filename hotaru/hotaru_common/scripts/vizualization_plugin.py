@@ -1,5 +1,5 @@
 from  jsk_rviz_plugins.msg import OverlayText
-from rei_monitoring_msgs.msg import ReiStateTransition
+from rei_monitoring_msgs.msg import ReiStateMachineTransitionSignal
 from geometry_msgs.msg import TwistStamped
 
 import rospy
@@ -8,12 +8,12 @@ class HotaruVisualizer(object):
 
     def cbStateTransitionLocalPlanner(self, data):
         self.state_overlay_msg.text = "hotaru_local_planner: "+data.transition_signal        
-        if data.transition_signal == "REPLANNING":
+        if data.signal_name == "REPLANNING":
             self.state_overlay_msg.fg_color.r = 0.1
             self.state_overlay_msg.fg_color.g = 0.5
             self.state_overlay_msg.fg_color.b = 0.8
             self.state_overlay_msg.fg_color.a = 1
-        elif data.transition_signal == "RELAY":            
+        elif data.signal_name == "RELAY":            
             self.state_overlay_msg.fg_color.r = 0
             self.state_overlay_msg.fg_color.g = 1
             self.state_overlay_msg.fg_color.b = 0

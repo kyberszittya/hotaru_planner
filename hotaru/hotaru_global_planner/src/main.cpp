@@ -14,7 +14,6 @@
 #include <thread>
 #include <future>
 
-#include <hotaru_common/state_machine/state_machine.hpp>
 
 #include <hotaru_common/planner_components/common_building_blocks.hpp>
 #include <hotaru_common/planner_components/abstract_planner.hpp>

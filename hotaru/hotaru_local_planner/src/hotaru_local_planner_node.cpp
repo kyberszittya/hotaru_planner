@@ -18,7 +18,7 @@
 
 #include <rei_common/geometric_utilities.hpp>
 
-#include <rei_monitoring_msgs/ReiStateTransition.h>
+#include <rei_monitoring_msgs/ReiStateMachineTransitionSignal.h>
 #include <std_msgs/Float64.h>
 #include <autoware_msgs/VehicleStatus.h>
 
@@ -151,17 +151,7 @@ public:
 			}
 		}*/
 
-		if (lookahead_obstacles_instances.size() != pubsubstate->msg_sub_filtered_obstacles.objects.size())
-		{
-			plan_source_modification.lock();
-			lookahead_obstacles_instances.clear();
-			lookahead_obstacles_instances.reserve(pubsubstate->msg_sub_filtered_obstacles.objects.size());
-			for (int i = 0; i < pubsubstate->msg_sub_filtered_obstacles.objects.size(); i++)
-			{
-				lookahead_obstacles_instances.push_back();
-			}
-			plan_source_modification.unlock();
-		}
+
 		int objects = 0;
 		for (const auto &o: pubsubstate->msg_sub_filtered_obstacles.objects)
 		{
@@ -194,20 +184,8 @@ public:
 				// for computing distances? That would be cool
 				// Push into the tree
 				plan_source_modification.lock();
-
-				if (lookahead_obstacles_instances.push_back(objects)!=lookahead_obstacles_instances.end())
-				{
-					auto p = dynamic_cast<PolygonObstacle*>(lookahead_obstacles_instances[objects].get());
-					p->clearVertices();
-					p->vertices().reserve(points.size());
-					p->vertices().assign(points.begin(), points.end());
-				}
-				else
-				{
-					lookahead_obstacles_instances.insert(
-						std::pair<unsigned int, ObstaclePtr>(objects, new PolygonObstacle(points))
-					);
-				}
+				ObstaclePtr op = ObstaclePtr(new CircularObstacle(o.pose.position.x, o.pose.position.y, 0.5));
+				lookahead_obstacles_instances.push_back(std::move(op));
 				plan_source_modification.unlock();
 				// Calculate minimal velocity distance index
 				marker_obstacle_end_index.pose.position =
@@ -303,7 +281,7 @@ public:
 		// Benchmark
 		pub_plan_time = nh->advertise<std_msgs::Float64>("/hotaru_local_planner/plan_time", 10);
 		// State machine
-		pub_replanner_sm_state = nh->advertise<rei_monitoring_msgs::ReiStateTransition>(
+		pub_replanner_sm_state = nh->advertise<rei_monitoring_msgs::ReiStateMachineTransitionSignal>(
 				"/hotaru_local_planner/state_transition", 10);
 		// Configure teb
 		using namespace teb_local_planner;
@@ -448,7 +426,7 @@ public:
 		obstacle_container->clear();
 		for (const auto& o: lookahead_obstacles_instances)
 		{
-			obstacle_container->push_back(o.second);
+			obstacle_container->push_back(o);
 		}
 		for (const auto& o: semantic_perimeter)
 		{
@@ -483,9 +461,9 @@ public:
 
 	void actRelayState()
 	{
-		rei_monitoring_msgs::ReiStateTransition sig;
+		rei_monitoring_msgs::ReiStateMachineTransitionSignal sig;
 		sig.header.stamp = ros::Time::now();
-		sig.transition_signal = "RELAY";
+		sig.signal_name = "RELAY";
 		pub_replanner_sm_state.publish(sig);
 		plan_source_modification.lock();
 		planner->clearPlanner();
@@ -499,9 +477,9 @@ public:
 		// Current waypoint index
 		int current_index = pubsubstate->msg_closest_waypoint.data;
 		//
-		rei_monitoring_msgs::ReiStateTransition sig;
+		rei_monitoring_msgs::ReiStateMachineTransitionSignal sig;
 		sig.header.stamp = ros::Time::now();
-		sig.transition_signal = "REPLANNING";
+		sig.signal_name = "REPLANNING";
 		pub_replanner_sm_state.publish(sig);
 		geometry_msgs::Point _p0;
 		tf2::doTransform(
@@ -524,9 +502,9 @@ public:
 
 	void actWaitingState()
 	{
-		rei_monitoring_msgs::ReiStateTransition sig;
+		rei_monitoring_msgs::ReiStateMachineTransitionSignal sig;
 		sig.header.stamp = ros::Time::now();
-		sig.transition_signal = "WAITING";
+		sig.signal_name = "WAITING";
 		pub_replanner_sm_state.publish(sig);
 	}
 
