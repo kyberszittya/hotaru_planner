@@ -13,7 +13,7 @@
 #include <exception>
 #include <sstream>
 #include <mutex>
-
+#include <functional>
 
 #include "abstract_signal_definitions.hpp"
 
