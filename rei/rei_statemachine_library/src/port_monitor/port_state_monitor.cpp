@@ -9,6 +9,7 @@
 
 #include <iostream>
 
+#include <ros/ros.h>
 
 namespace rei
 {
@@ -23,8 +24,6 @@ void PortStateMonitor::addPort(std::string name, const unsigned long freq)
 						new PortMonitorState(name, freq))
 		)
 	);
-
-
 }
 
 bool PortMonitorState::isFresh() const
@@ -88,8 +87,8 @@ void PortStateMonitor::checkAllStatesTimestamp(const unsigned long long timestam
 
 void PortStateMonitor::updateTimestamp(std::shared_ptr<PortMonitorState> portmonitorstate, const unsigned long long timestamp)
 {
-
-	checkAllStatesTimestamp(timestamp);
+	//checkAllStatesTimestamp(timestamp);
+	checkStateTimestamp(portmonitorstate, timestamp);
 	portmonitorstate->timestamp = timestamp;
 	switch (portmonitorstate->state)
 	{

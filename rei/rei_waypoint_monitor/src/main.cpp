@@ -9,7 +9,7 @@
 
 #include <std_msgs/Int32.h>
 #include <geometry_msgs/PoseStamped.h>
-#include <autoware_msgs/Lane.h>
+#include <hotaru_msgs/RefinedTrajectory.h>
 
 #include <tf2_ros/transform_broadcaster.h>
 
@@ -25,6 +25,9 @@ double distanceBetweenTwoWaypoints(const geometry_msgs::PoseStamped& p0,
 	return std::sqrt(dx*dx + dy*dy + dz*dz);
 }
 
+/**
+ * @brief: Calculate the closest distance to a waypoint
+ */
 class WaypointMonitor
 {
 protected:
@@ -33,7 +36,7 @@ protected:
 	ros::Subscriber sub_current_velocity;
 	ros::Subscriber sub_current_lane;
 	ros::Publisher  pub_closest_waypoint;
-	autoware_msgs::Lane current_lane;
+	hotaru_msgs::RefinedTrajectory current_trajectory;
 	std_msgs::Int32 msg_closest_waypoint;
 public:
 
@@ -45,7 +48,7 @@ public:
 	void initRos()
 	{
 		sub_current_pose = nh.subscribe("current_pose", 10, &WaypointMonitor::cbCurrentPose, this);
-		sub_current_lane = nh.subscribe("base_waypoints", 10, &WaypointMonitor::cbCurrentLane, this);
+		sub_current_lane = nh.subscribe("input_trajectory", 10, &WaypointMonitor::cbHighestLevelTrajectory, this);
 		pub_closest_waypoint = nh.advertise<std_msgs::Int32>("closest_waypoint", 10);
 	}
 
@@ -53,9 +56,9 @@ public:
 	{
 		// TODO: a little more intelligent search for closest point
 		double min_dist = std::numeric_limits<double>::max();
-		for (unsigned int i = 0; i < current_lane.waypoints.size(); i++)
+		for (unsigned int i = 0; i < current_trajectory.waypoints.size(); i++)
 		{
-			double d = distanceBetweenTwoWaypoints(current_lane.waypoints[i].pose, *msg);
+			double d = distanceBetweenTwoWaypoints(current_trajectory.waypoints[i].pose, *msg);
 			if (d < min_dist)
 			{
 				min_dist = d;
@@ -65,9 +68,9 @@ public:
 		pub_closest_waypoint.publish(msg_closest_waypoint);
 	}
 
-	void cbCurrentLane(const autoware_msgs::Lane::ConstPtr& msg)
+	void cbHighestLevelTrajectory(const hotaru_msgs::RefinedTrajectory::ConstPtr& msg)
 	{
-		current_lane = *msg;
+		current_trajectory = *msg;
 	}
 
 };

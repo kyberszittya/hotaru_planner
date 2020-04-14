@@ -5,6 +5,10 @@
  *      Author: kyberszittya
  */
 
+#include <hotaru_node_elements/trajectory_slicer_strategy.hpp>
 
-
+namespace hotaru
+{
+TrajectorySlicerStrategy::~TrajectorySlicerStrategy(){}
+}
 

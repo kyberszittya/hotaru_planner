@@ -40,7 +40,7 @@ public:
 		for (unsigned int i = 0; i < N; i++)
 		{
 			hotaru_msgs::Waypoint wp;
-			wp.pose.position.x = i * ds;
+			wp.pose.pose.position.x = i * ds;
 			out_trajectory.waypoints.emplace_back(wp);
 		}
 	}
@@ -51,7 +51,7 @@ public:
 		for (unsigned int i = 0; i < N; i++)
 		{
 			hotaru_msgs::Waypoint wp;
-			wp.pose.position.x = i * ds + offset_x;
+			wp.pose.pose.position.x = i * ds + offset_x;
 			out_trajectory.emplace_back(wp);
 		}
 	}

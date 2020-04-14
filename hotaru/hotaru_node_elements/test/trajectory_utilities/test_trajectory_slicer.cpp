@@ -23,7 +23,14 @@ TEST(TrajectorySlicerTest, SimpleTrajectory)
 	std::vector<Waypoint> waypoint_original;
 	trajectoryslicer.sliceTrajectory(ref_trajectory, waypoint_replan, waypoint_original,  10);
 	ASSERT_EQ(waypoint_replan.size(), 10);
+	ASSERT_DOUBLE_EQ(waypoint_replan[0].pose.pose.position.x, 0.0);
+	ASSERT_DOUBLE_EQ(waypoint_replan[0].pose.pose.position.y, 0.0);
+	ASSERT_DOUBLE_EQ(waypoint_replan[5].pose.pose.position.x, 5.0);
+	ASSERT_DOUBLE_EQ(waypoint_replan[5].pose.pose.position.y, 0.0);
 	ASSERT_EQ(waypoint_original.size(), 90);
+	ASSERT_DOUBLE_EQ(waypoint_original[5].pose.pose.position.x, 15.0);
+	ASSERT_DOUBLE_EQ(waypoint_original[5].pose.pose.position.y, 0.0);
+	ASSERT_DOUBLE_EQ(waypoint_original[15].pose.pose.position.x, 25.0);
 }
 
 TEST(TrajectorySlicerTest, SimpleTrajectoryBiggerWpIdx)
@@ -168,9 +175,9 @@ TEST(TrajectoryMergerTest, SparseTrajectoryPercentageEmptyTrajectory)
 	RefinedTrajectory traj;
 	trajectory_merger.merge2Trajectories(waypoint_forward, waypoint_backward, traj);
 	ASSERT_EQ(traj.waypoints.size(), 200);
-	ASSERT_DOUBLE_EQ(traj.waypoints[0].pose.position.x, 0.0);
-	ASSERT_DOUBLE_EQ(traj.waypoints[100].pose.position.x, 100.0);
-	ASSERT_DOUBLE_EQ(traj.waypoints[199].pose.position.x, 199.0);
+	ASSERT_DOUBLE_EQ(traj.waypoints[0].pose.pose.position.x, 0.0);
+	ASSERT_DOUBLE_EQ(traj.waypoints[100].pose.pose.position.x, 100.0);
+	ASSERT_DOUBLE_EQ(traj.waypoints[199].pose.pose.position.x, 199.0);
 }
 
 int main(int argc, char** argv)
