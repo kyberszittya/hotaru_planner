@@ -332,7 +332,7 @@ public:
 			}
 			catch(std::runtime_error &e)
 			{
-
+				ROS_ERROR("Replan error!");
 			}
 			mtx_trajectory_update.unlock();
 		}

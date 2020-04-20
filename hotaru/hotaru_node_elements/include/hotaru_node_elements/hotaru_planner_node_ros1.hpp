@@ -91,11 +91,8 @@ protected:
 	std::mutex mtx_planner;
 	std::mutex mtx_trajectory_update;
 	// Thread
-
-
 	virtual void startAfterSynchronization() = 0;
 	virtual void timeoutSynchronization() = 0;
-
 public:
 
 	HotaruPlannerNodeRos(

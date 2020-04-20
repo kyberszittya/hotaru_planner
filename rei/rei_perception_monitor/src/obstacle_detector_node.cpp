@@ -8,27 +8,25 @@
 #include <ros/ros.h>
 #include <grid_map_ros/grid_map_ros.hpp>
 
+#include <std_msgs/Int32.h>
 #include <geometry_msgs/PoseStamped.h>
 #include <geometry_msgs/Point32.h>
 
-#include <std_msgs/Int32.h>
-
 #include <visualization_msgs/MarkerArray.h>
 
-#include <rei_planner_signals/ReplanRequest.h>
 #include <eigen_conversions/eigen_msg.h>
-
 #include <tf2_ros/transform_listener.h>
 #include <tf2_ros/buffer.h>
 #include <tf2_geometry_msgs/tf2_geometry_msgs.h>
 
-#include <rei_common/geometric_utilities.hpp>
 
-#include <autoware_msgs/DetectedObjectArray.h>
 
 #include <hotaru_msgs/RefinedTrajectory.h>
+#include <rei_planner_signals/ReplanRequest.h>
 #include <rei_monitoring_msgs/DetectedObstacles.h>
 #include <rei_common/geometric_utilities.hpp>
+// DEPRECATED: our framework should be independent of Autoware
+#include <autoware_msgs/DetectedObjectArray.h>
 
 constexpr double D_LATERAL_THRESHOLD = 2.75;
 constexpr double D_LONGITUDINAL_THRESHOLD = 5.75;
@@ -40,6 +38,10 @@ class ObstacleGridMapMonitor
 {
 private:
 	int closest_waypoint;
+	// TF related attributes
+	const std::string sensor_frame;
+	const std::string local_frame;
+	const std::string global_frame;
 protected:
 
 	geometry_msgs::PoseStamped current_pose;
@@ -64,9 +66,15 @@ protected:
 	std::unique_ptr<tf2_ros::TransformListener> tf_listener;
 	geometry_msgs::TransformStamped transform_current_pose;
 	geometry_msgs::TransformStamped inv_transform_current_pose;
-	geometry_msgs::TransformStamped transform_detector;
 public:
-	ObstacleGridMapMonitor(ros::NodeHandle& nh): closest_waypoint(-1), nh(nh){}
+	ObstacleGridMapMonitor(
+			const std::string global_frame,
+			const std::string local_frame,
+			const std::string sensor_frame,
+			ros::NodeHandle& nh): closest_waypoint(-1),
+				sensor_frame(sensor_frame),
+				global_frame(global_frame),
+				local_frame(local_frame), nh(nh){}
 
 	bool init()
 	{
@@ -84,8 +92,6 @@ public:
 		pub_local_gridmap = nh.advertise<grid_map_msgs::GridMap>("/local_grid_map", 1);
 		pub_detected_obstacles = nh.advertise<rei_monitoring_msgs::DetectedObstacles>("/rei_perception_monitor/detected_obstacles", 1);
 		sub_obstacle_poly = nh.subscribe("/detection/lidar_detector/objects", 1, &ObstacleGridMapMonitor::cbPolyObj, this);
-
-
 		return true;
 	}
 
@@ -133,7 +139,8 @@ public:
 								rei_monitoring_msgs::Obstacle o1;
 								o1.obstacle_type = rei_monitoring_msgs::Obstacle::STATIC_OBSTACLE;
 								o1.radius = 1.2;
-								tf2::doTransform(o.pose, o1.pose, transform_detector);
+								o1.pose = o.pose;
+								//tf2::doTransform(o.pose, o1.pose, transform_detector);
 								detected_obstacles.obstacles.push_back(std::move(o1));
 								request_msg.obstacle_min_lateral_distance = d_lateral;
 								request_msg.obstacle_min_longitudinal_distance = longitudinal_distance;
@@ -170,10 +177,7 @@ public:
 		current_pose = *msg;
 		try {
 			transform_current_pose = tf_buffer.lookupTransform(
-					"base_link", "map", ros::Time(0), ros::Duration(1.0));
-			transform_detector = tf_buffer.lookupTransform(
-					"ouster_left", "base_link", ros::Time(0), ros::Duration(1.0)
-			);
+					local_frame, global_frame, ros::Time(0), ros::Duration(1.0));
 		}catch(tf2::LookupException& le)
 		{
 			ROS_ERROR_STREAM(le.what());
@@ -280,7 +284,7 @@ public:
 			if (global_map.at("elevation", *iterator) > 0.5)
 			{
 				visualization_msgs::Marker m;
-				m.header.frame_id = "base_link";
+				m.header.frame_id = local_frame;
 				m.header.stamp = t;
 				m.type = visualization_msgs::Marker::SPHERE;
 				grid_map::Position3 pos;
@@ -310,13 +314,41 @@ public:
 	}
 };
 
+constexpr char DEFAULT_GLOBAL_FRAME[] {"map"};
+constexpr char DEFAULT_LOCAL_FRAME[] {"base_link"};
+constexpr char DEFAULT_SENSOR_FRAME[] {"velodyne"};
+
 }
+
+
 
 int main(int argc, char** argv)
 {
 	ros::init(argc, argv, "rei_obstacle_monitor");
 	ros::NodeHandle nh;
-	rei::ObstacleGridMapMonitor obstacle_monitor(nh);
+	ros::NodeHandle private_nh("~");
+	// Read frames
+
+	std::string global_frame;
+	if (!private_nh.getParam("global_frame", global_frame))
+	{
+		global_frame = rei::DEFAULT_GLOBAL_FRAME;
+		ROS_WARN_STREAM("No global frame has been specified, using default: " << global_frame);
+	}
+	std::string local_frame;
+	if (!private_nh.getParam("local_frame", local_frame))
+	{
+		local_frame = rei::DEFAULT_LOCAL_FRAME;
+		ROS_WARN_STREAM("No global frame has been specified, using default: " << local_frame);
+	}
+	std::string sensor_frame;
+	if (!private_nh.getParam("sensor_frame", sensor_frame))
+	{
+		sensor_frame = rei::DEFAULT_SENSOR_FRAME;
+		ROS_WARN_STREAM("No object-detecting sensor frame has been specified, using default: " << sensor_frame);
+	}
+	rei::ObstacleGridMapMonitor obstacle_monitor(global_frame, local_frame, sensor_frame, nh);
+
 	if (obstacle_monitor.init())
 	{
 		ROS_INFO("Successfully started obstacle detection");
