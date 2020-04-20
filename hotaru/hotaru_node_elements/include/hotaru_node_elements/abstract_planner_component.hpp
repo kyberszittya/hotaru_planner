@@ -19,8 +19,6 @@ namespace hotaru
 {
 
 
-
-
 template<class WaypointMsg> class HotaruPlannerNode
 {
 private:

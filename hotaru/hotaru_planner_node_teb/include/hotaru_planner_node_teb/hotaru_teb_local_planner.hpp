@@ -343,6 +343,7 @@ public:
 			port_calc_planner_time.publish(pubsubstate->msg_port_calc_planner_time);
 		}
 		std::cout << se2_current_pose << '\t' <<  se2_plan_end << '\t' << elps.count() << '\t' << trajectoryslicestrategy->getSlicePoint() << '\n';
+
 		return true;
 	}
 

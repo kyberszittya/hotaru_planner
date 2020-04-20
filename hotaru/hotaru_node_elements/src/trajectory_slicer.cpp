@@ -34,11 +34,9 @@ bool TrajectorySlicer::sliceTrajectory(
 				ref_trajectory.waypoints.end(),
 				std::back_inserter(waypoints_original)
 		);
-
 	}
 	else
 	{
-
 		waypoints_original.reserve(ref_trajectory.waypoints.size() - wp_idx);
 		// No slicing to be done: waypoint index not specified
 		std::copy(ref_trajectory.waypoints.begin(),
@@ -72,7 +70,6 @@ void TrajectorySlicer::sparseTrajectory(
 	for (const auto& wp: waypoints_input)
 	{
 		d += rei::spatialDistance(wp0.pose.pose.position, wp.pose.pose.position);
-
 		if (d > distance_threshold-DISTANCE_THRESHOLD)
 		{
 			d = 0.0;
