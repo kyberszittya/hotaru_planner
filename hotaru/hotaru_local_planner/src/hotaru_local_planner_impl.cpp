@@ -22,7 +22,8 @@ bool InterfaceRos_Hotarulocalplanner::init()
 					port_state_monitor,
 					notifier,
 					"hotaru_local_planner/sync_state"));
-	if (sync_sm_sync_state!=nullptr){
+	if (sync_sm_sync_state!=nullptr)
+	{
 		if (!sync_sm_sync_state->initialize())
 		{
 			return false;

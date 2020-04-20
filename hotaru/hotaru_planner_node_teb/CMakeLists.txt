@@ -15,6 +15,8 @@ find_package(catkin REQUIRED COMPONENTS
   rospy
   std_msgs
   teb_local_planner
+  tf2_ros
+  tf2
 )
 
 ## System dependencies are found with CMake's conventions

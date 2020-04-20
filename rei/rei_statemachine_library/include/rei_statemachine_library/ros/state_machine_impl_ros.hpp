@@ -31,8 +31,10 @@ public:
 	{
 		using namespace rei::sync_signals;
 		std::shared_ptr<AbstractSignalInterface> sig_(new SignalMessageTimeOut(timestamp));
+		mtx_sm.lock();
 		sm->propagateSignal(sig_);
 		sm->stepstatemachine();
+		mtx_sm.unlock();
 	}
 
 	virtual void react_Fresh(unsigned long long timestamp)
@@ -58,15 +60,22 @@ class RosSyncStateGuard: public rei::Interface_GuardSyncStates
 {
 protected:
 	std::shared_ptr<PortStateMonitorRos> monitor_state;
+	// Guard invariant
+	std::function<bool(void)> crisp_guard_started;
 public:
 	void setMonitor(std::shared_ptr<PortStateMonitorRos> monitor_state)
 	{
 		this->monitor_state = monitor_state;
 	}
 
+	void setCrispGuardState_Start(std::function<bool(void)> funcguard)
+	{
+		crisp_guard_started = funcguard;
+	}
+
 	virtual bool guard_StartedState()
 	{
-		return monitor_state->isReady();
+		return monitor_state->isReady() && crisp_guard_started();
 	}
 
 	virtual bool guard_WaitingState()

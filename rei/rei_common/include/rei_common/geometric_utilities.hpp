@@ -24,6 +24,12 @@ double spatialDistance(const geometry_msgs::Point& msg0,
 		const geometry_msgs::Point& msg1);
 double planarDistance(const geometry_msgs::Point& msg0,
 		const geometry_msgs::Point& msg1);
+
+inline bool isInvalidPoint(const geometry_msgs::Point p0)
+{
+	return std::isnan(p0.x) || std::isnan(p0.y) || std::isnan(p0.z);
+}
+
 }
 
 

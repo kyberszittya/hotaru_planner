@@ -13,6 +13,10 @@ find_package(catkin REQUIRED COMPONENTS
   rospy
   std_msgs
   rei_common
+  rei_statemachine_library
+  rei_monitoring_msgs
+  rei_planner_signals
+  tf2
 )
 
 ## System dependencies are found with CMake's conventions
@@ -107,7 +111,7 @@ find_package(catkin REQUIRED COMPONENTS
 catkin_package(
   INCLUDE_DIRS include
   LIBRARIES hotaru_node_elements
-  CATKIN_DEPENDS hotaru_msgs roscpp rospy std_msgs rei_common
+  CATKIN_DEPENDS hotaru_msgs roscpp rospy std_msgs rei_common rei_planner_signals rei_statemachine_library rei_monitoring_msgs
 #  DEPENDS system_lib
 )
 
@@ -133,6 +137,8 @@ ENDIF(CMAKE_BUILD_TYPE MATCHES Coverage)
 ## Declare a C++ library
 add_library(${PROJECT_NAME}
   src/trajectory_slicer.cpp  
+  src/gen_abstracthotaruplannernode_impl.cpp
+  src/abstract_planner_component.cpp
 )
 
 ## Add cmake target dependencies of the library
@@ -207,9 +213,11 @@ target_link_libraries(${PROJECT_NAME}
 #############
 
 ## Add gtest based cpp test target and link libraries
-catkin_add_gtest(trajectory-slicer-test test/test_trajectory_slicer.cpp)
+catkin_add_gtest(trajectory-slicer-test test/trajectory_utilities/test_trajectory_slicer.cpp)
+catkin_add_gtest(planner-statemachine-test test/test_statemachine/test_local_planner_state_machine.cpp)
 if(TARGET trajectory-slicer-test)
   target_link_libraries(trajectory-slicer-test ${PROJECT_NAME} ${CATKIN_LIBRARIES})
+  target_link_libraries(planner-statemachine-test ${PROJECT_NAME} ${CATKIN_LIBRARIES})
 endif()
 
 ## Add folders to be run by python nosetests

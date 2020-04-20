@@ -11,14 +11,28 @@
 int main(int argc, char** argv)
 {
 	ros::init(argc, argv, "hotaru_teb_planner_node");
-	ros::NodeHandle nh;
-	ros::NodeHandle private_nh("~");
-	hotaru::HotaruTebLocalPlannerNode planner_node(nh, private_nh);
-	if (planner_node.init())
+	std::shared_ptr<ros::NodeHandle> nh = std::make_shared<ros::NodeHandle>();
+	hotaru::HotaruTebLocalPlannerNode planner_node(nh, "base_link", "map", true);
+	try
 	{
-		ros::spin();
-		return -1;
+		planner_node.initialize(true);
+		ros::AsyncSpinner spinner(8);
+		spinner.start();
+		ros::waitForShutdown();
+		spinner.stop();
+		return 0;
 	}
-	ROS_ERROR("Unable to initialize HOTARU TEB LOCAL PLANNER");
+	catch(rei::ExceptionNodePreInitialization &e)
+	{
+		ROS_FATAL_STREAM("Unable to initialize HOTARU TEB LOCAL PLANNER" << e.what());
+	}
+	catch(rei::ExceptionNodeAssignSyncGuards &e)
+	{
+		ROS_FATAL_STREAM("Unable to initialize HOTARU TEB LOCAL PLANNER" << e.what());
+	}
+	catch(rei::ExceptionNodeMiddleWare &e)
+	{
+		ROS_FATAL_STREAM("Unable to initialize HOTARU TEB LOCAL PLANNER" << e.what());
+	}
 	return -1;
 }

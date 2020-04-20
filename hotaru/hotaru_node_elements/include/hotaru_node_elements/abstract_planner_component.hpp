@@ -18,36 +18,41 @@
 namespace hotaru
 {
 
-struct HotaruPlannerState
-{
-	geometry_msgs::PoseStamped  current_pose;
-	geometry_msgs::TwistStamped current_velocity;
-};
 
-class HotaruPlannerNode
+template<class WaypointMsg> class HotaruPlannerNode
 {
 private:
-	// Trajectory handling
-	TrajectorySlicer slicer;
 
 protected:
-	///< State definition for all planners
-	std::unique_ptr<HotaruPlannerState> plannerstate;
-	// ROS nodehandles
-	ros::NodeHandle nh;
-	ros::NodeHandle private_nh;
-	// Timers
-	ros::Timer planner_cycle;
+	// Trajectory handling
+	TrajectorySlicer slicer;
+	TrajectoryMerger merger;
+	//
+	std::vector<WaypointMsg> waypoint_original;
+	std::vector<WaypointMsg> replanned_trajectory;
 
 	virtual void config() = 0;
 
 
-public:
-	HotaruPlannerNode(const ros::NodeHandle& nh, const ros::NodeHandle& private_nh):
-		nh(nh),
-		private_nh(private_nh){}
 
-	virtual bool init() = 0;
+public:
+	HotaruPlannerNode(){}
+
+	virtual bool plancycle() = 0;
+};
+
+
+class PlannerTransformState
+{
+protected:
+	const std::string base_frame;
+	const std::string global_frame;
+public:
+	PlannerTransformState(const std::string base_frame, const std::string global_frame):
+		base_frame(base_frame),
+		global_frame(global_frame){}
+
+	const std::string getBaseFrame() { return base_frame; }
 };
 
 }

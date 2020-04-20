@@ -73,10 +73,11 @@ protected:
 
 	//
 	std::function<void(void)> cbAllStateMessageReceived;
+	std::function<void(void)> cbTimeOut;
 public:
 	SyncStateMachine(
 			std::shared_ptr<Interface_CommunicationGraphNotifier> graph_notifier,
-			std::unique_ptr<Interface_GuardSyncStates> guard_syncstate);
+			std::shared_ptr<Interface_GuardSyncStates> guard_syncstate);
 
 	bool isWaiting() const
 	{
@@ -86,6 +87,11 @@ public:
 	void setCbAllStateMessageReceived(std::function<void(void)> cb)
 	{
 		cbAllStateMessageReceived = cb;
+	}
+
+	void setCbTimeOut(std::function<void(void)> cb)
+	{
+		cbTimeOut = cb;
 	}
 
 	bool isStarted() const

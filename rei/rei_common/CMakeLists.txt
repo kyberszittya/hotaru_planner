@@ -123,6 +123,7 @@ include_directories(
 ## Declare a C++ library
 add_library(${PROJECT_NAME}
    src/lib_rei_common.cpp
+   src/gen_node_elements.cpp
 )
 
 ## Add cmake target dependencies of the library

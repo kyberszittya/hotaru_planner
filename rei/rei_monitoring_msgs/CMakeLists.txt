@@ -12,6 +12,7 @@ find_package(catkin REQUIRED COMPONENTS
   message_runtime
   roscpp
   rospy
+  geometry_msgs
 )
 
 ## System dependencies are found with CMake's conventions
@@ -50,9 +51,13 @@ find_package(catkin REQUIRED COMPONENTS
 ## Generate messages in the 'msg' folder
 add_message_files(
   FILES
+  # Monitor signals
   ReiMonitorSignal.msg
   ReiStateMachineSignature.msg
   ReiStateMachineTransitionSignal.msg
+  # Perception msgs
+  Obstacle.msg
+  DetectedObstacles.msg
 )
 
 ## Generate services in the 'srv' folder
@@ -73,6 +78,7 @@ add_message_files(
 generate_messages(
   DEPENDENCIES
   std_msgs  # Or other packages containing msgs
+  geometry_msgs
 )
 
 ################################################
@@ -107,7 +113,7 @@ generate_messages(
 catkin_package(
 #  INCLUDE_DIRS include
 #  LIBRARIES rei_monitoring_msgs
-#  CATKIN_DEPENDS message_generation message_runtime roscpp rospy
+  CATKIN_DEPENDS message_generation message_runtime roscpp rospy geometry_msgs
 #  DEPENDS system_lib
 )
 

@@ -1,0 +1,6 @@
+<launch>
+  <node type="hotaru_autoware_bridge_node" pkg="hotaru_autoware_bridge" name="hotaru_autoware_bridge">
+  </node>
+  <include file="$(find hotaru_planner_node_teb)/launch/hotaru_system_local_env.launch">
+  </include>
+</launch>

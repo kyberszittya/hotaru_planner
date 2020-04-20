@@ -30,10 +30,10 @@ void SyncStateMachine::handle_startError()
 
 SyncStateMachine::SyncStateMachine(
 			std::shared_ptr<Interface_CommunicationGraphNotifier> graph_notifier,
-			std::unique_ptr<Interface_GuardSyncStates> guard_syncstate):
+			std::shared_ptr<Interface_GuardSyncStates> guard_syncstate):
 		AbstractStateMachine(SyncStateMachine_States::PSEUDO_START,
 						graph_notifier,
-						std::move(guard_syncstate))
+						guard_syncstate)
 {
 
 }
@@ -92,6 +92,7 @@ void SyncStateMachine::reactSig_MessageTimeout(std::shared_ptr<AbstractSignalInt
 			if (guard_def->guard_WaitingState())
 			{
 				state = SyncStateMachine_States::WAITING;
+				cbTimeOut();
 				comm_graph_notifier->notifyCommunicationGraph(sig);
 			}
 			break;
