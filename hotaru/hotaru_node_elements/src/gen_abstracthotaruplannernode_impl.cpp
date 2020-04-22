@@ -93,6 +93,7 @@ void InterfaceRos_AbstractHotaruPlannerNode::cbPort_current_velocity(const geome
 void InterfaceRos_AbstractHotaruPlannerNode::cbPort_replan_request_sig(const rei_planner_signals::ReplanRequest::ConstPtr& msg)
 {
 	pubsubstate->msg_port_replan_request_sig = *msg;
+	executeReplan_request_sig();
 	
 }
 void InterfaceRos_AbstractHotaruPlannerNode::cbPort_closests_waypoint(const std_msgs::Int32::ConstPtr& msg)

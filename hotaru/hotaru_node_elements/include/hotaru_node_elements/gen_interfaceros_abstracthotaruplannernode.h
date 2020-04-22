@@ -52,6 +52,7 @@ class InterfaceRos_AbstractHotaruPlannerNode: public rei::Interface_SimpleRosNod
 private:
 protected:
 	/// ROS utils
+	std::shared_ptr<ros::NodeHandle> private_nh;
 	std::shared_ptr<ros::NodeHandle> nh;
 	/// ROS Subscribers
 	ros::Subscriber port_input_trajectory; ///< port_input_trajectory subscriber to hotaru_msgs::RefinedTrajectory
@@ -74,7 +75,7 @@ protected:
 	// Set ALL STATES CB
 	virtual void setSyncStateMachineCallbacks() = 0;
 public:
-	InterfaceRos_AbstractHotaruPlannerNode(std::shared_ptr<ros::NodeHandle> nh, const bool debug=false): nh(nh) {}
+	InterfaceRos_AbstractHotaruPlannerNode(std::shared_ptr<ros::NodeHandle> private_nh, std::shared_ptr<ros::NodeHandle> nh): private_nh(private_nh), nh(nh) {}
 	
 	virtual ~InterfaceRos_AbstractHotaruPlannerNode() = 0;
 	
@@ -103,6 +104,7 @@ public:
 	
 	/*
 	 * @brief: initialize middleware
+	 * @param debug: defines whether the debug information should be provided or not.
 	 */
 	virtual bool initMiddleware(const bool debug) override;
 	
@@ -130,6 +132,7 @@ public:
 	 * Callback method for replan_request_sig
 	 */
 	void cbPort_replan_request_sig(const rei_planner_signals::ReplanRequest::ConstPtr& msg); ///< port_replan_request_sig subscriber to rei_planner_signals::ReplanRequest
+	virtual void executeReplan_request_sig() = 0;
 	/**
 	 * Callback method for closest_waypoint
 	 */

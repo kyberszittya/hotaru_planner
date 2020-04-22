@@ -12,10 +12,19 @@ int main(int argc, char** argv)
 {
 	ros::init(argc, argv, "hotaru_teb_planner_node");
 	std::shared_ptr<ros::NodeHandle> nh = std::make_shared<ros::NodeHandle>();
-	hotaru::HotaruTebLocalPlannerNode planner_node(nh, "base_link", "map", true);
+	std::shared_ptr<ros::NodeHandle> private_nh = std::make_shared<ros::NodeHandle>("~");
+	// Read whether to debug
+	bool is_debug;
+	if (!private_nh->getParam("debug", is_debug))
+	{
+		ROS_INFO("Not publishing debug information");
+		is_debug = false;
+	}
+	//
+	hotaru::HotaruTebLocalPlannerNode planner_node(nh, private_nh, "base_link", "map");
 	try
 	{
-		planner_node.initialize(true);
+		planner_node.initialize(is_debug);
 		ros::AsyncSpinner spinner(8);
 		spinner.start();
 		ros::waitForShutdown();

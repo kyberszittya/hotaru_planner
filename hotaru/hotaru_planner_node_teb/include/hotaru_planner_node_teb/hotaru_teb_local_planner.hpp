@@ -8,12 +8,15 @@
 #ifndef INCLUDE_HOTARU_PLANNER_NODE_TEB_HOTARU_TEB_LOCAL_PLANNER_HPP_
 #define INCLUDE_HOTARU_PLANNER_NODE_TEB_HOTARU_TEB_LOCAL_PLANNER_HPP_
 
+#include <hotaru_planner_node_teb/hotaru_teb_parameters.hpp>
+
 #include <hotaru_node_elements/hotaru_planner_node_ros1.hpp>
 #include <hotaru_node_elements/state_machine/trajectory_statemachine_guard.hpp>
 
 #include <teb_local_planner/teb_local_planner_ros.h>
 
 #include <hotaru_node_elements/trajectory_slicer_strategy.hpp>
+#include <hotaru_node_elements/trajectory_lookahead.hpp>
 
 #include <chrono>
 
@@ -44,7 +47,7 @@ protected:
 	ros::Timer timer_trajectory; 									///< Trajectory slice
 	ros::Timer timer_trajectory_publish;							///< Publish planned trajectory periodically
 	ros::Timer timer_obstacle_update;								///< Update obstacle
-
+	//
 
 	// TODO: place it to an ancestor
 	void setSyncStateMachineCallbacks()
@@ -73,9 +76,10 @@ protected:
 
 public:
 	HotaruTebLocalPlannerNode(std::shared_ptr<ros::NodeHandle> nh,
+			std::shared_ptr<ros::NodeHandle> private_nh,
 			std::string base_frame, std::string target_frame,
 			const bool debug=false):
-		HotaruPlannerNodeRos(nh, base_frame, target_frame, debug){}
+		HotaruPlannerNodeRos(nh, private_nh, base_frame, target_frame){}
 
 	virtual void plannerCycle(const ros::TimerEvent& e)
 	{
@@ -93,49 +97,125 @@ public:
 
 	void cbTrajectoryPublishTimer(const ros::TimerEvent& e)
 	{
+		pubsubstate->msg_port_refined_trajectory.waypoints.clear();
 		mtx_trajectory_update.lock();
-		// Skip the first point
-		for (int i = 0; i < trajectory_profile.size(); i++)
+		// Don't publish anything until no valid trajectory is received
+		if (trajectory_profile.size() > 0)
 		{
-			hotaru_msgs::Waypoint w0;
-			tf2::doTransform(trajectory_profile[i].pose, w0.pose.pose, inv_transform_base);
-			//w0.twist.twist = v.velocity;
-			w0.twist.twist.linear.x = 5.0;
-			pubsubstate->msg_port_refined_trajectory.waypoints.emplace_back(w0);
-		}
-		mtx_trajectory_update.unlock();
-		//
-		for (int i = trajectoryslicestrategy->getSlicePoint();
-				i < std::min(trajectoryslicestrategy->getSlicePoint() + 70,
-						static_cast<int>(pubsubstate->msg_port_input_trajectory.waypoints.size())); i++)
-		{
-			pubsubstate->msg_port_refined_trajectory.waypoints.emplace_back(
-				pubsubstate->msg_port_input_trajectory.waypoints[i]
-			);
-		}
+			for (int i = 0; i < trajectory_profile.size(); i++)
+			{
+				hotaru_msgs::Waypoint w0;
+				tf2::doTransform(trajectory_profile[i].pose, w0.pose.pose, inv_transform_base);
+				//w0.twist.twist = v.velocity;
+				w0.twist.twist.linear.x = 5.0;
+				pubsubstate->msg_port_refined_trajectory.waypoints.emplace_back(w0);
+			}
+			mtx_trajectory_update.unlock();
+			//
+			for (int i = trajectoryslicestrategy->getSlicePoint();
+				i < std::min(trajectoryslicestrategy->getSlicePoint() +
+						hotaru::TrajectoryLookaheadPoint::lookaheadPoint(
+							10.0, pubsubstate->msg_port_current_velocity.twist),
+							static_cast<int>(pubsubstate->msg_port_input_trajectory.waypoints.size())); i++)
+			{
+				pubsubstate->msg_port_refined_trajectory.waypoints.emplace_back(
+					pubsubstate->msg_port_input_trajectory.waypoints[i]
+				);
+			}
 
-		pubsubstate->msg_port_refined_trajectory.header.stamp = ros::Time::now();
-		this->port_refined_trajectory.publish(pubsubstate->msg_port_refined_trajectory);
+			pubsubstate->msg_port_refined_trajectory.header.stamp = ros::Time::now();
+			this->port_refined_trajectory.publish(pubsubstate->msg_port_refined_trajectory);
+		}
 	}
 
 	virtual void config()
 	{
 		tebconfig.map_frame = tf_planner_state.getBaseFrame();
 		//
-		tebconfig.trajectory.dt_ref = 1.5;
-		tebconfig.trajectory.dt_hysteresis = 0.4;
+		if (!private_nh->getParam("dt_ref", tebconfig.trajectory.dt_ref))
+		{
+			tebconfig.trajectory.dt_ref = hotaru::teb::DEFAULT_TEB_CONFIG_TRAJECTORY_DT_REF;
+		}
+		ROS_INFO_STREAM("Using dt ref: " << tebconfig.trajectory.dt_ref);
 		//
-		tebconfig.robot.min_turning_radius = 10.4;
+		if (!private_nh->getParam("dt_hysteresis", tebconfig.trajectory.dt_hysteresis))
+		{
+			tebconfig.trajectory.dt_hysteresis = hotaru::teb::DEFAULT_TEB_CONFIG_TRAJECTORY_DT_HYSTERESIS;
+		}
+		ROS_INFO_STREAM("Using dt hysteresis: " << tebconfig.trajectory.dt_hysteresis);
+		//
+		if (!private_nh->getParam("min_turning_radius", tebconfig.robot.min_turning_radius))
+		{
+			tebconfig.robot.min_turning_radius = hotaru::teb::DEFAULT_MIN_TURNING_RADIUS;
+		}
+		ROS_INFO_STREAM("Using minimum turning radius: " << tebconfig.robot.min_turning_radius);
+		tebconfig.robot.max_vel_y = 0.0;
+		tebconfig.robot.max_vel_x_backwards = 0.0;
+		//
 		tebconfig.robot.acc_lim_theta = 0.05;
 		tebconfig.robot.acc_lim_x = 0.2;
 		tebconfig.robot.max_vel_x_backwards = 0.01;
-		tebconfig.robot.wheelbase = 2.7;
+		if (!private_nh->getParam("wheelbase", tebconfig.robot.wheelbase))
+		{
+			tebconfig.robot.wheelbase = hotaru::teb::DEFAULT_WHEELBASE;
+		}
 		tebconfig.robot.cmd_angle_instead_rotvel = true;
+		// Set minimal obstacle distance
+		if (!private_nh->getParam("min_obstacle_distance", tebconfig.obstacles.min_obstacle_dist))
+		{
+			tebconfig.obstacles.min_obstacle_dist = hotaru::teb::DEFAULT_MIN_OBSTACLE_DISTANCE;
+		}
+		ROS_INFO_STREAM("Using minimum obstacle distance: " << tebconfig.obstacles.min_obstacle_dist);
+		// Set minimal inflation distance
+		if (!private_nh->getParam("inflation_distance", tebconfig.obstacles.min_obstacle_dist))
+		{
+			tebconfig.obstacles.inflation_dist = hotaru::teb::DEFAULT_MIN_INFLATION;
+		}
+		ROS_INFO_STREAM("Using inflation distance: " << tebconfig.obstacles.inflation_dist);
+		// Set minimal weight obstacle
+		if (!private_nh->getParam("weight_obstacle", tebconfig.optim.weight_obstacle))
+		{
+			tebconfig.optim.weight_obstacle = hotaru::teb::DEFAULT_WEIGHT_OBSTACLE;
+		}
+		ROS_INFO_STREAM("Weight obstacle: " << tebconfig.optim.weight_obstacle);
 		//
-		tebconfig.obstacles.min_obstacle_dist = 1.5;
-		tebconfig.optim.weight_obstacle = 200;
-		tebconfig.optim.weight_viapoint = 15;
+		if (!private_nh->getParam("weight_viapoints", tebconfig.optim.weight_viapoint))
+		{
+			tebconfig.optim.weight_viapoint = hotaru::teb::DEFAULT_WEIGHT_VIAPOINTS;
+		}
+		ROS_INFO_STREAM("Using weight viapoints: " << tebconfig.optim.weight_viapoint);
+		//
 		tebconfig.optim.weight_max_vel_y = 0;
+		// Load: weight kinematics turning radius
+		if (!private_nh->getParam("weight_kinematics_turning_radius", tebconfig.optim.weight_kinematics_turning_radius))
+		{
+			tebconfig.optim.weight_kinematics_turning_radius = hotaru::teb::DEFAULT_WEIGHT_KINEMATICS_TURNING_RADIUS;
+		}
+		ROS_INFO_STREAM("Using weight turning radius (kinematics): " << tebconfig.optim.weight_viapoint);
+		// Load: weight forward drive
+		if (!private_nh->getParam("weight_kinematics_forward_drive", tebconfig.optim.weight_kinematics_forward_drive))
+		{
+			tebconfig.optim.weight_kinematics_forward_drive = hotaru::teb::DEFAULT_WEIGHT_KINEMATICS_TURNING_RADIUS;
+		}
+		ROS_INFO_STREAM("Using weight forward drive: " << tebconfig.optim.weight_kinematics_forward_drive);
+		// Load: nh kinematics
+		if (!private_nh->getParam("weight_kinematics_nh", tebconfig.optim.weight_kinematics_nh))
+		{
+			tebconfig.optim.weight_kinematics_nh = hotaru::teb::DEFAULT_WEIGHT_KINEMATICS_NH;
+		}
+		ROS_INFO_STREAM("Using weight kinematics nh: " << tebconfig.optim.weight_kinematics_nh);
+		// Load: xy goal tolerance
+		if (!private_nh->getParam("xy_goal_tolerance", tebconfig.goal_tolerance.xy_goal_tolerance))
+		{
+			tebconfig.goal_tolerance.xy_goal_tolerance = hotaru::teb::DEFAULT_XY_GOAL_TOLERANCE;
+		}
+		ROS_INFO_STREAM("Using xy goal tolerance: " << tebconfig.goal_tolerance.xy_goal_tolerance);
+		// Load: yaw goal tolerance
+		if (!private_nh->getParam("yaw_goal_tolerance", tebconfig.goal_tolerance.yaw_goal_tolerance))
+		{
+			tebconfig.goal_tolerance.yaw_goal_tolerance = hotaru::teb::DEFAULT_YAW_GOAL_TOLERANCE;
+		}
+		ROS_INFO_STREAM("Using yaw goal tolerance: " << tebconfig.goal_tolerance.yaw_goal_tolerance);
 	}
 
 	virtual void executeUpdate_velocity() override
@@ -156,6 +236,19 @@ public:
 		trajectoryslicestrategy->setClosestWaypointIndex(pubsubstate->msg_port_closests_waypoint.data);
 	}
 
+	virtual void executeReplan_request_sig() override
+	{
+		if (pubsubstate->msg_port_replan_request_sig.eval)
+		{
+			sm_behav_planner->propagateSignal(
+				std::make_shared<hotaru::trajectory_signals::SignalReplanningTrajectory>(
+						pubsubstate->msg_port_replan_request_sig.header.stamp.toNSec())
+			);
+			sm_behav_planner->stepstatemachine();
+		}
+
+	}
+
 	virtual void execute_update_current_pose() override
 	{
 
@@ -163,7 +256,7 @@ public:
 
 	void onReplan()
 	{
-
+		ROS_INFO("RUNAWAY");
 	}
 
 	void onStart()
@@ -205,7 +298,6 @@ public:
 	{
 		// Check
 		if (!tf_planner_state.getStampedTransform(transform_base, inv_transform_base)) return false;
-
 		geometry_msgs::Pose p0;
 		if (pubsubstate->msg_port_input_trajectory.waypoints.size() > 0)
 		{
@@ -289,8 +381,11 @@ public:
 			via_points.clear();
 			geometry_msgs::Point p;
 			geometry_msgs::Point p_Wro;
+			int _via_lookaheadpoint = TrajectoryLookaheadPoint::lookaheadPoint(1.5, pubsubstate->msg_port_current_velocity.twist);
 			// There are some points that are definetely not needed
-			for (int i = pubsubstate->msg_port_closests_waypoint.data+15; i < trajectoryslicestrategy->getSlicePoint(); i++)
+			for (
+				int i = pubsubstate->msg_port_closests_waypoint.data+_via_lookaheadpoint;
+					i < trajectoryslicestrategy->getSlicePoint(); i++)
 			{
 				p = pubsubstate->msg_port_input_trajectory.waypoints[i].pose.pose.position;
 				tf2::doTransform(p, p_Wro, this->transform_base);
@@ -324,7 +419,6 @@ public:
 		std::chrono::duration<double> elps = t_end-t_start;
 		if (plan_success)
 		{
-			pubsubstate->msg_port_refined_trajectory.waypoints.clear();
 			mtx_trajectory_update.lock();
 			try
 			{
@@ -343,7 +437,6 @@ public:
 			port_calc_planner_time.publish(pubsubstate->msg_port_calc_planner_time);
 		}
 		std::cout << se2_current_pose << '\t' <<  se2_plan_end << '\t' << elps.count() << '\t' << trajectoryslicestrategy->getSlicePoint() << '\n';
-
 		return true;
 	}
 
@@ -351,3 +444,4 @@ public:
 
 }
 #endif /* INCLUDE_HOTARU_PLANNER_NODE_TEB_HOTARU_TEB_LOCAL_PLANNER_HPP_ */
+

@@ -46,7 +46,6 @@ protected:
 
 	geometry_msgs::PoseStamped current_pose;
 	ros::NodeHandle nh;
-	ros::Subscriber sub_grid_map;
 	ros::Subscriber sub_current_pose;
 	ros::Subscriber sub_base_waypoints;
 	ros::Subscriber sub_closest_waypoint;
@@ -85,7 +84,6 @@ public:
 		pub_replan_signal = nh.advertise<rei_planner_signals::ReplanRequest>("/replan_request_sig",10);
 		sub_current_pose = nh.subscribe("current_pose", 10, &ObstacleGridMapMonitor::cbCurrentPose, this);
 		sub_closest_waypoint = nh.subscribe("/closest_waypoint", 10, &ObstacleGridMapMonitor::cbClosestWaypoint, this);
-		sub_grid_map = nh.subscribe("grid_map", 1, &ObstacleGridMapMonitor::subGridMap, this);
 		sub_base_waypoints = nh.subscribe("input_trajectory", 1, &ObstacleGridMapMonitor::cbBaseWaypoints, this);
 		// Sub polygon obstacles
 		//pub_detected_obstacles_array = nh.advertise<autoware_msgs::DetectedObjectArray>("/filtered_obstacles_poly", 10);
@@ -151,7 +149,7 @@ public:
 					}
 				}
 			}
-			if (poly_obstacle_array.objects.size()==0)
+			if (detected_obstacles.obstacles.size()==0)
 			{
 				request_msg.eval = false;
 			}

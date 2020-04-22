@@ -97,10 +97,10 @@ public:
 
 	HotaruPlannerNodeRos(
 			std::shared_ptr<ros::NodeHandle> nh,
-			std::string base_frame, std::string target_frame,
-			const bool debug = false
+			std::shared_ptr<ros::NodeHandle> private_nh,
+			std::string base_frame, std::string target_frame
 			):
-		InterfaceRos_AbstractHotaruPlannerNode(nh, debug),
+		InterfaceRos_AbstractHotaruPlannerNode(private_nh, nh),
 		tf_planner_state(base_frame, target_frame){}
 };
 

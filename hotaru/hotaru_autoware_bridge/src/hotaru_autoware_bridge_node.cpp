@@ -31,6 +31,7 @@ private:
 	autoware_msgs::Lane final_lane;
 	ros::Publisher  pub_final_waypoints;
 	hotaru_msgs::RefinedTrajectory trajectory;
+	ros::Publisher pub_trajectory_following_waypoints;
 	// Timer to publish initial reference trajectory periodically and latch it
 	ros::Timer timer_pub_trajectory;
 	std::string lane_frame;
@@ -87,14 +88,15 @@ public:
 
 	void cbIntermediateTrajectory(const hotaru_msgs::RefinedTrajectory::ConstPtr& msg)
 	{
-		convertHotaruToAutowareTrajectory(msg, base_lane);
-		pub_base_waypoints.publish(base_lane);
+		//convertHotaruToAutowareTrajectory(msg, base_lane);
+		//pub_base_waypoints.publish(base_lane);
 	}
 
 	void cbFinalTrajectory(const hotaru_msgs::RefinedTrajectory::ConstPtr& msg)
 	{
 		convertHotaruToAutowareTrajectory(msg, final_lane);
 		pub_final_waypoints.publish(final_lane);
+		pub_trajectory_following_waypoints.publish(final_lane);
 	}
 
 	bool init()
@@ -106,9 +108,10 @@ public:
 		//
 		pub_traffic_lane_array = nh.advertise<hotaru_msgs::RefinedTrajectory>("input_trajectory", 1, true);
 		// Sub and pub from hotaru architecture
-		pub_base_waypoints = nh.advertise<autoware_msgs::Lane>("base_waypoints", 1);
+		//pub_base_waypoints = nh.advertise<autoware_msgs::Lane>("base_waypoints", 1);
 		pub_final_waypoints = nh.advertise<autoware_msgs::Lane>("final_waypoints", 1);
-		sub_intermediate_trajectory = nh.subscribe("refined_trajectory", 1, &HotaruAutowareBridge::cbIntermediateTrajectory, this);
+		pub_trajectory_following_waypoints = nh.advertise<autoware_msgs::Lane>("mpc_waypoints", 1);
+		//sub_intermediate_trajectory = nh.subscribe("refined_trajectory", 1, &HotaruAutowareBridge::cbIntermediateTrajectory, this);
 		sub_final_trajectory = nh.subscribe("refined_trajectory", 1, &HotaruAutowareBridge::cbFinalTrajectory, this);
 		return true;
 	}

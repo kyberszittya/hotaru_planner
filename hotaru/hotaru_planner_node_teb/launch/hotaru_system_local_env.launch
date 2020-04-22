@@ -1,5 +1,5 @@
 <launch>
-	<node pkg="rei_waypoint_monitor" type="rei_waypoint_monitor_node" name="waypoint_monitor">	  
+	<node pkg="rei_waypoint_monitor" type="rei_waypoint_monitor_node" name="waypoint_monitor" output="screen">
 	</node>
 	<node pkg="rei_perception_monitor" type="rei_obstacle_monitor_local_node" name="obstacle_monitor">
 		<param name="global_frame" value="map"/>
