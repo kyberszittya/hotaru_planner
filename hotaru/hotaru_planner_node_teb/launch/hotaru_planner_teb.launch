@@ -1,6 +1,7 @@
 <launch> 
   <node type="hotaru_planner_node_teb_node" pkg="hotaru_planner_node_teb" name="hotaru_planner_node_teb_node" output="screen">
   	<param name="debug" value="true" />
+  	<param name="bypass_behavior" value="false" />
   	<param name="bypass_hybridsm" value="true" />
   	<param name="wheelbase" value="2.7" />
   	<param name="min_turning_radius" value="10.4" />

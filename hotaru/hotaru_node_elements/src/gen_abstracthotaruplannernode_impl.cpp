@@ -37,10 +37,10 @@ bool InterfaceRos_AbstractHotaruPlannerNode::initTimeoutStateMachine()
 	return true;
 }
 
-bool InterfaceRos_AbstractHotaruPlannerNode::initMiddleware(const bool debug)
+bool InterfaceRos_AbstractHotaruPlannerNode::initMiddleware(const bool debug, const bool bypass_behavior)
 {
 	/// Initialize internal pubsub state
-	pubsubstate = std::unique_ptr<StateAbstractHotaruPlannerNode>(new StateAbstractHotaruPlannerNode(debug));
+	pubsubstate = std::unique_ptr<StateAbstractHotaruPlannerNode>(new StateAbstractHotaruPlannerNode(debug, bypass_behavior));
 	if (pubsubstate==nullptr)
 	{
 		return false;
@@ -63,7 +63,7 @@ bool InterfaceRos_AbstractHotaruPlannerNode::initMiddleware(const bool debug)
 void InterfaceRos_AbstractHotaruPlannerNode::cbPort_input_trajectory(const hotaru_msgs::RefinedTrajectory::ConstPtr& msg)
 {
 	pubsubstate->msg_port_input_trajectory = *msg;
-	execute_update_input_trajectory();
+	execute_update_input_trajectory(msg);
 	
 }
 void InterfaceRos_AbstractHotaruPlannerNode::cbPort_current_pose(const geometry_msgs::PoseStamped::ConstPtr& msg)
@@ -74,7 +74,7 @@ void InterfaceRos_AbstractHotaruPlannerNode::cbPort_current_pose(const geometry_
 	sync_sm_planner_state->stepMessageTopic("/current_pose", msg->header);
 	sm_mutex.unlock();
 	if (sync_sm_planner_state->isReady()){
-		execute_update_current_pose();
+		execute_update_current_pose(msg);
 	}
 	
 }
@@ -86,14 +86,14 @@ void InterfaceRos_AbstractHotaruPlannerNode::cbPort_current_velocity(const geome
 	sync_sm_planner_state->stepMessageTopic("/current_velocity", msg->header);
 	sm_mutex.unlock();
 	if (sync_sm_planner_state->isReady()){
-		executeUpdate_velocity();
+		executeUpdate_velocity(msg);
 	}
 	
 }
 void InterfaceRos_AbstractHotaruPlannerNode::cbPort_replan_request_sig(const rei_planner_signals::ReplanRequest::ConstPtr& msg)
 {
 	pubsubstate->msg_port_replan_request_sig = *msg;
-	executeReplan_request_sig();
+	executeReplan_request_sig(msg);
 	
 }
 void InterfaceRos_AbstractHotaruPlannerNode::cbPort_closests_waypoint(const std_msgs::Int32::ConstPtr& msg)
@@ -104,14 +104,14 @@ void InterfaceRos_AbstractHotaruPlannerNode::cbPort_closests_waypoint(const std_
 	sync_sm_planner_state->stepMessageTopic("/closest_waypoint", ros::Time::now());
 	sm_mutex.unlock();
 	if (sync_sm_planner_state->isReady()){
-		executeUpdate_closest_waypoint();
+		executeUpdate_closest_waypoint(msg);
 	}
 	
 }
 void InterfaceRos_AbstractHotaruPlannerNode::cbPort_poly_obstacle(const rei_monitoring_msgs::DetectedObstacles::ConstPtr& msg)
 {
 	pubsubstate->msg_port_poly_obstacle = *msg;
-	executeUpdate_obstacles();
+	executeUpdate_obstacles(msg);
 	
 }
 

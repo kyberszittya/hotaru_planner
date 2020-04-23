@@ -21,10 +21,20 @@ int main(int argc, char** argv)
 		is_debug = false;
 	}
 	//
+	bool is_bypass_behavior;
+	if (!private_nh->getParam("bypass_behavior", is_bypass_behavior))
+	{
+		is_bypass_behavior = false;
+	}
+	if (is_bypass_behavior)
+	{
+		ROS_WARN("Local planner hybrid behavior bypassed");
+	}
+	//
 	hotaru::HotaruTebLocalPlannerNode planner_node(nh, private_nh, "base_link", "map");
 	try
 	{
-		planner_node.initialize(is_debug);
+		planner_node.initialize(is_debug, is_bypass_behavior);
 		ros::AsyncSpinner spinner(8);
 		spinner.start();
 		ros::waitForShutdown();

@@ -39,9 +39,7 @@ public:
 
 	virtual bool guard_Replanning2RelayState() override
 	{
-		return sync_sm->isStarted() &&
-			(current_lookahead_index > lookahead_index
-				|| minimal_velocity_distance_index > current_lookahead_index);
+		return true;
 
 	}
 	virtual bool guard_Relay2Waiting() override
