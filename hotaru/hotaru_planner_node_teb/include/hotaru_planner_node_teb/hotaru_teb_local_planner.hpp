@@ -286,8 +286,25 @@ public:
 
 	virtual void executeUpdate_obstacles(const rei_monitoring_msgs::DetectedObstacles::ConstPtr& msg) override
 	{
-		obstacle_waypoint = msg->max_closest_waypoint +
-				std::max(TrajectoryLookaheadPoint::lookaheadPoint(4, pubsubstate->msg_port_current_velocity.twist), 20);
+		if (std::abs(pubsubstate->msg_port_current_velocity.twist.linear.x) > 0.1)
+		{
+			if (pubsubstate->msg_port_current_velocity.twist.linear.x >= 0.0)
+			{
+				if (msg->max_closest_waypoint > obstacle_waypoint)
+				{
+					obstacle_waypoint = msg->max_closest_waypoint +
+							std::max(TrajectoryLookaheadPoint::lookaheadPoint(4, pubsubstate->msg_port_current_velocity.twist), 40);
+				}
+			}
+			else
+			{
+				if (msg->max_closest_waypoint < obstacle_waypoint)
+				{
+					obstacle_waypoint = msg->max_closest_waypoint +
+							std::max(TrajectoryLookaheadPoint::lookaheadPoint(4, pubsubstate->msg_port_current_velocity.twist), 40);
+				}
+			}
+		}
 	}
 
 	virtual bool assignSyncGuards() override
