@@ -1,0 +1,6 @@
+<launch>
+  
+  <include file="$(find hotaru_planner_node_teb)/launch/hotaru_planner_teb.launch">
+    <arg name="bypass_behavior" value="true"/>
+  </include>
+</launch>

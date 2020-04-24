@@ -1,13 +1,13 @@
-<launch> 
+<launch>
+  <arg name="bypass_behavior" default="false"/>
   <node type="hotaru_planner_node_teb_node" pkg="hotaru_planner_node_teb" name="hotaru_planner_node_teb_node" output="screen">
   	<param name="debug" value="true" />
-  	<param name="bypass_behavior" value="false" />
-  	<param name="bypass_hybridsm" value="true" />
+  	<param name="bypass_behavior" value="$(arg bypass_behavior)" />
   	<param name="wheelbase" value="2.7" />
   	<param name="min_turning_radius" value="10.4" />
   	<param name="dt_ref" value="2.0" />
   	<param name="dt_hysteresis" value="0.6" />
-  	<param name="min_obstacle_instance" value="1.5" />
+  	<param name="min_obstacle_distance" value="1.5" />
   	<param name="inflation_distance" value="1.6" />
   	<param name="weight_obstacle" value="80" />
   	<param name="weight_viapoints" value="20" />

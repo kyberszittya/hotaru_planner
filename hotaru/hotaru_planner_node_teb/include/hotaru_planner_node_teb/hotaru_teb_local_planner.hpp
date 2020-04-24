@@ -17,6 +17,7 @@
 
 #include <hotaru_node_elements/trajectory_slicer_strategy.hpp>
 #include <hotaru_node_elements/trajectory_lookahead.hpp>
+#include <hotaru_node_elements/velocity_profile/trapezoidal_velocity.hpp>
 
 #include <chrono>
 
@@ -44,6 +45,8 @@ protected:
 	std::shared_ptr<SyncGuardLocalPlanner> guard_local_planner;
 	// Select a trajectory slicing method
 	std::unique_ptr<SpeedLookaheadSlicer> trajectoryslicestrategy;
+	// Velocity profile
+	std::unique_ptr<hotaru::TrapezoidalVelocityProfile> velocityprofile;
 	// TF handle it in one another thread
 	ros::Timer tf_timer;
 	ros::Timer timer_trajectory; 									///< Trajectory slice
@@ -102,7 +105,7 @@ public:
 			hotaru_msgs::RefinedTrajectory& refined_trajectory,
 			const int& start_point, const int& end_point)
 	{
-		for (int i = start_point; i < end_point; i++)
+		for (int i = start_point; i < std::min(end_point, static_cast<int>(input_trajectory.waypoints.size())); i++)
 		{
 			refined_trajectory.waypoints.emplace_back(
 				input_trajectory.waypoints[i]
@@ -130,7 +133,7 @@ public:
 					hotaru_msgs::Waypoint w0;
 					tf2::doTransform(trajectory_profile[i].pose, w0.pose.pose, inv_transform_base);
 					//w0.twist.twist = v.velocity;
-					w0.twist.twist.linear.x = 5.0;
+					w0.twist = velocityprofile->getVelocityAtPoint(i, trajectory_profile.size());
 					pubsubstate->msg_port_refined_trajectory.waypoints.emplace_back(w0);
 				}
 				mtx_trajectory_update.unlock();
@@ -142,15 +145,16 @@ public:
 						std::min(trajectoryslicestrategy->getSlicePoint() +
 						hotaru::TrajectoryLookaheadPoint::lookaheadPoint(
 							10.0, pubsubstate->msg_port_current_velocity.twist),
-							static_cast<int>(pubsubstate->msg_port_input_trajectory.waypoints.size()))
+							static_cast<int>(pubsubstate->msg_port_input_trajectory.waypoints.size() - 1))
 				);
 				publishTrajectory();
 			}
 		}
 		else if (sm_behav_planner->isRelay())
 		{
-			int d = std::min(static_cast<int>(pubsubstate->msg_port_input_trajectory.waypoints.size()),
-					std::max(hotaru::TrajectoryLookaheadPoint::lookaheadPoint(10, pubsubstate->msg_port_current_velocity.twist), 40)
+			int d = std::min(
+				static_cast<int>(pubsubstate->msg_port_input_trajectory.waypoints.size() - pubsubstate->msg_port_closests_waypoint.data),
+				std::max(hotaru::TrajectoryLookaheadPoint::lookaheadPoint(10, pubsubstate->msg_port_current_velocity.twist), 40)
 			);
 			originalTrajectory(
 					pubsubstate->msg_port_input_trajectory,
@@ -158,7 +162,6 @@ public:
 					pubsubstate->msg_port_closests_waypoint.data,
 					pubsubstate->msg_port_closests_waypoint.data + d
 			);
-
 			publishTrajectory();
 		}
 
@@ -252,6 +255,7 @@ public:
 
 	virtual bool initPre() override
 	{
+		velocityprofile = std::unique_ptr<TrapezoidalVelocityProfile>(new TrapezoidalVelocityProfile(0.2));
 		return true;
 	}
 
@@ -345,6 +349,18 @@ public:
 					this->transform_base, p_end);
 			se2_plan_end = teb_local_planner::PoseSE2(p_end);
 			mtx_planner.lock();
+			// Set velocity profile points
+
+			velocityprofile->setStartWaypoint(pubsubstate->msg_port_closests_waypoint.data,
+					pubsubstate->msg_port_input_trajectory.waypoints[pubsubstate->msg_port_closests_waypoint.data]);
+			velocityprofile->setMidWaypoint(
+					pubsubstate->msg_port_input_trajectory.waypoints[
+						static_cast<int>((trajectoryslicestrategy->getSlicePoint() - pubsubstate->msg_port_closests_waypoint.data)/2.0)]
+			);
+			velocityprofile->setEndWaypoint(trajectoryslicestrategy->getSlicePoint(),
+					pubsubstate->msg_port_input_trajectory.waypoints[trajectoryslicestrategy->getSlicePoint()]);
+			velocityprofile->calc();
+			// Via-points setup
 			via_points.clear();
 			geometry_msgs::Point p;
 			geometry_msgs::Point p_Wro;
