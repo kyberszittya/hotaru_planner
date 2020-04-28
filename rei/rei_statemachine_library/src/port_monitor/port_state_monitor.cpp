@@ -57,6 +57,7 @@ void PortStateMonitor::checkStateTimestamp(std::shared_ptr<PortMonitorState> por
 		{
 			if (dt >= portmonitorstate->freq)
 			{
+				ROS_WARN_STREAM("Timeout on port: " << portmonitorstate->name << ", expected sample time [ns]: " << portmonitorstate->freq);
 				portmonitorstate->state = PortMonitorState_State::TIMEOUT;
 				react_TimeOut(timestamp);
 			}

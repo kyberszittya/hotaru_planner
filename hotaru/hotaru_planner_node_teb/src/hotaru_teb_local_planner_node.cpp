@@ -31,10 +31,11 @@ int main(int argc, char** argv)
 		ROS_WARN("Local planner hybrid behavior bypassed");
 	}
 	//
-	hotaru::HotaruTebLocalPlannerNode planner_node(nh, private_nh, "base_link", "map");
+	hotaru::HotaruTebLocalPlannerNode planner_node(private_nh, nh, "base_link", "map");
 	try
 	{
 		planner_node.initialize(is_debug, is_bypass_behavior);
+		//planner_node.config(private_nh);
 		ros::AsyncSpinner spinner(8);
 		spinner.start();
 		ros::waitForShutdown();

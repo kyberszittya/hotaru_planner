@@ -96,8 +96,8 @@ protected:
 public:
 
 	HotaruPlannerNodeRos(
-			std::shared_ptr<ros::NodeHandle> nh,
 			std::shared_ptr<ros::NodeHandle> private_nh,
+			std::shared_ptr<ros::NodeHandle> nh,
 			std::string base_frame, std::string target_frame
 			):
 		InterfaceRos_AbstractHotaruPlannerNode(private_nh, nh),

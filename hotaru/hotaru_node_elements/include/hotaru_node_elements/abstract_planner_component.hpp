@@ -31,12 +31,13 @@ protected:
 	std::vector<WaypointMsg> waypoint_original;
 	std::vector<WaypointMsg> replanned_trajectory;
 
-	virtual void config() = 0;
 
 
 
 public:
 	HotaruPlannerNode(){}
+
+	virtual void config() = 0;
 
 	virtual bool plancycle() = 0;
 };

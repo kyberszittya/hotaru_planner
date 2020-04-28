@@ -1,6 +1,7 @@
 <launch>
   <arg name="bypass_behavior" default="false"/>
   <node type="hotaru_planner_node_teb_node" pkg="hotaru_planner_node_teb" name="hotaru_planner_node_teb_node" output="screen">
+    <!--
   	<param name="debug" value="true" />
   	<param name="bypass_behavior" value="$(arg bypass_behavior)" />
   	<param name="wheelbase" value="2.7" />
@@ -16,5 +17,7 @@
   	<param name="weight_kinematics_nh" value="1000" />
   	<param name="xy_goal_tolerance" value="0.4" />
   	<param name="yaw_goal_tolerance" value="0.2" />
+  	-->
+  	<rosparam command="load" file="$(find hotaru_planner_node_teb)/cfg/teb_lowspeed.yaml"/>
   </node>
 </launch>

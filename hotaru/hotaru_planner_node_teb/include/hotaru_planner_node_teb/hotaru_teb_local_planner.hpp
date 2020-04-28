@@ -74,17 +74,17 @@ protected:
 
 	virtual void timeoutSynchronization()
 	{
-		ROS_INFO("TIMEout\n");
 		timer_planner.stop();
 		//planner->clearPlanner();
 	}
 
 public:
-	HotaruTebLocalPlannerNode(std::shared_ptr<ros::NodeHandle> nh,
+	HotaruTebLocalPlannerNode(
 			std::shared_ptr<ros::NodeHandle> private_nh,
+			std::shared_ptr<ros::NodeHandle> nh,
 			std::string base_frame, std::string target_frame,
 			const bool debug=false):
-		HotaruPlannerNodeRos(nh, private_nh, base_frame, target_frame), obstacle_waypoint(0){}
+		HotaruPlannerNodeRos(private_nh, nh, base_frame, target_frame), obstacle_waypoint(0){}
 
 	virtual void plannerCycle(const ros::TimerEvent& e)
 	{
@@ -167,7 +167,7 @@ public:
 
 	}
 
-	virtual void config();
+	virtual void config() override;
 
 
 	virtual void executeUpdate_velocity(const geometry_msgs::TwistStamped::ConstPtr& msg) override

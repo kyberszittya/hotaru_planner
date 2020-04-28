@@ -1,0 +1,20 @@
+debug: true
+bypass_behavior: false
+robot:
+  wheelbase: 2.7
+  min_turning_radius: 10.4
+teb_trajectory:
+  dt_ref: 2.0
+  dt_hysteresis: 0.6
+  min_obstacle_distance: 1.5
+  inflation_distance: 1.6
+  xy_goal_tolerance: 0.4
+  yaw_goal_tolerance: 0.2
+teb_weights:
+   weight_obstacle: 80
+   weight_viapoints: 20
+   weight_optimaltime: 1
+   weight_shortest_path: 0
+   weight_kinematics_turning_radius: 10
+   weight_kinematics_forward_drive: 5
+   weight_kinematics_nh: 1000
