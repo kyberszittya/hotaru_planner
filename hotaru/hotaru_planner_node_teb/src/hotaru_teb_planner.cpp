@@ -24,13 +24,13 @@ void HotaruTebLocalPlannerNode::config()
 		tebconfig.robot.wheelbase = hotaru::teb::DEFAULT_WHEELBASE;
 	}
 	tebconfig.robot.cmd_angle_instead_rotvel = true;
-	if (!private_nh->getParam("dt_ref", tebconfig.trajectory.dt_ref))
+	if (!private_nh->getParam("teb_trajectory/dt_ref", tebconfig.trajectory.dt_ref))
 	{
 		tebconfig.trajectory.dt_ref = hotaru::teb::DEFAULT_TEB_CONFIG_TRAJECTORY_DT_REF;
 	}
 	ROS_INFO_STREAM("Using dt ref: " << tebconfig.trajectory.dt_ref);
 	//
-	if (!private_nh->getParam("dt_hysteresis", tebconfig.trajectory.dt_hysteresis))
+	if (!private_nh->getParam("teb_trajectory/dt_hysteresis", tebconfig.trajectory.dt_hysteresis))
 	{
 		tebconfig.trajectory.dt_hysteresis = hotaru::teb::DEFAULT_TEB_CONFIG_TRAJECTORY_DT_HYSTERESIS;
 	}

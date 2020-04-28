@@ -188,7 +188,7 @@ public:
 		trajectoryslicestrategy->setClosestWaypointIndex(msg->data);
 		if (sm_behav_planner->isReplanning())
 		{
-			if (msg->data > obstacle_waypoint || msg->data < 5)
+			if (msg->data > obstacle_waypoint)
 			{
 				sm_behav_planner->propagateSignal(
 					std::make_shared<hotaru::trajectory_signals::SignalNoObstacleDetected>(
@@ -431,13 +431,17 @@ public:
 				}
 				mtx_trajectory_update.unlock();
 			}
+			else
+			{
+				ROS_ERROR("Infeasible trajectory");
+			}
 			if (pubsubstate->debug)
 			{
 				planner->visualize();
 				pubsubstate->msg_port_calc_planner_time.data = elps.count();
 				port_calc_planner_time.publish(pubsubstate->msg_port_calc_planner_time);
 			}
-			//std::cout << se2_current_pose << '\t' <<  se2_plan_end << '\t' << elps.count() << '\t' << trajectoryslicestrategy->getSlicePoint() << '\n';
+			std::cout << se2_current_pose << '\t' <<  se2_plan_end << '\t' << elps.count() << '\t' << trajectoryslicestrategy->getSlicePoint() << '\n';
 			return true;
 		}
 

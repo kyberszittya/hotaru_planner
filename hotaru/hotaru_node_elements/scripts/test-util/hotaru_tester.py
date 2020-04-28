@@ -189,11 +189,14 @@ class SimpleLocalPlannerTester(object):
         
     def cbObstacleDetected(self, event):
         self.msg_detected_obst.header.stamp = rospy.Time.now()
+        # TODO: this is losing edge
+        self.msg_detected_obst.max_closest_waypoint = 10
         self.pub_detected_obstacles.publish(self.msg_detected_obst)
         if (len(self.msg_detected_obst.obstacles) > 0):
             self.msg_replan_sig.header.stamp = rospy.Time.now()
             self.msg_replan_sig.eval = True
             self.pub_replan_sig.publish(self.msg_replan_sig)
+            
 
         
         
