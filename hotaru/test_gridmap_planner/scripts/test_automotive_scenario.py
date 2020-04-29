@@ -1,2 +1,0 @@
-import rospy
-import grid_map_msgs

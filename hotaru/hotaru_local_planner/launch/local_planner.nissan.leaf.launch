@@ -1,9 +1,0 @@
-<launch>
-	<node name="teb_hotaru_planner" pkg="hotaru_local_planner" type="hotaru_local_planner_node">
-		<param name="wheelbase" value="2.7"/>
-		<param name="min_turning_radius" value="10.86"/>
-		<param name="weight_kinematics_forward_drive" value="10"/>
-		<param name="weight_obstacle" value="65"/>
-		<param name="min_obstacle_distance" value="2.0"/>
-	</node>
-</launch>
