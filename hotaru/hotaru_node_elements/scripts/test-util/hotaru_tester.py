@@ -14,6 +14,9 @@ from hotaru_msgs.msg import RefinedTrajectory, Waypoint
 from rei_monitoring_msgs.msg import DetectedObstacles, Obstacle
 from rei_planner_signals.msg import ReplanRequest
 
+from interactive_markers.interactive_marker_server import *
+from visualization_msgs.msg import InteractiveMarker
+
 import numpy as np
 
 import tf2_ros
@@ -99,6 +102,8 @@ class SimpleLocalPlannerTester(object):
             
     def setObstacles(self, obst):
         self.msg_detected_obst.header.frame_id = "base_link"
+        self.msg_interactive_obstacle = InteractiveMarker()
+        self.msg_interactive_obstacle.header.frame_id = "base_link"
         if len(obst) > 0:
             for o in obst:
                 op = Obstacle()                
@@ -107,6 +112,7 @@ class SimpleLocalPlannerTester(object):
                 op.pose.position.z = o[2]
                 op.radius = o[3]
                 self.msg_detected_obst.obstacles.append(op)
+                # Publish interactive markers
 
         
     def start(self):

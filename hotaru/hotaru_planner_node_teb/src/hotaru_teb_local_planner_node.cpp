@@ -6,7 +6,7 @@
  */
 #include <ros/ros.h>
 
-#include <hotaru_planner_node_teb/hotaru_teb_local_planner.hpp>
+#include <hotaru_planner_node_teb/hotaruteblocalplannernode.hpp>
 
 int main(int argc, char** argv)
 {

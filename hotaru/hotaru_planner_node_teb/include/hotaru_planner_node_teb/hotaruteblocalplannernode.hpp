@@ -23,6 +23,14 @@
 
 #include <grid_map_msgs/GridMap.h>
 
+
+#include <boost/shared_ptr.hpp>
+#include <boost/make_shared.hpp>
+
+#include <hotaru_planner_node_teb/planner_setup_struct.hpp>
+
+#include <hotaru_planner_node_teb/HotaruTebLocalPlannerNodeConfig.h>
+
 namespace hotaru
 {
 
@@ -31,10 +39,13 @@ class HotaruTebLocalPlannerNode: public HotaruPlannerNodeRos
 private:
 	int obstacle_waypoint;
 protected:
+	// Config
+	hotaru::ConfigStructPlanner_setup planner_config;
+	//
 	std::vector<teb_local_planner::ObstaclePtr> obst_vector;
 	teb_local_planner::TebConfig tebconfig;
 	teb_local_planner::TebVisualizationPtr visual;
-	teb_local_planner::TebOptimalPlannerPtr planner;
+	teb_local_planner::PlannerInterfacePtr planner;
 	teb_local_planner::RobotFootprintModelPtr robot_model;
 	teb_local_planner::ViaPointContainer via_points;
 	teb_local_planner::PoseSE2 se2_current_pose;
@@ -53,6 +64,7 @@ protected:
 	ros::Timer timer_trajectory_publish;							///< Publish planned trajectory periodically
 	ros::Timer timer_obstacle_update;								///< Update obstacle
 	//
+	std::shared_ptr< dynamic_reconfigure::Server<hotaru_planner_node_teb::HotaruTebLocalPlannerNodeConfig> > dynamic_recfg;
 
 	// TODO: place it to an ancestor
 	void setSyncStateMachineCallbacks()
@@ -168,6 +180,8 @@ public:
 	}
 
 	virtual void config() override;
+	void genParamConfig();
+
 
 
 	virtual void executeUpdate_velocity(const geometry_msgs::TwistStamped::ConstPtr& msg) override
@@ -313,8 +327,16 @@ public:
 		return true;
 	}
 
+	void callbackReconfigure(hotaru_planner_node_teb::HotaruTebLocalPlannerNodeConfig &config, uint32_t level);
+
 	virtual bool initPost() override
 	{
+		// Dynamic reconfigure
+		dynamic_recfg = std::make_shared<
+				dynamic_reconfigure::Server<hotaru_planner_node_teb::HotaruTebLocalPlannerNodeConfig> >();
+		auto f = std::bind(&HotaruTebLocalPlannerNode::callbackReconfigure, this, std::placeholders::_1, std::placeholders::_2);
+		dynamic_recfg->setCallback(f);
+		//
 		pubsubstate->msg_port_refined_trajectory.header.frame_id = "map";
 		// Trajectory slicing
 		trajectoryslicestrategy = std::unique_ptr<SpeedLookaheadSlicer>(new SpeedLookaheadSlicer(3.5, 25.0)); // minimum lookahead distance is 12.0 meters in case of trajectory slicing
@@ -343,13 +365,32 @@ public:
 			return false;
 		}
 		robot_model = RobotFootprintModelPtr(new TwoCirclesRobotFootprint(2.0,1.5, 2.0, 1.5));
-		planner = TebOptimalPlannerPtr(new TebOptimalPlanner(
+		bool homotopy_enabled = false;
+		if (!private_nh->getParam("teb_setup/homotopy_enabled", homotopy_enabled))
+		{
+			ROS_WARN("Using simple TEB planner");
+		}
+		if (homotopy_enabled)
+		{
+			planner = PlannerInterfacePtr(new HomotopyClassPlanner(
 				tebconfig, &obst_vector, robot_model, visual, nullptr));
+		}
+		else
+		{
+			planner = PlannerInterfacePtr(new TebOptimalPlanner(
+				tebconfig, &obst_vector, robot_model, visual, nullptr));
+		}
 		// Start TF thread
 		tf_timer = nh->createTimer(ros::Duration(1.0/40.0), &HotaruTebLocalPlannerNode::cbTfTimer, this);
 		tf_timer.start();
 		timer_trajectory = nh->createTimer(ros::Duration(0.1), &HotaruTebLocalPlannerNode::cbTrajectorySlicer, this);
 		timer_trajectory.start();
+		// Dynamic reconfigure
+		//dynamic_recfg = boost::make_shared< dynamic_reconfigure::Server<teb_local_planner::TebLocalPlannerReconfigureConfig> >(*private_nh);
+		//dynamic_reconfigure::Server<TebLocalPlannerReconfigureConfig>::CallbackType cb =
+		//		boost::bind(&HotaruTebLocalPlannerNode::CB_reconfigure, this, _1, _2);
+		//dynamic_recfg->setCallback(cb);
+
 		return true;
 	}
 
@@ -392,7 +433,16 @@ public:
 					std::move(Eigen::Vector2d(p_Wro.x, p_Wro.y))
 				);
 			}
-			planner->setViaPoints(&via_points);
+			if (boost::dynamic_pointer_cast<teb_local_planner::TebOptimalPlanner>(planner)!=nullptr)
+			{
+				boost::dynamic_pointer_cast<teb_local_planner::TebOptimalPlanner>(planner)->setViaPoints(&via_points);
+			}
+			else if (boost::dynamic_pointer_cast<teb_local_planner::HomotopyClassPlanner>(planner)!=nullptr)
+			{
+				boost::dynamic_pointer_cast<teb_local_planner::HomotopyClassPlanner>(planner)->findBestTeb()->setViaPoints(&via_points);
+			}
+
+
 			mtx_planner.unlock();
 		}
 
@@ -423,7 +473,14 @@ public:
 				mtx_trajectory_update.lock();
 				try
 				{
-					planner->getFullTrajectory(trajectory_profile);
+					if (boost::dynamic_pointer_cast<teb_local_planner::HomotopyClassPlanner>(planner)!=nullptr)
+					{
+						boost::dynamic_pointer_cast<teb_local_planner::HomotopyClassPlanner>(planner)->selectBestTeb()->getFullTrajectory(trajectory_profile);
+					}
+					else if (boost::dynamic_pointer_cast<teb_local_planner::TebOptimalPlanner>(planner)!=nullptr)
+					{
+						boost::dynamic_pointer_cast<teb_local_planner::TebOptimalPlanner>(planner)->getFullTrajectory(trajectory_profile);
+					}
 				}
 				catch(std::runtime_error &e)
 				{
@@ -450,6 +507,8 @@ public:
 			return false;
 		}
 	}
+
+
 
 };
 
