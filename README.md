@@ -10,6 +10,11 @@ __DISCLAIMER__: this architecture and implementation is in developmental phase, 
 # Minimal installation
 This architecture contains framework specific nodes, which may or may not be used. This framework currently interfaces ROS, therefore a simple ROS is required. For a minimal setup (e.g. TEB-based implementation), you might also need __ros-melodic-teb-planner__ package.
 
+To install prerequisite packages, issue the standard rosdep command:
+```bash
+rosdep install --from-paths src --ignore-src --rosdistro=melodic -y
+```
+
 To build only the current TEB based implementation you can use the following command:
 ```bash
 catkin build hotaru_planner_node_teb

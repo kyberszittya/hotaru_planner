@@ -4,6 +4,6 @@
   <node type="hotaru_tester.py" name="hotaru_tester" pkg="hotaru_node_elements">
   	<param name="test_case_path" value="$(find hotaru_planner_node_teb)/basic-test-cases/obstacle-test.json" output="screen"/>
   </node>
-  <include file="$(find hotaru_planner_node_teb)/launch/hotaru_test_util.launch">
+  <include file="$(find hotaru_planner_node_teb)/launch/test-launch/hotaru_test_util.launch">
   </include>
 </launch>
