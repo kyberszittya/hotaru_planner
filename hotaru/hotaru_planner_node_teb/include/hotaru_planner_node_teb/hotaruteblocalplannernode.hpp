@@ -8,7 +8,7 @@
 #ifndef INCLUDE_HOTARU_PLANNER_NODE_TEB_HOTARU_TEB_LOCAL_PLANNER_HPP_
 #define INCLUDE_HOTARU_PLANNER_NODE_TEB_HOTARU_TEB_LOCAL_PLANNER_HPP_
 
-#include <hotaru_planner_node_teb/hotaru_teb_parameters.hpp>
+#include <hotaru_planner_node_teb/default_config_hotaruteblocalplannernode.hpp>
 
 #include <hotaru_node_elements/hotaru_planner_node_ros1.hpp>
 #include <hotaru_node_elements/state_machine/trajectory_statemachine_guard.hpp>

@@ -29,6 +29,12 @@ void HotaruTebLocalPlannerNode::genParamConfig()
 		tebconfig.robot.min_turning_radius = robot::DEFAULT_MIN_TURNING_RADIUS;
 	}
 	ROS_INFO_STREAM("Using robot/min_turning_radius:=" << tebconfig.robot.min_turning_radius);
+	// Load param max_vel_x
+	if (!private_nh->getParam("robot/max_vel_x", tebconfig.robot.max_vel_x))
+	{
+		tebconfig.robot.max_vel_x = robot::DEFAULT_MAX_VEL_X;
+	}
+	ROS_INFO_STREAM("Using robot/max_vel_x:=" << tebconfig.robot.max_vel_x);
 	// Load param max_vel_y
 	if (!private_nh->getParam("robot/max_vel_y", tebconfig.robot.max_vel_y))
 	{
@@ -107,12 +113,36 @@ void HotaruTebLocalPlannerNode::genParamConfig()
 	ROS_INFO_STREAM("Using teb_trajectory/yaw_goal_tolerance:=" << tebconfig.goal_tolerance.yaw_goal_tolerance);
 	//
 	// GROUP teb_weights
+	// Load param no_inner_iterations
+	if (!private_nh->getParam("teb_weights/no_inner_iterations", tebconfig.optim.no_inner_iterations))
+	{
+		tebconfig.optim.no_inner_iterations = teb_weights::DEFAULT_NO_INNER_ITERATIONS;
+	}
+	ROS_INFO_STREAM("Using teb_weights/no_inner_iterations:=" << tebconfig.optim.no_inner_iterations);
+	// Load param no_outer_iterations
+	if (!private_nh->getParam("teb_weights/no_outer_iterations", tebconfig.optim.no_outer_iterations))
+	{
+		tebconfig.optim.no_outer_iterations = teb_weights::DEFAULT_NO_OUTER_ITERATIONS;
+	}
+	ROS_INFO_STREAM("Using teb_weights/no_outer_iterations:=" << tebconfig.optim.no_outer_iterations);
+	// Load param penalty_epsilon
+	if (!private_nh->getParam("teb_weights/penalty_epsilon", tebconfig.optim.penalty_epsilon))
+	{
+		tebconfig.optim.penalty_epsilon = teb_weights::DEFAULT_PENALTY_EPSILON;
+	}
+	ROS_INFO_STREAM("Using teb_weights/penalty_epsilon:=" << tebconfig.optim.penalty_epsilon);
 	// Load param weight_obstacle
 	if (!private_nh->getParam("teb_weights/weight_obstacle", tebconfig.optim.weight_obstacle))
 	{
 		tebconfig.optim.weight_obstacle = teb_weights::DEFAULT_WEIGHT_OBSTACLE;
 	}
 	ROS_INFO_STREAM("Using teb_weights/weight_obstacle:=" << tebconfig.optim.weight_obstacle);
+	// Load param weight_inflation
+	if (!private_nh->getParam("teb_weights/weight_inflation", tebconfig.optim.weight_inflation))
+	{
+		tebconfig.optim.weight_inflation = teb_weights::DEFAULT_WEIGHT_INFLATION;
+	}
+	ROS_INFO_STREAM("Using teb_weights/weight_inflation:=" << tebconfig.optim.weight_inflation);
 	// Load param weight_viapoints
 	if (!private_nh->getParam("teb_weights/weight_viapoints", tebconfig.optim.weight_viapoint))
 	{
@@ -131,6 +161,42 @@ void HotaruTebLocalPlannerNode::genParamConfig()
 		tebconfig.optim.weight_shortest_path = teb_weights::DEFAULT_WEIGHT_SHORTEST_PATH;
 	}
 	ROS_INFO_STREAM("Using teb_weights/weight_shortest_path:=" << tebconfig.optim.weight_shortest_path);
+	// Load param weight_acc_lim_x
+	if (!private_nh->getParam("teb_weights/weight_acc_lim_x", tebconfig.optim.weight_acc_lim_x))
+	{
+		tebconfig.optim.weight_acc_lim_x = teb_weights::DEFAULT_WEIGHT_ACC_LIM_X;
+	}
+	ROS_INFO_STREAM("Using teb_weights/weight_acc_lim_x:=" << tebconfig.optim.weight_acc_lim_x);
+	// Load param weight_acc_lim_y
+	if (!private_nh->getParam("teb_weights/weight_acc_lim_y", tebconfig.optim.weight_acc_lim_y))
+	{
+		tebconfig.optim.weight_acc_lim_y = teb_weights::DEFAULT_WEIGHT_ACC_LIM_Y;
+	}
+	ROS_INFO_STREAM("Using teb_weights/weight_acc_lim_y:=" << tebconfig.optim.weight_acc_lim_y);
+	// Load param weight_acc_lim_theta
+	if (!private_nh->getParam("teb_weights/weight_acc_lim_theta", tebconfig.optim.weight_acc_lim_theta))
+	{
+		tebconfig.optim.weight_acc_lim_theta = teb_weights::DEFAULT_WEIGHT_ACC_LIM_THETA;
+	}
+	ROS_INFO_STREAM("Using teb_weights/weight_acc_lim_theta:=" << tebconfig.optim.weight_acc_lim_theta);
+	// Load param weight_max_vel_x
+	if (!private_nh->getParam("teb_weights/weight_max_vel_x", tebconfig.optim.weight_max_vel_x))
+	{
+		tebconfig.optim.weight_max_vel_x = teb_weights::DEFAULT_WEIGHT_MAX_VEL_X;
+	}
+	ROS_INFO_STREAM("Using teb_weights/weight_max_vel_x:=" << tebconfig.optim.weight_max_vel_x);
+	// Load param weight_max_vel_y
+	if (!private_nh->getParam("teb_weights/weight_max_vel_y", tebconfig.optim.weight_max_vel_y))
+	{
+		tebconfig.optim.weight_max_vel_y = teb_weights::DEFAULT_WEIGHT_MAX_VEL_Y;
+	}
+	ROS_INFO_STREAM("Using teb_weights/weight_max_vel_y:=" << tebconfig.optim.weight_max_vel_y);
+	// Load param weight_max_vel_theta
+	if (!private_nh->getParam("teb_weights/weight_max_vel_theta", tebconfig.optim.weight_max_vel_theta))
+	{
+		tebconfig.optim.weight_max_vel_theta = teb_weights::DEFAULT_WEIGHT_MAX_VEL_THETA;
+	}
+	ROS_INFO_STREAM("Using teb_weights/weight_max_vel_theta:=" << tebconfig.optim.weight_max_vel_theta);
 	// Load param weight_kinematics_turning_radius
 	if (!private_nh->getParam("teb_weights/weight_kinematics_turning_radius", tebconfig.optim.weight_kinematics_turning_radius))
 	{
@@ -149,12 +215,18 @@ void HotaruTebLocalPlannerNode::genParamConfig()
 		tebconfig.optim.weight_kinematics_nh = teb_weights::DEFAULT_WEIGHT_KINEMATICS_NH;
 	}
 	ROS_INFO_STREAM("Using teb_weights/weight_kinematics_nh:=" << tebconfig.optim.weight_kinematics_nh);
-	// Load param weight_max_vel_y
-	if (!private_nh->getParam("teb_weights/weight_max_vel_y", tebconfig.optim.weight_max_vel_y))
+	// Load param weight_adapt_factor
+	if (!private_nh->getParam("teb_weights/weight_adapt_factor", tebconfig.optim.weight_adapt_factor))
 	{
-		tebconfig.optim.weight_max_vel_y = teb_weights::DEFAULT_WEIGHT_MAX_VEL_Y;
+		tebconfig.optim.weight_adapt_factor = teb_weights::DEFAULT_WEIGHT_ADAPT_FACTOR;
 	}
-	ROS_INFO_STREAM("Using teb_weights/weight_max_vel_y:=" << tebconfig.optim.weight_max_vel_y);
+	ROS_INFO_STREAM("Using teb_weights/weight_adapt_factor:=" << tebconfig.optim.weight_adapt_factor);
+	// Load param obstacle_cost_exponent
+	if (!private_nh->getParam("teb_weights/obstacle_cost_exponent", tebconfig.optim.obstacle_cost_exponent))
+	{
+		tebconfig.optim.obstacle_cost_exponent = teb_weights::DEFAULT_OBSTACLE_COST_EXPONENT;
+	}
+	ROS_INFO_STREAM("Using teb_weights/obstacle_cost_exponent:=" << tebconfig.optim.obstacle_cost_exponent);
 }
 
 }

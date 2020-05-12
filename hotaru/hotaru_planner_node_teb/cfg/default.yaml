@@ -5,6 +5,7 @@ planner_setup:
 robot:
   wheelbase: 2.7
   min_turning_radius: 10.4
+  max_vel_x: 10.0
   max_vel_y: 0.0
   acc_lim_theta: 0.05
   acc_lim_x: 0.2
@@ -20,11 +21,22 @@ teb_trajectory:
   xy_goal_tolerance: 0.4
   yaw_goal_tolerance: 0.2
 teb_weights:
+  no_inner_iterations: 4
+  no_outer_iterations: 5
+  penalty_epsilon: 0.1
   weight_obstacle: 40.0
-  weight_viapoints: 4
+  weight_inflation: 20.0
+  weight_viapoints: 4.0
   weight_optimaltime: 1.0
   weight_shortest_path: 0.0
+  weight_acc_lim_x: 0.0
+  weight_acc_lim_y: 0.0
+  weight_acc_lim_theta: 0.0
+  weight_max_vel_x: 0.0
+  weight_max_vel_y: 0.0
+  weight_max_vel_theta: 0.0
   weight_kinematics_turning_radius: 10.0
   weight_kinematics_forward_drive: 5.0
   weight_kinematics_nh: 1000.0
-  weight_max_vel_y: 0.0
+  weight_adapt_factor: 2.0
+  obstacle_cost_exponent: 1.0
