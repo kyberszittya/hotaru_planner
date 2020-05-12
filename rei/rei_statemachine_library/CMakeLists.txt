@@ -225,12 +225,12 @@ target_link_libraries(statemachine-portstatemonitor-test ${PROJECT_NAME})
 ## INTEGRATION TESTS
 
 if(CATKIN_ENABLE_TESTING)
-  find_package(rostest REQUIRED)
-  add_rostest_gtest(test_sync_simple_ros
-    test-launch/rosintegration/ros_sync_state_machine.launch
-    test/ros_integration_tests/test_ros_integration_tests.cpp
-  )
-  target_link_libraries(test_sync_simple_ros ${PROJECT_NAME})
+  #find_package(rostest REQUIRED)
+  #add_rostest_gtest(test_sync_simple_ros
+  #  test-launch/rosintegration/ros_sync_state_machine.launch
+  #  test/ros_integration_tests/test_ros_integration_tests.cpp
+  #)
+  #target_link_libraries(test_sync_simple_ros ${PROJECT_NAME})
   # Timeout
   #add_rostest_gtest(test_sync_simple_ros_timeout
   #  test-launch/rosintegration/ros_sync_state_machine_timeout.launch

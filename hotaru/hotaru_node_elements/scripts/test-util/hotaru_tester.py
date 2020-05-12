@@ -67,8 +67,7 @@ class TestCaseFactory(object):
         
         return localplannertester
 
-class SimpleLocalPlannerTester(object):
-    
+class SimpleLocalPlannerTester(object):    
     
     def __init__(self):
         self.pub_current_pose = rospy.Publisher("/current_pose", PoseStamped, queue_size=1)

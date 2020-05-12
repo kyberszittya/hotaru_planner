@@ -23,18 +23,29 @@ class PortStateMonitorRos: public PortStateMonitor
 {
 private:
 	std::shared_ptr<SyncStateMachine> sm;
-	std::mutex mtx_sm;
+	std::shared_ptr<std::mutex> mtx_sm;
 public:
-	PortStateMonitorRos():  PortStateMonitor(){}
+	PortStateMonitorRos(std::shared_ptr<std::mutex> mtx=nullptr):
+		PortStateMonitor()
+	{
+		if (mtx==nullptr)
+		{
+			mtx_sm = std::make_shared<std::mutex>();
+		}
+		else
+		{
+			mtx_sm = mtx;
+		}
+	}
 
 	virtual void react_TimeOut(unsigned long long timestamp)
 	{
 		using namespace rei::sync_signals;
 		std::shared_ptr<AbstractSignalInterface> sig_(new SignalMessageTimeOut(timestamp));
-		mtx_sm.lock();
+		mtx_sm->lock();
 		sm->propagateSignal(sig_);
 		sm->stepstatemachine();
-		mtx_sm.unlock();
+		mtx_sm->unlock();
 	}
 
 	virtual void react_Fresh(unsigned long long timestamp)
@@ -42,11 +53,11 @@ public:
 		if (isReady())
 		{
 			using namespace rei::sync_signals;
-			mtx_sm.lock();
+			mtx_sm->lock();
 			std::shared_ptr<AbstractSignalInterface> sig_(new SignalAllStateMessagesReceived(timestamp));
 			sm->propagateSignal(sig_);
 			sm->stepstatemachine();
-			mtx_sm.unlock();
+			mtx_sm->unlock();
 		}
 	}
 

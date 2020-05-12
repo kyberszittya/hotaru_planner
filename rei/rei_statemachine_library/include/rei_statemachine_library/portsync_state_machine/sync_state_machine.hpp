@@ -16,8 +16,6 @@
 namespace rei
 {
 
-
-
 enum class SyncStateMachine_States {
 	PSEUDO_START,
 	WAITING,

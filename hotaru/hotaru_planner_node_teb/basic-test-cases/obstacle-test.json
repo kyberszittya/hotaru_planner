@@ -49,5 +49,16 @@
 		[ 0.0, 0.0, 0.0],
 		[40.0, 0.0, 0.0]
 	]
-}
+},
+"expected_signals":
+	[
+	{
+		"name": "/abstracthotaruplannernode/sync_state/sync_state_machine/current_state",
+		"sequence": ["AllStateMessagesReceived"]
+	},
+	{
+		"name": "/hotaru_planner/behav/sync_state_machine/current_state",
+		"sequence": ["Replanning"]
+	}
+	]
 }
