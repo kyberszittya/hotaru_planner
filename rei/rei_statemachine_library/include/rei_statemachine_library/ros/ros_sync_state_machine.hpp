@@ -41,7 +41,7 @@ protected:
 	std::shared_ptr<std::mutex> mtx_sm;
 public:
 	RosSyncStateMachine(std::shared_ptr<ros::NodeHandle> nh,
-			const std::string name, const double step_hz_rate = 60.0):
+			const std::string name, const double step_hz_rate = 5.0):
 				nh(nh), name(name), step_hz_rate(step_hz_rate){
 
 	}
@@ -62,9 +62,6 @@ public:
 	{
 		uint64_t time = e.current_real.toNSec();
 		port_state_monitor->checkAllStatesTimestamp(time);
-		mtx_sm->lock();
-		sync_state_machine->stepstatemachine();
-		mtx_sm->unlock();
 		/// If waiting, inform whether there are topics to be waited of
 		if (sync_state_machine->isWaiting())
 		{
@@ -72,6 +69,9 @@ public:
 			{
 				ROS_ERROR("Unexpected error attempting to react with sync sm");
 				port_state_monitor->react_Fresh(time);
+				mtx_sm->lock();
+				sync_state_machine->stepstatemachine();
+				mtx_sm->unlock();
 			}
 			else
 			{

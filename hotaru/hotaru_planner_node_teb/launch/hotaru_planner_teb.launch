@@ -19,6 +19,6 @@
   	<param name="yaw_goal_tolerance" value="0.2" />
   	-->
   	<!--<rosparam command="load" file="$(find hotaru_planner_node_teb)/cfg/teb_lowspeed.yaml"/>-->
-  	<rosparam command="load" file="$(find hotaru_planner_node_teb)/cfg/default.yaml"/>
+  	<rosparam command="load" file="$(find hotaru_planner_node_teb)/cfg/teb_lowspeed.yaml"/>
   </node>
 </launch>

@@ -5,8 +5,6 @@ planner_setup:
 robot:
   wheelbase: 2.7
   min_turning_radius: 10.4
-  max_vel_x: 10.0
-  max_vel_y: 0.0
   acc_lim_theta: 0.05
   acc_lim_x: 0.2
   max_vel_x_backwards: 0.01

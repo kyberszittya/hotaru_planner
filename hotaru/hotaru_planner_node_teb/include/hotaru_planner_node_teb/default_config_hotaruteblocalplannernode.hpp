@@ -18,8 +18,6 @@ namespace hotaru
 		;
 		constexpr double DEFAULT_MIN_TURNING_RADIUS = 10.4
 		;
-		constexpr double DEFAULT_MAX_VEL_X = 10.0
-		;
 		constexpr double DEFAULT_MAX_VEL_Y = 0.0
 		;
 		constexpr double DEFAULT_ACC_LIM_THETA = 0.05
@@ -53,15 +51,7 @@ namespace hotaru
 	}
 	namespace teb_weights
 	{
-		constexpr int DEFAULT_NO_INNER_ITERATIONS = 4
-		;
-		constexpr int DEFAULT_NO_OUTER_ITERATIONS = 5
-		;
-		constexpr double DEFAULT_PENALTY_EPSILON = 0.1
-		;
 		constexpr double DEFAULT_WEIGHT_OBSTACLE = 40.0
-		;
-		constexpr double DEFAULT_WEIGHT_INFLATION = 20.0
 		;
 		constexpr double DEFAULT_WEIGHT_VIAPOINTS = 4.0
 		;
@@ -69,27 +59,13 @@ namespace hotaru
 		;
 		constexpr double DEFAULT_WEIGHT_SHORTEST_PATH = 0.0
 		;
-		constexpr double DEFAULT_WEIGHT_ACC_LIM_X = 0.0
-		;
-		constexpr double DEFAULT_WEIGHT_ACC_LIM_Y = 0.0
-		;
-		constexpr double DEFAULT_WEIGHT_ACC_LIM_THETA = 0.0
-		;
-		constexpr double DEFAULT_WEIGHT_MAX_VEL_X = 0.0
-		;
-		constexpr double DEFAULT_WEIGHT_MAX_VEL_Y = 0.0
-		;
-		constexpr double DEFAULT_WEIGHT_MAX_VEL_THETA = 0.0
-		;
 		constexpr double DEFAULT_WEIGHT_KINEMATICS_TURNING_RADIUS = 10.0
 		;
 		constexpr double DEFAULT_WEIGHT_KINEMATICS_FORWARD_DRIVE = 5.0
 		;
 		constexpr double DEFAULT_WEIGHT_KINEMATICS_NH = 1000.0
 		;
-		constexpr double DEFAULT_WEIGHT_ADAPT_FACTOR = 2.0
-		;
-		constexpr double DEFAULT_OBSTACLE_COST_EXPONENT = 1.0
+		constexpr double DEFAULT_WEIGHT_MAX_VEL_Y = 0.0
 		;
 	}
 }
