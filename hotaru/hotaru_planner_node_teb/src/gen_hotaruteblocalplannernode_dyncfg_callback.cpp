@@ -20,11 +20,6 @@ void HotaruTebLocalPlannerNode::callbackReconfigure(hotaru_planner_node_teb::Hot
 		ROS_INFO_STREAM("Updated message [tebconfig.robot.min_turning_radius]: min_turning_radius" << config.min_turning_radius);
 	}
 	    tebconfig.robot.min_turning_radius = config.min_turning_radius;
-	if (tebconfig.robot.max_vel_x != config.max_vel_x)
-	{
-		ROS_INFO_STREAM("Updated message [tebconfig.robot.max_vel_x]: max_vel_x" << config.max_vel_x);
-	}
-	    tebconfig.robot.max_vel_x = config.max_vel_x;
 	if (tebconfig.robot.max_vel_y != config.max_vel_y)
 	{
 		ROS_INFO_STREAM("Updated message [tebconfig.robot.max_vel_y]: max_vel_y" << config.max_vel_y);
@@ -85,31 +80,11 @@ void HotaruTebLocalPlannerNode::callbackReconfigure(hotaru_planner_node_teb::Hot
 		ROS_INFO_STREAM("Updated message [tebconfig.goal_tolerance.yaw_goal_tolerance]: yaw_goal_tolerance" << config.yaw_goal_tolerance);
 	}
 	    tebconfig.goal_tolerance.yaw_goal_tolerance = config.yaw_goal_tolerance;
-	if (tebconfig.optim.no_inner_iterations != config.no_inner_iterations)
-	{
-		ROS_INFO_STREAM("Updated message [tebconfig.optim.no_inner_iterations]: no_inner_iterations" << config.no_inner_iterations);
-	}
-	    tebconfig.optim.no_inner_iterations = config.no_inner_iterations;
-	if (tebconfig.optim.no_outer_iterations != config.no_outer_iterations)
-	{
-		ROS_INFO_STREAM("Updated message [tebconfig.optim.no_outer_iterations]: no_outer_iterations" << config.no_outer_iterations);
-	}
-	    tebconfig.optim.no_outer_iterations = config.no_outer_iterations;
-	if (tebconfig.optim.penalty_epsilon != config.penalty_epsilon)
-	{
-		ROS_INFO_STREAM("Updated message [tebconfig.optim.penalty_epsilon]: penalty_epsilon" << config.penalty_epsilon);
-	}
-	    tebconfig.optim.penalty_epsilon = config.penalty_epsilon;
 	if (tebconfig.optim.weight_obstacle != config.weight_obstacle)
 	{
 		ROS_INFO_STREAM("Updated message [tebconfig.optim.weight_obstacle]: weight_obstacle" << config.weight_obstacle);
 	}
 	    tebconfig.optim.weight_obstacle = config.weight_obstacle;
-	if (tebconfig.optim.weight_inflation != config.weight_inflation)
-	{
-		ROS_INFO_STREAM("Updated message [tebconfig.optim.weight_inflation]: weight_inflation" << config.weight_inflation);
-	}
-	    tebconfig.optim.weight_inflation = config.weight_inflation;
 	if (tebconfig.optim.weight_viapoint != config.weight_viapoints)
 	{
 		ROS_INFO_STREAM("Updated message [tebconfig.optim.weight_viapoint]: weight_viapoints" << config.weight_viapoints);
@@ -125,36 +100,6 @@ void HotaruTebLocalPlannerNode::callbackReconfigure(hotaru_planner_node_teb::Hot
 		ROS_INFO_STREAM("Updated message [tebconfig.optim.weight_shortest_path]: weight_shortest_path" << config.weight_shortest_path);
 	}
 	    tebconfig.optim.weight_shortest_path = config.weight_shortest_path;
-	if (tebconfig.optim.weight_acc_lim_x != config.weight_acc_lim_x)
-	{
-		ROS_INFO_STREAM("Updated message [tebconfig.optim.weight_acc_lim_x]: weight_acc_lim_x" << config.weight_acc_lim_x);
-	}
-	    tebconfig.optim.weight_acc_lim_x = config.weight_acc_lim_x;
-	if (tebconfig.optim.weight_acc_lim_y != config.weight_acc_lim_y)
-	{
-		ROS_INFO_STREAM("Updated message [tebconfig.optim.weight_acc_lim_y]: weight_acc_lim_y" << config.weight_acc_lim_y);
-	}
-	    tebconfig.optim.weight_acc_lim_y = config.weight_acc_lim_y;
-	if (tebconfig.optim.weight_acc_lim_theta != config.weight_acc_lim_theta)
-	{
-		ROS_INFO_STREAM("Updated message [tebconfig.optim.weight_acc_lim_theta]: weight_acc_lim_theta" << config.weight_acc_lim_theta);
-	}
-	    tebconfig.optim.weight_acc_lim_theta = config.weight_acc_lim_theta;
-	if (tebconfig.optim.weight_max_vel_x != config.weight_max_vel_x)
-	{
-		ROS_INFO_STREAM("Updated message [tebconfig.optim.weight_max_vel_x]: weight_max_vel_x" << config.weight_max_vel_x);
-	}
-	    tebconfig.optim.weight_max_vel_x = config.weight_max_vel_x;
-	if (tebconfig.optim.weight_max_vel_y != config.weight_max_vel_y)
-	{
-		ROS_INFO_STREAM("Updated message [tebconfig.optim.weight_max_vel_y]: weight_max_vel_y" << config.weight_max_vel_y);
-	}
-	    tebconfig.optim.weight_max_vel_y = config.weight_max_vel_y;
-	if (tebconfig.optim.weight_max_vel_theta != config.weight_max_vel_theta)
-	{
-		ROS_INFO_STREAM("Updated message [tebconfig.optim.weight_max_vel_theta]: weight_max_vel_theta" << config.weight_max_vel_theta);
-	}
-	    tebconfig.optim.weight_max_vel_theta = config.weight_max_vel_theta;
 	if (tebconfig.optim.weight_kinematics_turning_radius != config.weight_kinematics_turning_radius)
 	{
 		ROS_INFO_STREAM("Updated message [tebconfig.optim.weight_kinematics_turning_radius]: weight_kinematics_turning_radius" << config.weight_kinematics_turning_radius);
@@ -170,16 +115,11 @@ void HotaruTebLocalPlannerNode::callbackReconfigure(hotaru_planner_node_teb::Hot
 		ROS_INFO_STREAM("Updated message [tebconfig.optim.weight_kinematics_nh]: weight_kinematics_nh" << config.weight_kinematics_nh);
 	}
 	    tebconfig.optim.weight_kinematics_nh = config.weight_kinematics_nh;
-	if (tebconfig.optim.weight_adapt_factor != config.weight_adapt_factor)
+	if (tebconfig.optim.weight_max_vel_y != config.weight_max_vel_y)
 	{
-		ROS_INFO_STREAM("Updated message [tebconfig.optim.weight_adapt_factor]: weight_adapt_factor" << config.weight_adapt_factor);
+		ROS_INFO_STREAM("Updated message [tebconfig.optim.weight_max_vel_y]: weight_max_vel_y" << config.weight_max_vel_y);
 	}
-	    tebconfig.optim.weight_adapt_factor = config.weight_adapt_factor;
-	if (tebconfig.optim.obstacle_cost_exponent != config.obstacle_cost_exponent)
-	{
-		ROS_INFO_STREAM("Updated message [tebconfig.optim.obstacle_cost_exponent]: obstacle_cost_exponent" << config.obstacle_cost_exponent);
-	}
-	    tebconfig.optim.obstacle_cost_exponent = config.obstacle_cost_exponent;
+	    tebconfig.optim.weight_max_vel_y = config.weight_max_vel_y;
 }
 
 }
