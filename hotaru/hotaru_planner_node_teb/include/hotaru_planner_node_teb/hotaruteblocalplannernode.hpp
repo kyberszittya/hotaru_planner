@@ -50,6 +50,8 @@ protected:
 	teb_local_planner::ViaPointContainer via_points;
 	teb_local_planner::PoseSE2 se2_current_pose;
 	teb_local_planner::PoseSE2 se2_plan_end;
+	// TODO: handle initial plan
+
 	std::vector<teb_local_planner::TrajectoryPointMsg> trajectory_profile;
 	std::shared_ptr<LocalPlannerStateMachine> sm_behav_planner;
 	std::shared_ptr<rei::RosCommunicationGraphNotifier> sm_behav_notifier;
