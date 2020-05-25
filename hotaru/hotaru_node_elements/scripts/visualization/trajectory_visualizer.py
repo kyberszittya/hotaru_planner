@@ -70,7 +70,7 @@ class TrajectoryVisualizer(object):
                 # Scale
                 m.scale.x = 1.0
                 m.scale.y = 0.1
-                m.scale.z = 1.0
+                m.scale.z = 0.1
                 # Pose
                 m.pose = wp.pose.pose
                 wpmarker.append(m)

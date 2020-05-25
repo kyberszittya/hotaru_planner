@@ -3,9 +3,8 @@
   </include>
   <node type="hotaru_tester.py" name="hotaru_tester" pkg="hotaru_node_elements" output="screen">
   	<param name="test_case_path" value="$(find hotaru_planner_node_teb)/basic-test-cases/obstacle-test.json" output="screen"/>
-  </node>
-  <node type="trajectory_visualizer.py" name="hotaru_trajectory_visualizer" pkg="hotaru_node_elements">
-  	
+  	<remap from="input_trajectory" to="hotaru_teb_1/input_trajectory" />
+  	<remap from="refined_trajectory" to="hotaru_teb_1/refined_trajectory" />
   </node>
   <node type="perception_visualization.py" name="perception_visualization" pkg="rei_perception_monitor">
   	
