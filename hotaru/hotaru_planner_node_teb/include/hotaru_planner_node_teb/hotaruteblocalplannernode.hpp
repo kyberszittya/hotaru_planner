@@ -504,7 +504,8 @@ public:
 				}
 				catch(std::runtime_error &e)
 				{
-					ROS_ERROR("Replan error!");
+					ROS_ERROR("Replan error, clearing planner!");
+					planner->clearPlanner();
 				}
 				mtx_trajectory_update.unlock();
 			}
