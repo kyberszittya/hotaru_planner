@@ -115,11 +115,31 @@ void HotaruTebLocalPlannerNode::callbackReconfigure(hotaru_planner_node_teb::Hot
 		ROS_INFO_STREAM("Updated message [tebconfig.optim.weight_kinematics_nh]: weight_kinematics_nh" << config.weight_kinematics_nh);
 	}
 	    tebconfig.optim.weight_kinematics_nh = config.weight_kinematics_nh;
+	if (tebconfig.optim.weight_max_vel_x != config.weight_max_vel_x)
+	{
+		ROS_INFO_STREAM("Updated message [tebconfig.optim.weight_max_vel_x]: weight_max_vel_x" << config.weight_max_vel_x);
+	}
+	    tebconfig.optim.weight_max_vel_x = config.weight_max_vel_x;
 	if (tebconfig.optim.weight_max_vel_y != config.weight_max_vel_y)
 	{
 		ROS_INFO_STREAM("Updated message [tebconfig.optim.weight_max_vel_y]: weight_max_vel_y" << config.weight_max_vel_y);
 	}
 	    tebconfig.optim.weight_max_vel_y = config.weight_max_vel_y;
+	if (tebconfig.optim.penalty_epsilon != config.penalty_epsilon)
+	{
+		ROS_INFO_STREAM("Updated message [tebconfig.optim.penalty_epsilon]: penalty_epsilon" << config.penalty_epsilon);
+	}
+	    tebconfig.optim.penalty_epsilon = config.penalty_epsilon;
+	if (tebconfig.optim.no_outer_iterations != config.outer_iterations)
+	{
+		ROS_INFO_STREAM("Updated message [tebconfig.optim.no_outer_iterations]: outer_iterations" << config.outer_iterations);
+	}
+	    tebconfig.optim.no_outer_iterations = config.outer_iterations;
+	if (tebconfig.optim.no_inner_iterations != config.inner_iterations)
+	{
+		ROS_INFO_STREAM("Updated message [tebconfig.optim.no_inner_iterations]: inner_iterations" << config.inner_iterations);
+	}
+	    tebconfig.optim.no_inner_iterations = config.inner_iterations;
 }
 
 }

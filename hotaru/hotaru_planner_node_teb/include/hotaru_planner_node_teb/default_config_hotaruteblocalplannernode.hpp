@@ -65,7 +65,15 @@ namespace hotaru
 		;
 		constexpr double DEFAULT_WEIGHT_KINEMATICS_NH = 1000.0
 		;
+		constexpr double DEFAULT_WEIGHT_MAX_VEL_X = 0.0
+		;
 		constexpr double DEFAULT_WEIGHT_MAX_VEL_Y = 0.0
+		;
+		constexpr double DEFAULT_PENALTY_EPSILON = 0.1
+		;
+		constexpr int DEFAULT_OUTER_ITERATIONS = 5
+		;
+		constexpr int DEFAULT_INNER_ITERATIONS = 4
 		;
 	}
 }

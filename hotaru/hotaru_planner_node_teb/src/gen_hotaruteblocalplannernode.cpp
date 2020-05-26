@@ -1,4 +1,4 @@
-#include <hotaru_planner_node_teb/gen_interfaceros_hotaruteblocalplannernode.h>
+#include <hotaru_planner_node_teb/gen_hotaruteblocalplannernode.hpp>
 
 namespace hotaru {
 

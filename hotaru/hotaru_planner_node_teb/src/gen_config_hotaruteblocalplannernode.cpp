@@ -149,12 +149,36 @@ void HotaruTebLocalPlannerNode::genParamConfig()
 		tebconfig.optim.weight_kinematics_nh = teb_weights::DEFAULT_WEIGHT_KINEMATICS_NH;
 	}
 	ROS_INFO_STREAM("Using teb_weights/weight_kinematics_nh:=" << tebconfig.optim.weight_kinematics_nh);
+	// Load param weight_max_vel_x
+	if (!private_nh->getParam("teb_weights/weight_max_vel_x", tebconfig.optim.weight_max_vel_x))
+	{
+		tebconfig.optim.weight_max_vel_x = teb_weights::DEFAULT_WEIGHT_MAX_VEL_X;
+	}
+	ROS_INFO_STREAM("Using teb_weights/weight_max_vel_x:=" << tebconfig.optim.weight_max_vel_x);
 	// Load param weight_max_vel_y
 	if (!private_nh->getParam("teb_weights/weight_max_vel_y", tebconfig.optim.weight_max_vel_y))
 	{
 		tebconfig.optim.weight_max_vel_y = teb_weights::DEFAULT_WEIGHT_MAX_VEL_Y;
 	}
 	ROS_INFO_STREAM("Using teb_weights/weight_max_vel_y:=" << tebconfig.optim.weight_max_vel_y);
+	// Load param penalty_epsilon
+	if (!private_nh->getParam("teb_weights/penalty_epsilon", tebconfig.optim.penalty_epsilon))
+	{
+		tebconfig.optim.penalty_epsilon = teb_weights::DEFAULT_PENALTY_EPSILON;
+	}
+	ROS_INFO_STREAM("Using teb_weights/penalty_epsilon:=" << tebconfig.optim.penalty_epsilon);
+	// Load param outer_iterations
+	if (!private_nh->getParam("teb_weights/outer_iterations", tebconfig.optim.no_outer_iterations))
+	{
+		tebconfig.optim.no_outer_iterations = teb_weights::DEFAULT_OUTER_ITERATIONS;
+	}
+	ROS_INFO_STREAM("Using teb_weights/outer_iterations:=" << tebconfig.optim.no_outer_iterations);
+	// Load param inner_iterations
+	if (!private_nh->getParam("teb_weights/inner_iterations", tebconfig.optim.no_inner_iterations))
+	{
+		tebconfig.optim.no_inner_iterations = teb_weights::DEFAULT_INNER_ITERATIONS;
+	}
+	ROS_INFO_STREAM("Using teb_weights/inner_iterations:=" << tebconfig.optim.no_inner_iterations);
 }
 
 }
