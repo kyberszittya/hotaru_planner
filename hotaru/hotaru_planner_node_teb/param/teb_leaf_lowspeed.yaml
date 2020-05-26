@@ -1,0 +1,118 @@
+TebLocalPlannerROS:
+ 
+	# MISCELLANEOUS --------------------------------------------------------
+
+  odom_topic: "odom"
+	map_frame: "odom"
+  
+	# ROBOT ----------------------------------------------------------------
+
+  max_vel_x: 5.5 
+  max_vel_x_backwards: 0.01 
+	max_vel_y: 0.0
+  max_vel_theta: 0.4 
+  acc_lim_x: 2.4 
+	acc_lim_y: 0.0
+  acc_lim_theta: 0.23 
+
+  # Ackermann vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
+  min_turning_radius: 10.4
+  wheelbase: 2.7 
+  cmd_angle_instead_rotvel: true 
+	
+	footprint_model: # types: "point", "circular", "two_circles", "line", "polygon"
+   type: "line"
+   radius: 0.2 # for type "circular"
+   line_start: [0.0, 0.0] # for type "line"
+   line_end: [2.7, 0.0] # for type "line"
+   front_offset: 0.2 # for type "two_circles"
+   front_radius: 0.2 # for type "two_circles"
+   rear_offset: 0.2 # for type "two_circles"
+   rear_radius: 0.2 # for type "two_circles"
+   vertices: [ [0.25, -0.05], [0.18, -0.05], [0.18, -0.18], [-0.19, -0.18], [-0.25, 0], [-0.19, 0.18], [0.18, 0.18], [0.18, 0.05], [0.25, 0.05] ] # for type "polygon"
+
+  # GOAL TOLERANCE -------------------------------------------------------
+
+  xy_goal_tolerance: 0.2 
+  yaw_goal_tolerance: 0.2
+  free_goal_vel: false
+	complete_global_plan: true
+
+  # TRAJECTORY -----------------------------------------------------------
+
+  dt_ref: 0.5
+  dt_hysteresis: 0.05
+  min_samples: 3
+  global_plan_overwrite_orientation: true
+	global_plan_viapoint_sep: 0.5
+  max_global_plan_lookahead_dist: 3.0
+	force_reinit_new_goal_dist: 1.0
+  feasibility_check_no_poses: 3
+  publish_feedback: true
+  shrink_horizon_backup: false
+	shrink_horizon_min_duration: 10.0
+	allow_init_with_backwards_motion: false
+	exact_arc_length: false
+
+  # OBSTACLE PARAMETERS --------------------------------------------------
+
+  min_obstacle_dist: 2.3
+  include_costmap_obstacles: false
+ 	costmap_obstacles_front_only: false
+	costmap_obstacles_behind_robot_dist: 0.5  
+	obstacle_poses_affected: 10
+  line_obstacle_poses_affected: 10
+  polygon_obstacle_poses_affected: 10
+	inflation_distance: 0.2 #elvileg nagyobbnak kell lennie mint a min_obst_dist
+	include_dynamic_obstacles: false
+  legacy_obstacle_association: false
+	obstacle_association_force_inclusion_factor: 2.0
+	obstacle_association_cutoff_factor: 5.0
+	
+	#The following parameters are relevant only if costmap_converter plugins are desired (see tutorial): New in version 0.2.0 
+  costmap_converter_plugin: ""
+  # (string, default: "") #Define plugin name in order to convert costmap cells to points/lines/polygons. Set an empty string to disable the conversion such that all cells are treated as point-obstacles.
+  costmap_converter_spin_thread: true
+  costmap_converter_rate: 5.0
+
+  # OPTIMIZATION ---------------------------------------------------------
+
+  no_inner_iterations: 5
+  no_outer_iterations: 4
+  penalty_epsilon: 0.05
+  weight_max_vel_x: 1.0
+  weight_max_vel_theta: 1.0
+  weight_acc_lim_x: 1.0
+  weight_acc_lim_theta: 1.0
+  weight_kinematics_nh: 1000.0
+  weight_kinematics_forward_drive: 0.001
+  weight_kinematics_turning_radius: 1.0
+  weight_optimaltime: 1.0
+	weight_obstacle: 50.0
+  weight_point_obstacle: 10.0
+  weight_line_obstacle: 2.0
+  weight_poly_obstacle: 3.0
+	weight_viapoint: 1.0
+	weight_inflation: 0.1
+	weight_adapt_factor: 2.0
+
+
+  # PARALLEL PLANNING ----------------------------------------------------
+
+  enable_homotopy_class_planning: false
+  enable_multithreading: true
+  max_number_classes: 2
+	selection_cost_hysteresis: 1.0
+	selection_obst_cost_scale: 100.0
+	selection_viapoint_cost_scale: 1.0
+	selection_alternative_time_cost: false
+  roadmap_graph_no_samples: 15
+  roadmap_graph_area_width: 6
+  h_signature_prescaler: 1.0
+  h_signature_threshold: 0.1
+  obstacle_heading_threshold: 1.0
+  visualize_hc_graph: false
+	viapoints_all_candidates: true
+	switching_blocking_period: 0.0
+
+ 
