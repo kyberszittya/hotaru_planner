@@ -30,12 +30,16 @@ protected:
 	//
 	std::vector<WaypointMsg> waypoint_original;
 	std::vector<WaypointMsg> replanned_trajectory;
-
-
+	// Planner update
+	unsigned int planner_freq;
+	double planner_sample_time;
 
 
 public:
-	HotaruPlannerNode(){}
+	HotaruPlannerNode(unsigned int planner_freq): planner_freq(planner_freq)
+	{
+		planner_sample_time = 1.0/(double)planner_freq;
+	}
 
 	virtual void config() = 0;
 
