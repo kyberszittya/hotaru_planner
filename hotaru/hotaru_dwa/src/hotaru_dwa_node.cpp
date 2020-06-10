@@ -7,6 +7,7 @@
 
 
 #include <hotaru_node_elements/hotaru_planner_node_ros1.hpp>
+#include <memory>
 
 namespace hotaru
 {
@@ -96,12 +97,25 @@ const Window operator*(const Window& w0, const Window& w1)
 	return res;
 }
 
+struct RobotState2D
+{
+	double x;
+	double y;
+	double yaw;
+};
+
 class DynamicWindowApproach
 {
 private:
 	double sample_time;
 	std::shared_ptr<VehicleStaticSpecification> static_specification;
 	std::shared_ptr<RobotDynamicConstraints> dynamic_constraints;
+
+	// Use the article by Kong et al for motion model definition
+	void motion(std::shared_ptr<RobotState2D> state, const double dt)
+	{
+
+	}
 
 	// This window is calculated based on the static specification
 	//     [ linvel ]
@@ -125,6 +139,11 @@ private:
 	void calcWindow(const double linvel, const double angvel)
 	{
 		calcMotionWindow(linvel, angvel)*calcSpecificationWindow();
+	}
+
+	void predict()
+	{
+
 	}
 public:
 	DynamicWindowApproach(
