@@ -1,4 +1,5 @@
 string name
 ---
 string type
-float64[] parameters 
+float64[] kinematic_parameters 
+float64[] dynamic_parameters
