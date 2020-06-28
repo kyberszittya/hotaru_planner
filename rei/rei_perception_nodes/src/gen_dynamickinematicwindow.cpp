@@ -22,6 +22,7 @@ bool InterfaceRos_DynamicKinematicWindow::initMiddleware(const bool debug, const
 	port_grid_map = nh->advertise<grid_map_msgs::GridMap>("dynamic_window", 10);
 	/// Initialize ROS subscribers
 	port_vehicle_status = nh->subscribe("vehicle_status", 10, &InterfaceRos_DynamicKinematicWindow::cbPort_vehicle_status, this);
+	port_motion_dyn_param = nh->subscribe("motion_dynamic_constraints", 10, &InterfaceRos_DynamicKinematicWindow::cbPort_motion_dyn_param, this);
 	return true;
 }
 
@@ -31,6 +32,12 @@ void InterfaceRos_DynamicKinematicWindow::cbPort_vehicle_status(const autoware_m
 {
 	pubsubstate->msg_port_vehicle_status = *msg;
 	executeUpdatevehiclestatus(msg);
+	
+}
+void InterfaceRos_DynamicKinematicWindow::cbPort_motion_dyn_param(const rei_monitoring_msgs::MotionDynamicConstraints::ConstPtr& msg)
+{
+	pubsubstate->msg_port_motion_dyn_param = *msg;
+	executeUpdateconstraints(msg);
 	
 }
 

@@ -12,6 +12,8 @@
 
 #include <grid_map_ros/grid_map_ros.hpp>
 #include <rei_common/geometry_utils/window.hpp>
+#include <rei_robot_configurator/parameter_structs.hpp>
+
 
 namespace rei
 {
@@ -19,6 +21,7 @@ namespace rei
 class DynamicWindowNode: public InterfaceRos_DynamicKinematicWindow
 {
 private:
+	config::parameters::MotionDynamicConstraints motion_constraints;
 protected:
 	grid_map::GridMap map;
 	ros::Timer updateTimer;
@@ -29,6 +32,14 @@ public:
 	virtual void executeUpdatevehiclestatus(const autoware_msgs::VehicleStatus::ConstPtr& msg) override
 	{
 
+	}
+
+	virtual void executeUpdateconstraints(const rei_monitoring_msgs::MotionDynamicConstraints::ConstPtr& msg) override
+	{
+		motion_constraints.min_linvel = msg->min_vel;
+		motion_constraints.max_linvel = msg->max_vel;
+		motion_constraints.min_angvel = msg->min_angvel;
+		motion_constraints.max_angvel = msg->max_angvel;
 	}
 
 	virtual bool initPre() override
@@ -58,10 +69,10 @@ public:
 	geometry::Window& calcSpecificationWindow()
 	{
 		geometry::Window w(
-			0, // MIN_SPEED
-			25, // MAX SPEED
-			-2.5,
-			2.5
+			motion_constraints.min_linvel, // MIN_SPEED
+			motion_constraints.max_linvel, // MAX SPEED
+			motion_constraints.min_angvel, // MIN ANGVEL
+			motion_constraints.max_angvel  // MAX ANGVEL
 		);
 		return std::move(w);
 

@@ -108,8 +108,8 @@ class DynamicWindowApproach
 {
 private:
 	double sample_time;
-	std::shared_ptr<VehicleStaticSpecification> static_specification;
-	std::shared_ptr<RobotDynamicConstraints> dynamic_constraints;
+	//std::shared_ptr<VehicleStaticSpecification> static_specification;
+	//std::shared_ptr<RobotDynamicConstraints> dynamic_constraints;
 
 	// Use the article by Kong et al for motion model definition
 	void motion(std::shared_ptr<RobotState2D> state, const double dt)
