@@ -10,6 +10,7 @@
 
 #include <gtest/gtest.h>
 
+/*
 class DummyHybridControlNode_Ros1: public rei::node::HybridControlNodeRos1
 {
 private:
@@ -22,7 +23,7 @@ TEST(BasicHybridControlTest, BasicControl)
 	ros::NodeHandle n;
 	DummyHybridControlNode_Ros1 control_node;
 }
-
+*/
 
 int main(int argc, char** argv)
 {

@@ -10,7 +10,10 @@
 
 #include <map>
 #include <memory>
+#include <list>
 #include <vector>
+#include <functional>
+#include <stack>
 
 namespace rei
 {
@@ -19,33 +22,45 @@ namespace node
 {
 
 
-class Location
+
+template<class Timestamp> class DiscreteEvent
 {
+private:
+	const Timestamp stamp;
+	const std::string event_label;
+	const unsigned int event_id;
 protected:
-	unsigned int location_number;
-	std::string label;
+
 public:
+	DiscreteEvent(const std::string event_label, const unsigned int event_id, const Timestamp stamp):
+		stamp(stamp), event_label(event_label), event_id(event_id){}
 
-	const std::string getLabel() const
+	/*
+	 * @brief: get timestamp of the event
+	 */
+	const Timestamp getStamp()
 	{
-		return label;
+		return stamp;
 	}
-
-
 };
+
+class Location;
 
 class Transition
 {
 protected:
 	// As transition is modeled as a graph edge
+	const unsigned int event_id;
 	const Location* source_location;   // Define source location
 	const Location* target_location;   // Define target location
 	// Lambda as guard
-	std::function<bool> guard_def;
+	//std::function<bool> guard_def;
 public:
-	virtual ~Transition() = 0;
 	//
-
+	Transition(const unsigned int event_id,
+			const Location* source_location, const Location* target_location):
+		event_id(event_id),
+		source_location(source_location), target_location(target_location){}
 	/*
 	 * brief: Retrieve source location
 	 */
@@ -59,25 +74,86 @@ public:
 	 */
 	bool checkDiscreteGuard()
 	{
-		return guard_def();
+		//return guard_def();
 	}
 };
 
-template<class SignalClass> class HybridStateMachine
+class Location
+{
+protected:
+	unsigned int location_number;
+	const std::string label;
+	// Event transition map
+	std::map<unsigned int, Transition> transitions;
+public:
+	Location(const std::string& label, unsigned int location_number):
+		label(label), location_number(location_number){}
+
+	const std::string getLabel() const
+	{
+		return label;
+	}
+
+	void addTransition(const unsigned int event_id, Location* target)
+	{
+		Transition t(event_id, this, target);
+		transitions.insert(std::pair<unsigned int, Transition>(event_id, t));
+	}
+
+};
+
+
+template<class Timestamp> class HybridStateMachine
 {
 protected:
 	// Location handling
 	unsigned int number_of_locations;
 	// State vector
 	std::vector<Location> locations;
+	// Current state
+	Location* current_location;
 	// Map labels to location
 	std::map<std::string, Location*> label_to_location;
 	// Store transitions as well
 	std::vector<Transition> transitions;
-	std::map<Location*, Transition*> transition_map;
+	// Event queue
+	std::stack<std::shared_ptr<DiscreteEvent<Timestamp>>> event_queue;
 public:
-	virtual ~HybridStateMachine() = 0;
-	virtual void step(SignalClass s) = 0;
+	HybridStateMachine(): number_of_locations(0), current_location(nullptr){}
+
+
+	/*
+	 * @brief: Get number of locations
+	 */
+	const unsigned int getNumberOfLocations() const
+	{
+		return number_of_locations;
+	}
+
+	/*
+	 * @brief: get current location
+	 */
+	const Location* getCurrentLocation() const
+	{
+		return current_location;
+	}
+
+	void initialize()
+	{
+		current_location = &locations[0];
+	}
+
+
+	void step()
+	{
+		// TODO: step current location
+
+	}
+
+	void addEvent(std::shared_ptr<DiscreteEvent<Timestamp>> e)
+	{
+		event_queue.push(e);
+	}
 
 	/*
 	 * @brief: Add state explicitly to this state machine
@@ -86,67 +162,101 @@ public:
 	{
 		locations.push_back(location);
 		label_to_location.insert(std::pair<std::string, Location*>(
-						location.label, &location));
+						location.getLabel(), &location));
+		number_of_locations++;
+	}
+
+	/*
+	 * @brief: Get location labels in a list
+	 */
+	std::vector<std::string> getLocationLabels()
+	{
+		std::vector<std::string> labels;
+		for (const auto& v: locations)
+		{
+			labels.push_back(v.getLabel());
+		}
+		return labels;
 	}
 
 	/*
 	 * @brief: Add transition to the state machine
 	 */
-	void addTransition(Transition&& transition)
+	void addTransition(unsigned int event_id,
+			const std::string& source, const std::string& target)
 	{
-		transitions.push_back(transition);
-		transition_map.insert(std::pair<Location*, Transition*>(
-				transition.source_location, &transition));
+		label_to_location[source]->addTransition(event_id, label_to_location[target]);
 	}
 
 	/*
 	 * @brief: Add state through append
 	 */
-	HybridStateMachine<SignalClass> operator+=(Location& location)
+	HybridStateMachine<Timestamp> operator+=(Location& location)
 	{
 		addState(std::move(location));
 	}
 
-	/*
-	 * @brief: Add transition from state to another (string version)
-	 * @param: location from and to
-	 */
-	HybridStateMachine<SignalClass> operator+=(Transition& transition)
-	{
-		addTransition(std::move(transition));
-	}
+
+
 
 }; // class HybridStateMachine
 
-template<class SignalClass> class HybridStateMachineFactory
+template<class Timestamp> class DiscreteEventPipeline
+{
+protected:
+public:
+
+};
+
+template<class Timestamp> class HybridStateMachineFactory
 {
 private:
+	unsigned int cnt_event;
+	std::map<std::string, unsigned int> event_mapping;
 protected:
-	static HybridStateMachineFactory* instance;
 
-	HybridStateMachineFactory()
+	HybridStateMachineFactory(): cnt_event(0)
 	{
 
 	}
 
 public:
-	~HybridStateMachineFactory()
-	{
-		if (instance != nullptr) delete instance;
-	}
 
 	HybridStateMachineFactory(HybridStateMachineFactory& ) = delete;
 	HybridStateMachineFactory& operator=(HybridStateMachineFactory& ) = delete;
 
 	static HybridStateMachineFactory* getInstance()
 	{
-		if (instance == nullptr) instance = new HybridStateMachineFactory();
-		return instance;
+		static HybridStateMachineFactory instance;
+		return &instance;
 	}
 
-	Location* createLocation()
+	HybridStateMachine<Timestamp> createHybridStateMachine()
 	{
+		HybridStateMachine<Timestamp> hy;
+		addLocations(hy, {"PSEUDO_START", "PSEUDO_END"});
+		hy.initialize();
+		return hy;
+	}
 
+	void addLocations(HybridStateMachine<Timestamp>& sm, const std::initializer_list<std::string>& location_labels)
+	{
+		for (const auto s: location_labels)
+		{
+			Location l(s, sm.getNumberOfLocations());
+			sm.addState(std::move(l));
+		}
+	}
+
+	void addDiscreteTransition(
+			HybridStateMachine<Timestamp>& sm,
+			std::string event_label, std::pair<std::string, std::string> transit_tuple)
+	{
+		if (event_mapping.find(event_label)==event_mapping.end())
+		{
+			event_mapping.insert(std::pair<std::string, unsigned int>(event_label, cnt_event++));
+		}
+		sm.addTransition(event_mapping[event_label], transit_tuple.first, transit_tuple.second);
 	}
 };
 
