@@ -15,14 +15,26 @@ struct DummySignal
 	unsigned int sig_id;
 };
 
+class DummyClock
+{
+
+};
+
 TEST(HybridStateMachineFactory, TestBasicConstruction)
 {
 	using namespace rei::node;
-	HybridStateMachineFactory<DummySignal>* factory = HybridStateMachineFactory<DummySignal>::getInstance();
-	HybridStateMachine<DummySignal> hy = factory->createHybridStateMachine();
+	HybridStateMachineFactory<DummySignal, DummyClock>* factory = HybridStateMachineFactory<DummySignal, DummyClock>::getInstance();
+	HybridStateMachine<DummySignal, DummyClock> hy = factory->createHybridStateMachine();
 	std::vector<std::string> loc_label = hy.getLocationLabels();
 	ASSERT_EQ(loc_label[0], "PSEUDO_START");
 	ASSERT_EQ(loc_label[1], "PSEUDO_END");
+	// Check location mapping is correct!
+	// REGR.REQ1: labels shall be always mapped to a correct location
+	ASSERT_EQ(hy.getLocationByLabel("PSEUDO_START")->getLabel(), "PSEUDO_START");
+	ASSERT_EQ(hy.getLocationByLabel("PSEUDO_START")->getLocationNumber(), 0);
+	ASSERT_EQ(hy.getLocationByLabel("PSEUDO_END")->getLabel(), "PSEUDO_END");
+	ASSERT_EQ(hy.getLocationByLabel("PSEUDO_END")->getLocationNumber(), 1);
+	//
 	ASSERT_EQ(hy.getNumberOfLocations(), 2);
 	ASSERT_EQ(hy.getCurrentLocation()->getLabel(), "PSEUDO_START");
 }
@@ -30,8 +42,8 @@ TEST(HybridStateMachineFactory, TestBasicConstruction)
 TEST(HybridStateMachineFactory, TestAssignStatesBasicConstruction)
 {
 	using namespace rei::node;
-	HybridStateMachineFactory<DummySignal>* factory = HybridStateMachineFactory<DummySignal>::getInstance();
-	HybridStateMachine<DummySignal> hy = factory->createHybridStateMachine();
+	HybridStateMachineFactory<DummySignal, DummyClock>* factory = HybridStateMachineFactory<DummySignal, DummyClock>::getInstance();
+	HybridStateMachine<DummySignal, DummyClock> hy = factory->createHybridStateMachine();
 	factory->addLocations(hy, {"WAITING", "ENABLED", "DISABLED"});
 	std::vector<std::string> loc_label = hy.getLocationLabels();
 	ASSERT_EQ(loc_label[0], "PSEUDO_START");
@@ -46,8 +58,9 @@ TEST(HybridStateMachineFactory, TestAssignStatesBasicConstruction)
 TEST(HybridStateMachineFactory, TestAssignTransitionBasicConstruction)
 {
 	using namespace rei::node;
-	HybridStateMachineFactory<DummySignal>* factory = HybridStateMachineFactory<DummySignal>::getInstance();
-	HybridStateMachine<DummySignal> hy = factory->createHybridStateMachine();
+	HybridStateMachineFactory<unsigned long, DummyClock>* factory =
+			HybridStateMachineFactory<unsigned long, DummyClock>::getInstance();
+	HybridStateMachine<unsigned long, DummyClock> hy = factory->createHybridStateMachine();
 	factory->addLocations(hy, {"ON", "OFF"});
 	std::vector<std::string> loc_label = hy.getLocationLabels();
 	ASSERT_EQ(loc_label[0], "PSEUDO_START");
@@ -60,8 +73,10 @@ TEST(HybridStateMachineFactory, TestAssignTransitionBasicConstruction)
 	factory->addDiscreteTransition(hy, "foo", std::pair<std::string, std::string>("ON", "OFF"));
 	factory->addDiscreteTransition(hy, "bar", std::pair<std::string, std::string>("OFF", "ON"));
 	factory->addDiscreteTransition(hy, "baz", std::pair<std::string, std::string>("OFF", "PSEUDO_END"));
-	// Implement step
+	// Check step
 	ASSERT_EQ(hy.getCurrentLocation()->getLabel(), "PSEUDO_START");
+	// All transitions are enabled
+	DiscreteEventPipeline<unsigned long, DummyClock> pipeline_test;
 
 }
 

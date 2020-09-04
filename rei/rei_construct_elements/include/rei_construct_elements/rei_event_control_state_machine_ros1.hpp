@@ -18,7 +18,7 @@ namespace rei
 namespace node
 {
 
-template<> class EventControlStateMachine<rei_signal_msgs::ReiRuntimeControl>
+template<> class EventControlStateMachine<rei_signal_msgs::ReiRuntimeControl, ros::>
 {
 public:
 

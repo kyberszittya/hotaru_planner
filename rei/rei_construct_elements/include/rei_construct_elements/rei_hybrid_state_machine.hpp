@@ -42,6 +42,11 @@ public:
 	{
 		return stamp;
 	}
+
+	const unsigned int getEventId()
+	{
+		return event_id;
+	}
 };
 
 class Location;
@@ -69,12 +74,18 @@ public:
 		return source_location;
 	}
 
+	const Location* getTarget()
+	{
+		return target_location;
+	}
+
 	/*
 	 * @brief: Evaluate guard function
 	 */
 	bool checkDiscreteGuard()
 	{
 		//return guard_def();
+		return true;
 	}
 };
 
@@ -84,26 +95,45 @@ protected:
 	unsigned int location_number;
 	const std::string label;
 	// Event transition map
-	std::map<unsigned int, Transition> transitions;
+	std::vector<Transition> transitions;
+	std::map<unsigned int, Transition*> transition_map;
 public:
 	Location(const std::string& label, unsigned int location_number):
 		label(label), location_number(location_number){}
 
-	const std::string getLabel() const
+	inline const std::string getLabel() const
 	{
 		return label;
 	}
 
+	inline const unsigned int getLocationNumber() const
+	{
+		return location_number;
+	}
+
+	/*
+	 * Add transition to location
+	 *
+	 * NOTE: multiple transitions on the same event are not accepted
+	 */
 	void addTransition(const unsigned int event_id, Location* target)
 	{
 		Transition t(event_id, this, target);
-		transitions.insert(std::pair<unsigned int, Transition>(event_id, t));
+		transitions.emplace_back(std::move(t));
+		Transition* p_tr = &transitions.back();
+		transition_map.insert(std::pair<unsigned int, Transition*>(
+				event_id, p_tr));
+	}
+
+	Transition* getNextTransition(const unsigned int event_id)
+	{
+		return transition_map[event_id];
 	}
 
 };
 
 
-template<class Timestamp> class HybridStateMachine
+template<class Timestamp, class Clock> class HybridStateMachine
 {
 protected:
 	// Location handling
@@ -113,7 +143,7 @@ protected:
 	// Current state
 	Location* current_location;
 	// Map labels to location
-	std::map<std::string, Location*> label_to_location;
+	std::map<std::string, Location* const> label_to_location;
 	// Store transitions as well
 	std::vector<Transition> transitions;
 	// Event queue
@@ -125,7 +155,7 @@ public:
 	/*
 	 * @brief: Get number of locations
 	 */
-	const unsigned int getNumberOfLocations() const
+	inline const unsigned int getNumberOfLocations() const
 	{
 		return number_of_locations;
 	}
@@ -133,11 +163,22 @@ public:
 	/*
 	 * @brief: get current location
 	 */
-	const Location* getCurrentLocation() const
+	inline const Location* getCurrentLocation() const
 	{
 		return current_location;
 	}
 
+	/*
+	 * @brief: get location based on label
+	 */
+	inline const Location* getLocationByLabel(const std::string& label)
+	{
+		return label_to_location[label];
+	}
+
+	/*
+	 * Reset state machine
+	 */
 	void initialize()
 	{
 		current_location = &locations[0];
@@ -146,8 +187,14 @@ public:
 
 	void step()
 	{
+		// Check if there is any discrete event that occurred
 		// TODO: step current location
-
+		Transition* tr = current_location->getNextTransition(event_queue.top()->getEventId());
+		// Of course, discrete transitions only occur, if the guard property can work
+		if (tr->checkDiscreteGuard())
+		{
+			current_location = tr->getTarget();
+		}
 	}
 
 	void addEvent(std::shared_ptr<DiscreteEvent<Timestamp>> e)
@@ -160,9 +207,10 @@ public:
 	 */
 	void addState(Location&& location)
 	{
-		locations.push_back(location);
+		locations.emplace_back(std::move(location));
+		Location* loc = &locations.back();
 		label_to_location.insert(std::pair<std::string, Location*>(
-						location.getLabel(), &location));
+						loc->getLabel(), loc));
 		number_of_locations++;
 	}
 
@@ -174,7 +222,7 @@ public:
 		std::vector<std::string> labels;
 		for (const auto& v: locations)
 		{
-			labels.push_back(v.getLabel());
+			labels.emplace_back(v.getLabel());
 		}
 		return labels;
 	}
@@ -191,7 +239,7 @@ public:
 	/*
 	 * @brief: Add state through append
 	 */
-	HybridStateMachine<Timestamp> operator+=(Location& location)
+	HybridStateMachine<Timestamp, Clock> operator+=(Location& location)
 	{
 		addState(std::move(location));
 	}
@@ -201,14 +249,29 @@ public:
 
 }; // class HybridStateMachine
 
-template<class Timestamp> class DiscreteEventPipeline
+template<class Timestamp, class Clock> class DiscreteEventPipeline
 {
 protected:
+	std::vector<std::shared_ptr<HybridStateMachine<Timestamp, Clock>>> state_machines;
 public:
+	void addStateMachine(std::shared_ptr<HybridStateMachine<Timestamp, Clock>> sm)
+	{
+		state_machines.emplace_back(sm);
+	}
 
+	void propagateEvent(std::string event_label, unsigned int event_id)
+	{
+		// TODO clock implementation
+		std::shared_ptr<DiscreteEvent<Timestamp>> new_event =
+				std::make_shared<DiscreteEvent<Timestamp>>(event_label, event_id, 0);
+		for (const auto& sm: state_machines)
+		{
+			sm->
+		}
+	}
 };
 
-template<class Timestamp> class HybridStateMachineFactory
+template<class Timestamp, class Clock> class HybridStateMachineFactory
 {
 private:
 	unsigned int cnt_event;
@@ -231,15 +294,15 @@ public:
 		return &instance;
 	}
 
-	HybridStateMachine<Timestamp> createHybridStateMachine()
+	HybridStateMachine<Timestamp, Clock> createHybridStateMachine()
 	{
-		HybridStateMachine<Timestamp> hy;
+		HybridStateMachine<Timestamp, Clock> hy;
 		addLocations(hy, {"PSEUDO_START", "PSEUDO_END"});
 		hy.initialize();
 		return hy;
 	}
 
-	void addLocations(HybridStateMachine<Timestamp>& sm, const std::initializer_list<std::string>& location_labels)
+	void addLocations(HybridStateMachine<Timestamp, Clock>& sm, const std::initializer_list<std::string>& location_labels)
 	{
 		for (const auto s: location_labels)
 		{
@@ -249,7 +312,7 @@ public:
 	}
 
 	void addDiscreteTransition(
-			HybridStateMachine<Timestamp>& sm,
+			HybridStateMachine<Timestamp, Clock>& sm,
 			std::string event_label, std::pair<std::string, std::string> transit_tuple)
 	{
 		if (event_mapping.find(event_label)==event_mapping.end())
