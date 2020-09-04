@@ -266,7 +266,8 @@ public:
 				std::make_shared<DiscreteEvent<Timestamp>>(event_label, event_id, 0);
 		for (const auto& sm: state_machines)
 		{
-			sm->
+			sm->addEvent(new_event);
+			sm->step();
 		}
 	}
 };
