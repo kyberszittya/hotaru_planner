@@ -50,31 +50,33 @@ public:
 };
 
 class Location;
+typedef std::shared_ptr<Location> LocationPtr;
+typedef const std::shared_ptr<Location> ConstLocationPtr;
 
 class Transition
 {
 protected:
 	// As transition is modeled as a graph edge
 	const unsigned int event_id;
-	const Location* source_location;   // Define source location
-	const Location* target_location;   // Define target location
+	const ConstLocationPtr source_location;   // Define source location
+	const ConstLocationPtr target_location;   // Define target location
 	// Lambda as guard
 	//std::function<bool> guard_def;
 public:
 	//
 	Transition(const unsigned int event_id,
-			const Location* source_location, const Location* target_location):
+			ConstLocationPtr source_location, ConstLocationPtr target_location):
 		event_id(event_id),
 		source_location(source_location), target_location(target_location){}
 	/*
 	 * brief: Retrieve source location
 	 */
-	const Location* getSource()
+	const ConstLocationPtr getSource()
 	{
 		return source_location;
 	}
 
-	const Location* getTarget()
+	const ConstLocationPtr getTarget()
 	{
 		return target_location;
 	}
@@ -89,14 +91,18 @@ public:
 	}
 };
 
+
+
+typedef std::shared_ptr<Transition> TransitionPtr;
+typedef const std::shared_ptr<Transition> ConstTransitionPtr;
+
 class Location
 {
 protected:
 	unsigned int location_number;
 	const std::string label;
 	// Event transition map
-	std::vector<Transition> transitions;
-	std::map<unsigned int, Transition*> transition_map;
+	std::map<unsigned int, TransitionPtr> transition_map;
 public:
 	Location(const std::string& label, unsigned int location_number):
 		label(label), location_number(location_number){}
@@ -116,21 +122,19 @@ public:
 	 *
 	 * NOTE: multiple transitions on the same event are not accepted
 	 */
-	void addTransition(const unsigned int event_id, Location* target)
+	void addTransition(const unsigned int event_id, TransitionPtr transition)
 	{
-		Transition t(event_id, this, target);
-		transitions.emplace_back(std::move(t));
-		Transition* p_tr = &transitions.back();
-		transition_map.insert(std::pair<unsigned int, Transition*>(
-				event_id, p_tr));
+		transition_map.insert(std::pair<unsigned int, TransitionPtr>(
+				event_id, transition));
 	}
 
-	Transition* getNextTransition(const unsigned int event_id)
+	ConstTransitionPtr getNextTransition(const unsigned int event_id)
 	{
 		return transition_map[event_id];
 	}
 
 };
+
 
 
 template<class Timestamp, class Clock> class HybridStateMachine
@@ -139,13 +143,13 @@ protected:
 	// Location handling
 	unsigned int number_of_locations;
 	// State vector
-	std::vector<Location> locations;
+	std::vector<LocationPtr> locations;
 	// Current state
-	Location* current_location;
+	LocationPtr current_location;
 	// Map labels to location
-	std::map<std::string, Location* const> label_to_location;
+	std::map<std::string, ConstLocationPtr> label_to_location;
 	// Store transitions as well
-	std::vector<Transition> transitions;
+	std::vector<TransitionPtr> transitions;
 	// Event queue
 	std::stack<std::shared_ptr<DiscreteEvent<Timestamp>>> event_queue;
 public:
@@ -163,7 +167,7 @@ public:
 	/*
 	 * @brief: get current location
 	 */
-	inline const Location* getCurrentLocation() const
+	inline ConstLocationPtr getCurrentLocation() const
 	{
 		return current_location;
 	}
@@ -171,7 +175,7 @@ public:
 	/*
 	 * @brief: get location based on label
 	 */
-	inline const Location* getLocationByLabel(const std::string& label)
+	inline ConstLocationPtr getLocationByLabel(const std::string& label)
 	{
 		return label_to_location[label];
 	}
@@ -181,20 +185,27 @@ public:
 	 */
 	void initialize()
 	{
-		current_location = &locations[0];
+		current_location = locations[0];
 	}
 
 
 	void step()
 	{
 		// Check if there is any discrete event that occurred
-		// TODO: step current location
-		Transition* tr = current_location->getNextTransition(event_queue.top()->getEventId());
-		// Of course, discrete transitions only occur, if the guard property can work
-		if (tr->checkDiscreteGuard())
+		ConstTransitionPtr tr = current_location->getNextTransition(event_queue.top()->getEventId());
+		// If no transition is available, do nothing
+		if (tr!=nullptr)
 		{
-			current_location = tr->getTarget();
+			// Of course, discrete transitions only occur, if the guard property can work
+			if (tr->checkDiscreteGuard())
+			{
+				current_location = tr->getTarget();
+			}
+			// TODO: handle guard definitions
+
+			// TODO: handle clocks
 		}
+		event_queue.pop();
 	}
 
 	void addEvent(std::shared_ptr<DiscreteEvent<Timestamp>> e)
@@ -205,12 +216,11 @@ public:
 	/*
 	 * @brief: Add state explicitly to this state machine
 	 */
-	void addState(Location&& location)
+	void addState(LocationPtr location)
 	{
 		locations.emplace_back(std::move(location));
-		Location* loc = &locations.back();
-		label_to_location.insert(std::pair<std::string, Location*>(
-						loc->getLabel(), loc));
+		label_to_location.insert(std::pair<std::string, LocationPtr>(
+						locations.back()->getLabel(), locations.back()));
 		number_of_locations++;
 	}
 
@@ -222,7 +232,7 @@ public:
 		std::vector<std::string> labels;
 		for (const auto& v: locations)
 		{
-			labels.emplace_back(v.getLabel());
+			labels.emplace_back(v->getLabel());
 		}
 		return labels;
 	}
@@ -233,21 +243,15 @@ public:
 	void addTransition(unsigned int event_id,
 			const std::string& source, const std::string& target)
 	{
-		label_to_location[source]->addTransition(event_id, label_to_location[target]);
+		TransitionPtr transition = std::make_shared<Transition>(
+			event_id, label_to_location[source], label_to_location[target]
+		);
+		transitions.push_back(std::move(transition));
+		label_to_location[source]->addTransition(event_id, transitions.back());
 	}
-
-	/*
-	 * @brief: Add state through append
-	 */
-	HybridStateMachine<Timestamp, Clock> operator+=(Location& location)
-	{
-		addState(std::move(location));
-	}
-
-
-
 
 }; // class HybridStateMachine
+
 
 template<class Timestamp, class Clock> class DiscreteEventPipeline
 {
@@ -259,11 +263,11 @@ public:
 		state_machines.emplace_back(sm);
 	}
 
-	void propagateEvent(std::string event_label, unsigned int event_id)
+	void propagateEvent(const std::string& event_label, unsigned int event_id, Timestamp stamp)
 	{
 		// TODO clock implementation
 		std::shared_ptr<DiscreteEvent<Timestamp>> new_event =
-				std::make_shared<DiscreteEvent<Timestamp>>(event_label, event_id, 0);
+				std::make_shared<DiscreteEvent<Timestamp>>(event_label, event_id, stamp);
 		for (const auto& sm: state_machines)
 		{
 			sm->addEvent(new_event);
@@ -295,11 +299,12 @@ public:
 		return &instance;
 	}
 
-	HybridStateMachine<Timestamp, Clock> createHybridStateMachine()
+	std::shared_ptr<HybridStateMachine<Timestamp, Clock>> createHybridStateMachine()
 	{
-		HybridStateMachine<Timestamp, Clock> hy;
-		addLocations(hy, {"PSEUDO_START", "PSEUDO_END"});
-		hy.initialize();
+		std::shared_ptr<HybridStateMachine<Timestamp, Clock>> hy =
+			std::make_shared<HybridStateMachine<Timestamp, Clock>>();
+		addLocations(*hy, {"PSEUDO_START", "PSEUDO_END"});
+		hy->initialize();
 		return hy;
 	}
 
@@ -307,7 +312,7 @@ public:
 	{
 		for (const auto s: location_labels)
 		{
-			Location l(s, sm.getNumberOfLocations());
+			LocationPtr l = std::make_shared<Location>(s, sm.getNumberOfLocations());
 			sm.addState(std::move(l));
 		}
 	}
