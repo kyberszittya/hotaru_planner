@@ -8,7 +8,7 @@
 
 #include <gtest/gtest.h>
 
-#include "rei_construct_elements/rei_hybrid_state_machine.hpp"
+#include <rei_construct_elements/hybrid_dynamic_system/rei_hybrid_state_machine.hpp>
 
 struct DummySignal
 {

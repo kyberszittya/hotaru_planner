@@ -16,7 +16,8 @@
 #include <stack>
 #include <cstdlib>
 
-#include "rei_hybrid_state_exceptions.hpp"
+#include <rei_construct_elements/rei_hybrid_state_exceptions.hpp>
+#include <rei_construct_elements/graph_elements/rei_graph.hpp>
 
 namespace rei
 {
@@ -36,6 +37,11 @@ public:
 
 namespace node
 {
+
+struct TransitionValue
+{
+
+};
 
 template<class Timestamp> class NotificationContext;
 
@@ -70,38 +76,34 @@ typedef std::shared_ptr<Location> LocationPtr;
 typedef std::weak_ptr<Location> WeakLocationPtr;
 typedef std::shared_ptr<const Location> ConstLocationPtr;
 
-class Transition
+class Transition: public rei::graph::Edge<unsigned long, double>
 {
 protected:
-	// As transition is modeled as a graph edge
-	const unsigned int event_id;
-	LocationPtr source_location;   // Define source location
-	LocationPtr target_location;   // Define target location
 	// Lambda as guard
 	//std::function<bool> guard_def;
 public:
 	//
-	Transition(const unsigned int event_id,
-			LocationPtr source_location, LocationPtr target_location):
-		event_id(event_id),
-		source_location(source_location), target_location(target_location){}
+	Transition(const unsigned long event_id,
+			graph::VertexPtr<unsigned long, double> source_location,
+			graph::VertexPtr<unsigned long, double> target_location):
+			graph::Edge<unsigned long, double>(
+					event_id, 0.0, source_location, target_location)
+			{
 
-	~Transition()
-	{
-		source_location.reset();
-		target_location.reset();
-	}
+			}
+
+
 	/*
 	 * brief: Retrieve source location
 	 */
 	const LocationPtr getSource()
 	{
-		return source_location;
+		return std::dynamic_pointer_cast<Location>(source_vertex);
 	}
 
 	const LocationPtr getTarget()
 	{
-		return target_location;
+		return std::dynamic_pointer_cast<Location>(target_vertex);
 	}
 
 	/*
@@ -129,69 +131,28 @@ typedef std::weak_ptr<Transition> WeakTransitionPtr;
 
 typedef const std::shared_ptr<Transition> ConstTransitionPtr;
 
-class Location
+class Location: public rei::graph::Vertex<unsigned long, double>
 {
 protected:
-	unsigned int location_number;
-	const std::string label;
-	// Event transition map
-	std::map<unsigned int, WeakTransitionPtr> transition_map;
 public:
 	Location(const std::string& label, unsigned int location_number):
-		label(label), location_number(location_number){}
+		rei::graph::Vertex<unsigned long, double>(label, location_number){}
 
-	~Location()
-	{
-		transition_map.erase(transition_map.begin(), transition_map.end());
-	}
 
-	inline const std::string getLabel() const
-	{
-		return label;
-	}
 
-	inline const unsigned int getLocationNumber() const
-	{
-		return location_number;
-	}
-
-	/*
-	 * Add transition to location
-	 *
-	 * NOTE: multiple transitions on the same event are not accepted
-	 */
-	void addTransition(const unsigned int event_id, WeakTransitionPtr transition)
-	{
-		transition_map.insert(std::pair<unsigned int, TransitionPtr>(
-				event_id, transition));
-	}
-
-	WeakTransitionPtr getNextTransition(const unsigned int event_id)
-	{
-		return transition_map[event_id];
-	}
 
 };
 
 enum class HybridStateStepResult{ TRANSITED, PROCESS_TIMEOUT, EMPTY_QUEUE, NO_TRANSITION };
 
-template<class Timestamp, class Clock> class HybridStateMachine
+template<class Timestamp, class Clock> class HybridStateMachine: public rei::graph::Graph<unsigned long, double>
 {
 protected:
-	// Name of the hybrid state machine
-	std::string name;											///< Hybrid state machine name
 	// Delta timestamp
 	Timestamp timestamp_delta;									///< Timestamp delta to check if event should be processed anyway
 	// Location handling
-	unsigned int number_of_locations;							///< Indicate the number of location (e.g. avoid to call size())
-	// State vector
-	std::vector<LocationPtr> locations;							///< Store locations in a vector of state pointers
 	// Current state
 	LocationPtr current_location;								///< Current location of the state machine
-	// Map labels to location
-	std::map<std::string, LocationPtr> label_to_location;
-	// Store transitions as well
-	std::vector<TransitionPtr> transitions;
 	// Event queue
 	std::stack<std::shared_ptr<DiscreteEvent<Timestamp>>> event_queue;
 	/// Clock
@@ -201,22 +162,13 @@ public:
 	 * @param: delta_timestamp double: the allowed delta between incoming timestamps
 	 */
 	HybridStateMachine(const std::string name, double timestamp_delta):
-		name(name),
+		rei::graph::Graph<unsigned long, double>(name),
 		timestamp_delta(timestamp_delta),
-		number_of_locations(0), current_location(nullptr){}
+		current_location(nullptr){}
 
 	~HybridStateMachine()
 	{
 		sm_clock.reset();
-		label_to_location.erase(label_to_location.begin(), label_to_location.end());
-		for (auto loc: locations)
-		{
-			loc.reset();
-		}
-		for (auto tr: transitions)
-		{
-			tr.reset();
-		}
 	}
 
 	/*
@@ -239,7 +191,7 @@ public:
 	 */
 	inline const unsigned int getNumberOfLocations() const
 	{
-		return number_of_locations;
+		return number_of_nodes;
 	}
 
 	/*
@@ -247,7 +199,7 @@ public:
 	 */
 	inline ConstLocationPtr getCurrentLocation() const
 	{
-		return current_location;
+		return std::dynamic_pointer_cast<Location>(current_location);
 	}
 
 	/*
@@ -255,7 +207,7 @@ public:
 	 */
 	inline ConstLocationPtr getLocationByLabel(const std::string& label)
 	{
-		return label_to_location[label];
+		return std::dynamic_pointer_cast<Location>(label_to_node[label]);
 	}
 
 	/*
@@ -279,7 +231,7 @@ public:
 	 */
 	void initialize()
 	{
-		current_location = locations[0];
+		current_location = std::dynamic_pointer_cast<Location>(vertices[0]);
 	}
 
 
@@ -307,7 +259,8 @@ public:
 		{
 			return HybridStateStepResult::PROCESS_TIMEOUT;
 		}
-		TransitionPtr tr = current_location->getNextTransition(event->getEventId()).lock();
+		TransitionPtr tr = std::dynamic_pointer_cast<Transition>(
+				current_location->getOutgoingEdge(event->getEventId()).lock());
 		// If no transition is available, do nothing
 		HybridStateStepResult res = HybridStateStepResult::TRANSITED;
 		if (tr!=nullptr)
@@ -337,24 +290,10 @@ public:
 	 */
 	void addState(LocationPtr location)
 	{
-		locations.emplace_back(std::move(location));
-		label_to_location.insert(std::pair<std::string, LocationPtr>(
-						locations.back()->getLabel(), locations.back()));
-		number_of_locations++;
+		addVertex(std::move(location));
 	}
 
-	/*
-	 * @brief: Get location labels in a list
-	 */
-	std::vector<std::string> getLocationLabels()
-	{
-		std::vector<std::string> labels;
-		for (const auto& v: locations)
-		{
-			labels.emplace_back(v->getLabel());
-		}
-		return labels;
-	}
+
 
 	/*
 	 * @brief: Add transition to the state machine
@@ -362,11 +301,11 @@ public:
 	void addTransition(unsigned int event_id,
 			const std::string& source, const std::string& target)
 	{
-		TransitionPtr transition = std::make_shared<Transition>(
-			event_id, label_to_location[source], label_to_location[target]
+		TransitionPtr edge = std::make_shared<Transition>(
+			event_id, label_to_node[source], label_to_node[target]
 		);
-		transitions.push_back(std::move(transition));
-		label_to_location[source]->addTransition(event_id, transitions.back());
+		addEdge(edge);
+		label_to_node[source]->addOutgoingEdge(event_id, edges.back());
 	}
 
 }; // class HybridStateMachine
