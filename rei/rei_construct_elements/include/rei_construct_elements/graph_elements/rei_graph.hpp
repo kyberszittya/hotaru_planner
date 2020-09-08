@@ -13,19 +13,25 @@
 namespace rei
 {
 
+enum class EdgeDirectionality {DIRECTED, UNDIRECTED};
+
 namespace graph
 {
-
+// Edge forward definition
 template<class CacheId, class Value> class Edge;
 template<class CacheId, class Value> using EdgePtr = std::shared_ptr<Edge<CacheId, Value> >;
 template<class CacheId, class Value> using WeakEdgePtr = std::weak_ptr<Edge<CacheId, Value> >;
+// Graph forward definition
+template<class CacheId, class Value> class Graph;
 
 template<class CacheId, class Value> class Vertex
 {
 protected:
 	std::string label;
 	const unsigned int location_number;
-	// Event transition map
+	// Incoming edges
+	std::map<CacheId, WeakEdgePtr<CacheId, Value> > incoming_edge_map;
+	// Outgoing edges
 	std::map<CacheId, WeakEdgePtr<CacheId, Value> > outgoing_edge_map;
 public:
 	Vertex(const std::string& label, unsigned int location_number):
@@ -33,6 +39,7 @@ public:
 
 	virtual ~Vertex()
 	{
+		incoming_edge_map.erase(incoming_edge_map.begin(), incoming_edge_map.end());
 		outgoing_edge_map.erase(outgoing_edge_map.begin(), outgoing_edge_map.end());
 	}
 
@@ -52,6 +59,15 @@ public:
 	}
 
 	/*
+	 * @brief: Add incoming edge to the node
+	 */
+	void addIncomingEdge(CacheId val, WeakEdgePtr<CacheId, Value> source)
+	{
+		incoming_edge_map.insert(std::pair<CacheId, WeakEdgePtr<CacheId, Value>>(
+						val, source));
+	}
+
+	/*
 	 * @brief: Add outgoing edge to the node
 	 */
 	void addOutgoingEdge(CacheId val, WeakEdgePtr<CacheId, Value> target)
@@ -60,6 +76,7 @@ public:
 						val, target));
 	}
 
+	friend class Graph<CacheId, Value>;
 
 };
 
@@ -69,6 +86,7 @@ template<class CacheId, class Value> class Edge
 {
 protected:
 	std::string label;
+	EdgeDirectionality directionality;
 	const CacheId cache_id;
 	Value value;
 	// Graph edges
@@ -77,8 +95,10 @@ protected:
 	// Edge target vertex
 	VertexPtr<CacheId, Value> target_vertex;		///< Target vertex pointer
 public:
-	Edge(CacheId cache_id, Value value, VertexPtr<CacheId, Value> source, VertexPtr<CacheId, Value> target):
-		cache_id(cache_id), value(value), source_vertex(source), target_vertex(target)
+	Edge(CacheId cache_id, Value value, VertexPtr<CacheId, Value> source, VertexPtr<CacheId, Value> target,
+			EdgeDirectionality directionality = EdgeDirectionality::UNDIRECTED):
+		cache_id(cache_id), value(value), source_vertex(source), target_vertex(target),
+		directionality(directionality)
 	{
 
 	}
@@ -88,9 +108,9 @@ public:
 		source_vertex.reset();
 		target_vertex.reset();
 	}
+
+	friend class Graph<CacheId, Value>;
 };
-
-
 
 template<class CacheId, class Value> class Graph
 {
@@ -131,19 +151,22 @@ public:
 	 */
 	void addVertex(VertexPtr<CacheId, Value> vertex)
 	{
-		vertices.emplace_back(std::move(vertex));
 		label_to_node.insert(std::pair<std::string, VertexPtr<CacheId, Value>>(
-			vertices.back()->getLabel(), vertices.back()));
+			vertex->label, vertex));
+		vertices.emplace_back(std::move(vertex));
 		number_of_nodes++;
 	}
 
 	/*
 	 * @brief: add an edge to the graph
 	 */
-	void addEdge(EdgePtr<CacheId, Value> edge)
+	void addEdge(EdgePtr<CacheId, Value> edge, CacheId cache_id)
 	{
+		edge->source_vertex->addOutgoingEdge(cache_id, edge);
+		edge->target_vertex->addIncomingEdge(cache_id, edge);
 		edges.push_back(std::move(edge));
 	}
+
 
 	/*
 	 * @brief: Get location labels in a list

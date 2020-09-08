@@ -43,7 +43,6 @@ struct TransitionValue
 
 };
 
-template<class Timestamp> class NotificationContext;
 
 template<class Timestamp> class DiscreteEvent
 {
@@ -87,9 +86,16 @@ public:
 			graph::VertexPtr<unsigned long, double> source_location,
 			graph::VertexPtr<unsigned long, double> target_location):
 			graph::Edge<unsigned long, double>(
-					event_id, 0.0, source_location, target_location)
+					event_id, 0.0, source_location, target_location, EdgeDirectionality::DIRECTED)
 			{
-
+				if (source_location!=nullptr && target_location!=nullptr)
+				{
+					label = source_location->getLabel()+"->"+target_location->getLabel();
+				}
+				else
+				{
+					label = "";
+				}
 			}
 
 
@@ -122,6 +128,15 @@ public:
 	{
 
 	}
+
+
+	/*
+	 * @brief: get label
+	 */
+	const std::string getLabel() const
+	{
+		return label;
+	}
 };
 
 
@@ -143,13 +158,89 @@ public:
 
 };
 
-enum class HybridStateStepResult{ TRANSITED, PROCESS_TIMEOUT, EMPTY_QUEUE, NO_TRANSITION };
+enum class HybridStateStepResult{ TRANSITED, PROCESS_TIMEOUT, SHIFTED_TIMESTAMP, EMPTY_QUEUE, NO_TRANSITION };
+
+class NotificationEvent
+{
+private:
+	const std::string event_name;
+public:
+	NotificationEvent(std::string name): event_name(name){}
+
+	const std::string getEventName() const
+	{
+		return event_name;
+	}
+};
+
+typedef std::shared_ptr<NotificationEvent> NotificationEventPtr;
+
+template<class Timestamp> class NotificationContext
+{
+private:
+	std::stack<NotificationEventPtr> stack_event;
+	std::stack<NotificationEventPtr> stack_location;
+	std::stack<NotificationEventPtr> stack_transition;
+public:
+	virtual ~NotificationContext()
+	{}
+	virtual void notifyLocation(const LocationPtr location)
+	{
+		std::shared_ptr<NotificationEvent> event = std::make_shared<NotificationEvent>(location->getLabel());
+		stack_location.push(std::move(event));
+
+	}
+
+	virtual void notifyTransition(const TransitionPtr transition)
+	{
+		std::shared_ptr<NotificationEvent> event = std::make_shared<NotificationEvent>(transition->getLabel());
+		stack_transition.push(std::move(event));
+	}
+
+	NotificationEventPtr popEvent()
+	{
+		if (!stack_event.empty())
+		{
+			NotificationEventPtr event = stack_event.top();
+			stack_event.pop();
+			return event;
+		}
+		return nullptr;
+	}
+
+	NotificationEventPtr popTransitionEvent()
+	{
+		if (!stack_transition.empty())
+		{
+			NotificationEventPtr event = stack_transition.top();
+			stack_transition.pop();
+			return event;
+		}
+		return nullptr;
+	}
+
+	NotificationEventPtr popLocationEvent()
+	{
+		if (!stack_location.empty())
+		{
+			NotificationEventPtr event = stack_location.top();
+			stack_location.pop();
+			return event;
+		}
+		return nullptr;
+	}
+
+};
+
+template<class Timestamp> using NotificationContextPtr = std::shared_ptr<NotificationContext<Timestamp>>;
 
 template<class Timestamp, class Clock> class HybridStateMachine: public rei::graph::Graph<unsigned long, double>
 {
 protected:
 	// Delta timestamp
 	Timestamp timestamp_delta;									///< Timestamp delta to check if event should be processed anyway
+	// Notification context
+	NotificationContextPtr<Timestamp> notification_context;
 	// Location handling
 	// Current state
 	LocationPtr current_location;								///< Current location of the state machine
@@ -184,6 +275,14 @@ public:
 		{
 			this->sm_clock = sm_clock;
 		}
+	}
+
+	/*
+	 *
+	 */
+	void setNotificationContext(NotificationContextPtr<Timestamp> notification_context)
+	{
+		this->notification_context = notification_context;
 	}
 
 	/*
@@ -251,14 +350,15 @@ public:
 		// Check if there is any discrete event that occurred
 		std::shared_ptr<DiscreteEvent<Timestamp>> event = event_queue.top();
 		// Evaluate event timestamp with current time
-		if (sm_clock->getCurrentTime() < event->getTimeStamp())
+		if (sm_clock->getCurrentTime() + timestamp_delta < event->getTimeStamp())
 		{
-			// Should this branch be evaluated anyway?
+			return HybridStateStepResult::SHIFTED_TIMESTAMP;
 		}
 		else if (abs(static_cast<long>(sm_clock->getCurrentTime() - event->getTimeStamp())) > timestamp_delta)
 		{
 			return HybridStateStepResult::PROCESS_TIMEOUT;
 		}
+		// If everything is OK, transit!
 		TransitionPtr tr = std::dynamic_pointer_cast<Transition>(
 				current_location->getOutgoingEdge(event->getEventId()).lock());
 		// If no transition is available, do nothing
@@ -269,6 +369,11 @@ public:
 			if (tr->checkDiscreteGuard())
 			{
 				current_location = tr->getTarget();
+				if (notification_context!=nullptr)
+				{
+					notification_context->notifyTransition(tr);
+					notification_context->notifyLocation(current_location);
+				}
 			}
 			// TODO: handle guard definitions
 		}
@@ -304,23 +409,13 @@ public:
 		TransitionPtr edge = std::make_shared<Transition>(
 			event_id, label_to_node[source], label_to_node[target]
 		);
-		addEdge(edge);
-		label_to_node[source]->addOutgoingEdge(event_id, edges.back());
+		addEdge(edge, event_id);
 	}
 
 }; // class HybridStateMachine
 
-template<class Timestamp> class NotificationContext
-{
-private:
-public:
-	virtual ~NotificationContext() {}
-	virtual void notifyLocation(const LocationPtr) = 0;
-	virtual void notifyEvent(const std::shared_ptr<Timestamp> event) = 0;
+template<class Timestamp, class Clock> using HybridSystemPtr = HybridStateMachine<Timestamp, Clock>;
 
-	virtual void notifyTransition(const TransitionPtr transition) = 0;
-
-};
 
 template<class Timestamp, class Clock> class DiscreteEventPipeline
 {

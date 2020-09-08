@@ -12,6 +12,8 @@
 #include <vector>
 #include <map>
 
+#include <eigen3/Eigen/Dense>
+
 template<class StateVar> class ContinousVariable
 {
 private:

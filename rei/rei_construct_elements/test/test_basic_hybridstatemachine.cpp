@@ -10,23 +10,10 @@
 
 #include <rei_construct_elements/hybrid_dynamic_system/rei_hybrid_state_machine.hpp>
 
-struct DummySignal
-{
-	unsigned int sig_id;
-};
+#include "test_common.hpp"
 
-class DummyZeroClock: public rei::util::ClockInterface<unsigned long>
-{
-public:
-	virtual unsigned long getCurrentTime() override
-	{
-		return 0;
-	}
-};
 
-constexpr unsigned long DUMMY_DELTA_TIME = 10000000;
-
-TEST(HybridStateMachineFactory, TestBasicConstruction)
+TEST(TestHybridStateMachine, TestBasicConstruction)
 {
 	using namespace rei::node;
 	HybridStateMachineFactory<unsigned long, DummyZeroClock>* factory = HybridStateMachineFactory<unsigned long, DummyZeroClock>::getInstance();
@@ -52,7 +39,7 @@ TEST(HybridStateMachineFactory, TestBasicConstruction)
 
 }
 
-TEST(HybridStateMachineFactory, TestAssignStatesBasicConstruction)
+TEST(TestHybridStateMachine, TestAssignStatesBasicConstruction)
 {
 	using namespace rei::node;
 	HybridStateMachineFactory<unsigned long, DummyZeroClock>* factory = HybridStateMachineFactory<unsigned long, DummyZeroClock>::getInstance();
@@ -75,7 +62,7 @@ TEST(HybridStateMachineFactory, TestAssignStatesBasicConstruction)
 	ASSERT_EQ(hy->getNumberOfLocations(), 5);
 }
 
-TEST(HybridStateMachineFactory, TestAssignTransitionBasicConstruction)
+TEST(TestHybridStateMachine, TestAssignTransitionBasicConstruction)
 {
 	using namespace rei::node;
 	HybridStateMachineFactory<unsigned long, DummyZeroClock>* factory =
@@ -91,11 +78,7 @@ TEST(HybridStateMachineFactory, TestAssignTransitionBasicConstruction)
 	ASSERT_EQ(loc_label[3], "OFF");
 	ASSERT_EQ(hy->getNumberOfLocations(), 4);
 	// Set transitions
-	factory->addDiscreteTransition(*hy, "StartEvent", std::pair<std::string, std::string>("PSEUDO_START","ON"));
-	factory->addDiscreteTransition(*hy, "foo", std::pair<std::string, std::string>("ON", "OFF"));
-	factory->addDiscreteTransition(*hy, "bar", std::pair<std::string, std::string>("OFF", "ON"));
-	factory->addDiscreteTransition(*hy, "baz", std::pair<std::string, std::string>("OFF", "PSEUDO_END"));
-
+	addTransitionsTestSM_OnOff(factory, hy);
 	// Check step
 	ASSERT_EQ(hy->getCurrentLocation()->getLabel(), "PSEUDO_START");
 	// All transitions are enabled
@@ -126,7 +109,7 @@ TEST(HybridStateMachineFactory, TestAssignTransitionBasicConstruction)
  * @test: Test on multiple steps (ensure it's working even on empty event stack)
  * @req: REQ.HYSM.OP.1: the SM shall not transit on empty event stack
  */
-TEST(HybridStateMachineFactory, TestMultipleSteps)
+TEST(TestHybridStateMachine, TestMultipleSteps)
 {
 	using namespace rei::node;
 	HybridStateMachineFactory<unsigned long, DummyZeroClock>* factory =
@@ -142,10 +125,7 @@ TEST(HybridStateMachineFactory, TestMultipleSteps)
 	ASSERT_EQ(loc_label[3], "OFF");
 	ASSERT_EQ(hy->getNumberOfLocations(), 4);
 	// Set transitions
-	factory->addDiscreteTransition(*hy, "StartEvent", std::pair<std::string, std::string>("PSEUDO_START","ON"));
-	factory->addDiscreteTransition(*hy, "foo", std::pair<std::string, std::string>("ON", "OFF"));
-	factory->addDiscreteTransition(*hy, "bar", std::pair<std::string, std::string>("OFF", "ON"));
-	factory->addDiscreteTransition(*hy, "baz", std::pair<std::string, std::string>("OFF", "PSEUDO_END"));
+	addTransitionsTestSM_OnOff(factory, hy);
 	// Check step
 	ASSERT_EQ(hy->getCurrentLocation()->getLabel(), "PSEUDO_START");
 	// All transitions are enabled
@@ -163,7 +143,7 @@ TEST(HybridStateMachineFactory, TestMultipleSteps)
  * @test: Testing the absence of a clock (test exception)
  * @req: REQ.HYSM.OP.2: the SM shall not step on absent clock and throw an exception
  */
-TEST(HybridStateMachineFactory, TestAbsentClock)
+TEST(TestHybridStateMachine, TestAbsentClock)
 {
 	using namespace rei::node;
 	HybridStateMachineFactory<unsigned long, DummyZeroClock>* factory =
@@ -178,11 +158,8 @@ TEST(HybridStateMachineFactory, TestAbsentClock)
 	ASSERT_EQ(loc_label[2], "ON");
 	ASSERT_EQ(loc_label[3], "OFF");
 	ASSERT_EQ(hy->getNumberOfLocations(), 4);
-	// Set transitions
-	factory->addDiscreteTransition(*hy, "StartEvent", std::pair<std::string, std::string>("PSEUDO_START","ON"));
-	factory->addDiscreteTransition(*hy, "foo", std::pair<std::string, std::string>("ON", "OFF"));
-	factory->addDiscreteTransition(*hy, "bar", std::pair<std::string, std::string>("OFF", "ON"));
-	factory->addDiscreteTransition(*hy, "baz", std::pair<std::string, std::string>("OFF", "PSEUDO_END"));
+	// Add transitions
+	addTransitionsTestSM_OnOff<DummyZeroClock>(factory, hy);
 	// Check step
 	ASSERT_EQ(hy->getCurrentLocation()->getLabel(), "PSEUDO_START");
 	// All transitions are enabled
@@ -196,6 +173,36 @@ TEST(HybridStateMachineFactory, TestAbsentClock)
 	ASSERT_THROW(hy->step(), std::runtime_error);
 }
 
+
+TEST(TestHybridStateMachine, TestTimeoutEvent)
+{
+	using namespace rei::node;
+	HybridStateMachineFactory<unsigned long, DummyConstantClock>* factory =
+			HybridStateMachineFactory<unsigned long, DummyConstantClock>::getInstance();
+	std::shared_ptr<DummyConstantClock> sm_clock = std::make_shared<DummyConstantClock>();
+	std::shared_ptr<HybridStateMachine<unsigned long, DummyConstantClock>> hy =
+		factory->createHybridStateMachine("test_sm", DUMMY_DELTA_TIME, sm_clock);
+	factory->addLocations(*hy, {"ON", "OFF"});
+	ASSERT_EQ(hy->getNumberOfLocations(), 4);
+	// Add transitions
+	addTransitionsTestSM_OnOff<DummyConstantClock>(factory, hy);
+	// Check step
+	ASSERT_EQ(hy->getCurrentLocation()->getLabel(), "PSEUDO_START");
+	DiscreteEventPipeline<unsigned long, DummyConstantClock> pipeline_test;
+	pipeline_test.addStateMachine(hy);
+	pipeline_test.propagateEvent("StartEvent", 0, DUMMY_DELTA_TIME);
+	ASSERT_EQ(hy->step(), HybridStateStepResult::PROCESS_TIMEOUT);
+	ASSERT_EQ(hy->getCurrentLocation()->getLabel(), "PSEUDO_START");
+	pipeline_test.propagateEvent("StartEvent", 0, 2*DUMMY_DELTA_TIME);
+	ASSERT_EQ(hy->step(), HybridStateStepResult::PROCESS_TIMEOUT);
+	ASSERT_EQ(hy->getCurrentLocation()->getLabel(), "PSEUDO_START");
+	pipeline_test.propagateEvent("StartEvent", 0, 6*DUMMY_DELTA_TIME);
+	ASSERT_EQ(hy->step(), HybridStateStepResult::SHIFTED_TIMESTAMP);
+	ASSERT_EQ(hy->getCurrentLocation()->getLabel(), "PSEUDO_START");
+	pipeline_test.propagateEvent("StartEvent", 0, 3.1*DUMMY_DELTA_TIME);
+	ASSERT_EQ(hy->step(), HybridStateStepResult::TRANSITED);
+	ASSERT_EQ(hy->getCurrentLocation()->getLabel(), "ON");
+}
 
 int main(int argc, char** argv)
 {
