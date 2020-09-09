@@ -6,7 +6,6 @@
  */
 
 
-#include "rei_construct_elements/rei_hybrid_control_node_ros1.hpp"
 
 #include <gtest/gtest.h>
 

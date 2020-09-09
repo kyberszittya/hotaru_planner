@@ -19,7 +19,7 @@ TEST(TestEventPipeline, TestReceivingPipeline)
 	std::shared_ptr<HybridStateMachine<unsigned long, DummyZeroClock>> hy =
 		factory->createHybridStateMachine("test_sm", DUMMY_DELTA_TIME, sm_clock);
 	factory->addLocations(*hy, {"ON", "OFF"});
-	std::vector<std::string> loc_label = hy->getLocationLabels();
+	std::vector<std::string> loc_label = hy->getVertexLabels();
 	ASSERT_EQ(loc_label[0], "PSEUDO_START");
 	ASSERT_EQ(loc_label[1], "PSEUDO_END");
 	ASSERT_EQ(loc_label[2], "ON");
@@ -29,19 +29,20 @@ TEST(TestEventPipeline, TestReceivingPipeline)
 	addTransitionsTestSM_OnOff(factory, hy);
 	// Setup event pipeline
 	DiscreteEventPipeline<unsigned long, DummyZeroClock> pipeline_test;
+	pipeline_test.setEventMapping(factory->getEventMapping());
 	pipeline_test.addStateMachine(hy);
 	std::shared_ptr<NotificationContext<unsigned long>> notification_context =
 		std::make_shared<NotificationContext<unsigned long>>();
 	hy->setNotificationContext(notification_context);
-	pipeline_test.propagateEvent("StartEvent", 0, 0);
+	pipeline_test.propagateEvent("StartEvent", 0);
 	hy->step();
-	pipeline_test.propagateEvent("foo", 1, 0);
+	pipeline_test.propagateEvent("foo", 0);
 	hy->step();
-	pipeline_test.propagateEvent("bar", 2, 0);
+	pipeline_test.propagateEvent("bar", 0);
 	hy->step();
-	pipeline_test.propagateEvent("foo", 1, 0);
+	pipeline_test.propagateEvent("foo", 0);
 	hy->step();
-	pipeline_test.propagateEvent("baz", 3, 0);
+	pipeline_test.propagateEvent("baz", 0);
 	hy->step();
 	// Location events
 	ASSERT_EQ(notification_context->popLocationEvent()->getEventName(), "PSEUDO_END");
@@ -66,7 +67,7 @@ TEST(TestEventPipeline, TestReceivingPipelineNoEvents)
 	std::shared_ptr<HybridStateMachine<unsigned long, DummyZeroClock>> hy =
 		factory->createHybridStateMachine("test_sm", DUMMY_DELTA_TIME, sm_clock);
 	factory->addLocations(*hy, {"ON", "OFF"});
-	std::vector<std::string> loc_label = hy->getLocationLabels();
+	std::vector<std::string> loc_label = hy->getVertexLabels();
 	ASSERT_EQ(loc_label[0], "PSEUDO_START");
 	ASSERT_EQ(loc_label[1], "PSEUDO_END");
 	ASSERT_EQ(loc_label[2], "ON");
@@ -76,6 +77,7 @@ TEST(TestEventPipeline, TestReceivingPipelineNoEvents)
 	addTransitionsTestSM_OnOff(factory, hy);
 	// Setup event pipeline
 	DiscreteEventPipeline<unsigned long, DummyZeroClock> pipeline_test;
+	pipeline_test.setEventMapping(factory->getEventMapping());
 	pipeline_test.addStateMachine(hy);
 	std::shared_ptr<NotificationContext<unsigned long>> notification_context =
 		std::make_shared<NotificationContext<unsigned long>>();
@@ -83,6 +85,30 @@ TEST(TestEventPipeline, TestReceivingPipelineNoEvents)
 	ASSERT_EQ(notification_context->popLocationEvent(), nullptr);
 	ASSERT_EQ(notification_context->popLocationEvent(), nullptr);
 	ASSERT_EQ(notification_context->popTransitionEvent(), nullptr);
+}
+
+TEST(TestEventPipeline, TestReceivingPipelineUnknownEvents)
+{
+	using namespace rei::node;
+	HybridStateMachineFactory<unsigned long, DummyZeroClock>* factory =
+				HybridStateMachineFactory<unsigned long, DummyZeroClock>::getInstance();
+	std::shared_ptr<DummyZeroClock> sm_clock = std::make_shared<DummyZeroClock>();
+	std::shared_ptr<HybridStateMachine<unsigned long, DummyZeroClock>> hy =
+		factory->createHybridStateMachine("test_sm", DUMMY_DELTA_TIME, sm_clock);
+	factory->addLocations(*hy, {"ON", "OFF"});
+	std::vector<std::string> loc_label = hy->getVertexLabels();
+	ASSERT_EQ(loc_label[0], "PSEUDO_START");
+	ASSERT_EQ(loc_label[1], "PSEUDO_END");
+	ASSERT_EQ(loc_label[2], "ON");
+	ASSERT_EQ(loc_label[3], "OFF");
+	ASSERT_EQ(hy->getNumberOfLocations(), 4);
+	// Set transitions
+	addTransitionsTestSM_OnOff(factory, hy);
+	// Setup event pipeline
+	DiscreteEventPipeline<unsigned long, DummyZeroClock> pipeline_test;
+	pipeline_test.setEventMapping(factory->getEventMapping());
+	pipeline_test.addStateMachine(hy);
+	ASSERT_THROW(pipeline_test.propagateEvent("Outlaw", 0), rei::exceptions::UnknownEvent);
 }
 
 int main(int argc, char** argv)

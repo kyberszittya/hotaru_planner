@@ -38,10 +38,6 @@ public:
 namespace node
 {
 
-struct TransitionValue
-{
-
-};
 
 
 template<class Timestamp> class DiscreteEvent
@@ -79,7 +75,9 @@ class Transition: public rei::graph::Edge<unsigned long, double>
 {
 protected:
 	// Lambda as guard
-	//std::function<bool> guard_def;
+	std::function<bool()> guard_def;
+	// Transit functional
+	std::function<void()> transit_function;
 public:
 	//
 	Transition(const unsigned long event_id,
@@ -96,6 +94,8 @@ public:
 				{
 					label = "";
 				}
+				guard_def = []()->bool{return true;};
+				transit_function = [](){;};
 			}
 
 
@@ -117,16 +117,15 @@ public:
 	 */
 	bool checkDiscreteGuard()
 	{
-		//return guard_def();
-		return true;
+		return guard_def();
 	}
 
 	/*
-	 * @brief: It wouldn't be a state machine if it would not do anything during tranist, right?
+	 * @brief: Execute associated function
 	 */
 	void onTransit()
 	{
-
+		transit_function();
 	}
 
 
@@ -136,6 +135,22 @@ public:
 	const std::string getLabel() const
 	{
 		return label;
+	}
+
+	/*
+	 * @brief: add guard definition
+	 */
+	void setGuardDefinition(std::function<bool()> func)
+	{
+		guard_def = func;
+	}
+
+	/*
+	 * @brief: add transit function
+	 */
+	void setOnTransitFunction(std::function<void()> func)
+	{
+		transit_function = func;
 	}
 };
 
@@ -148,82 +163,99 @@ typedef const std::shared_ptr<Transition> ConstTransitionPtr;
 
 class Location: public rei::graph::Vertex<unsigned long, double>
 {
+private:
+	// Function to execute (equiv. 'do' semantic)
+	std::function<void()> func_do;
 protected:
 public:
 	Location(const std::string& label, unsigned int location_number):
-		rei::graph::Vertex<unsigned long, double>(label, location_number){}
+		rei::graph::Vertex<unsigned long, double>(label, location_number)
+	{
+		func_do = [](){;};
+	}
 
-
-
-
+	void setDoFunction(std::function<void()> func)
+	{
+		func_do = func;
+	}
 };
 
 enum class HybridStateStepResult{ TRANSITED, PROCESS_TIMEOUT, SHIFTED_TIMESTAMP, EMPTY_QUEUE, NO_TRANSITION };
 
-class NotificationEvent
+template<class Timestamp> class NotificationEvent
 {
 private:
 	const std::string event_name;
+	const Timestamp stamp;
 public:
-	NotificationEvent(std::string name): event_name(name){}
+	NotificationEvent(std::string name, const Timestamp stamp): event_name(name),
+		stamp(stamp)
+	{}
 
 	const std::string getEventName() const
 	{
 		return event_name;
 	}
+
+	const Timestamp getTimestamp() const
+	{
+		return stamp;
+	}
 };
 
-typedef std::shared_ptr<NotificationEvent> NotificationEventPtr;
+template<class Timestamp> using NotificationEventPtr = std::shared_ptr<NotificationEvent<Timestamp>>;
 
 template<class Timestamp> class NotificationContext
 {
 private:
-	std::stack<NotificationEventPtr> stack_event;
-	std::stack<NotificationEventPtr> stack_location;
-	std::stack<NotificationEventPtr> stack_transition;
+	std::stack<NotificationEventPtr<Timestamp>> stack_event;
+	std::stack<NotificationEventPtr<Timestamp>> stack_location;
+	std::stack<NotificationEventPtr<Timestamp>> stack_transition;
 public:
 	virtual ~NotificationContext()
 	{}
-	virtual void notifyLocation(const LocationPtr location)
+	virtual void notifyLocation(const LocationPtr location, Timestamp stamp)
 	{
-		std::shared_ptr<NotificationEvent> event = std::make_shared<NotificationEvent>(location->getLabel());
+		std::shared_ptr<NotificationEvent<Timestamp>> event =
+			std::make_shared<NotificationEvent<Timestamp>>(location->getLabel(), stamp);
 		stack_location.push(std::move(event));
 
 	}
 
-	virtual void notifyTransition(const TransitionPtr transition)
+	virtual void notifyTransition(const TransitionPtr transition, Timestamp stamp)
 	{
-		std::shared_ptr<NotificationEvent> event = std::make_shared<NotificationEvent>(transition->getLabel());
+		std::shared_ptr<NotificationEvent<Timestamp>> event =
+			std::make_shared<NotificationEvent<Timestamp>>(transition->getLabel(), stamp);
 		stack_transition.push(std::move(event));
 	}
 
-	NotificationEventPtr popEvent()
+	NotificationEventPtr<Timestamp> popEvent()
 	{
 		if (!stack_event.empty())
 		{
-			NotificationEventPtr event = stack_event.top();
+			NotificationEventPtr<Timestamp> event = stack_event.top();
 			stack_event.pop();
 			return event;
 		}
 		return nullptr;
 	}
 
-	NotificationEventPtr popTransitionEvent()
+	NotificationEventPtr<Timestamp> popTransitionEvent()
 	{
 		if (!stack_transition.empty())
 		{
-			NotificationEventPtr event = stack_transition.top();
+			NotificationEventPtr<Timestamp> event = stack_transition.top();
 			stack_transition.pop();
 			return event;
 		}
 		return nullptr;
 	}
 
-	NotificationEventPtr popLocationEvent()
+	NotificationEventPtr<Timestamp> popLocationEvent()
 	{
 		if (!stack_location.empty())
 		{
-			NotificationEventPtr event = stack_location.top();
+			NotificationEventPtr<Timestamp> event = stack_location.top();
 			stack_location.pop();
 			return event;
 		}
@@ -275,6 +307,14 @@ public:
 		{
 			this->sm_clock = sm_clock;
 		}
+	}
+
+	/*
+	 * @brief: Delay of state variable in current location.
+	 */
+	void delayStateVar()
+	{
+		// TODO: implement as well with continuous state definition
 	}
 
 	/*
@@ -358,26 +398,30 @@ public:
 		{
 			return HybridStateStepResult::PROCESS_TIMEOUT;
 		}
-		// If everything is OK, transit!
-		TransitionPtr tr = std::dynamic_pointer_cast<Transition>(
-				current_location->getOutgoingEdge(event->getEventId()).lock());
-		// If no transition is available, do nothing
+		// If everything is OK, try to transit!
 		HybridStateStepResult res = HybridStateStepResult::TRANSITED;
-		if (tr!=nullptr)
+		try
 		{
-			// Of course, discrete transitions only occur, if the guard property can work
+			TransitionPtr tr = std::dynamic_pointer_cast<Transition>(
+					current_location->getOutgoingEdge(event->getEventId()).lock());
+			// If no transition is available, do nothing
 			if (tr->checkDiscreteGuard())
 			{
 				current_location = tr->getTarget();
 				if (notification_context!=nullptr)
 				{
-					notification_context->notifyTransition(tr);
-					notification_context->notifyLocation(current_location);
+					notification_context->notifyTransition(tr, sm_clock->getCurrentTime());
+					notification_context->notifyLocation(current_location, sm_clock->getCurrentTime());
 				}
 			}
+			else
+			{
+				res = HybridStateStepResult::NO_TRANSITION;
+			}
 			// TODO: handle guard definitions
+
 		}
-		else
+		catch(graph::exceptions::NonexistentEdge& e)
 		{
 			res = HybridStateStepResult::NO_TRANSITION;
 		}
@@ -412,15 +456,31 @@ public:
 		addEdge(edge, event_id);
 	}
 
+	/*
+	 * @brief: add a guard definition to edge
+	 */
+	void addEdgeGuardDefinition(std::string label, std::function<bool()> function)
+	{
+		TransitionPtr tr = std::dynamic_pointer_cast<Transition>(label_to_edge[label]);
+		if (tr!=nullptr) tr->setGuardDefinition(function);
+	}
+
+	void addOnTransitFunction(std::string label, std::function<void()> function)
+	{
+		TransitionPtr tr = std::dynamic_pointer_cast<Transition>(label_to_edge[label]);
+		if (tr!=nullptr) tr->setOnTransitFunction(function);
+	}
+
 }; // class HybridStateMachine
 
-template<class Timestamp, class Clock> using HybridSystemPtr = HybridStateMachine<Timestamp, Clock>;
+template<class Timestamp, class Clock> using HybridStateMachinePtr = std::shared_ptr<HybridStateMachine<Timestamp, Clock> >;
 
 
 template<class Timestamp, class Clock> class DiscreteEventPipeline
 {
 protected:
 	std::vector<std::shared_ptr<HybridStateMachine<Timestamp, Clock>>> state_machines;
+	std::map<std::string, unsigned int> event_mapping;
 public:
 	void addStateMachine(std::shared_ptr<HybridStateMachine<Timestamp, Clock>> sm)
 	{
@@ -429,7 +489,6 @@ public:
 
 	void propagateEvent(const std::string& event_label, unsigned int event_id, Timestamp stamp)
 	{
-		// TODO clock implementation
 		std::shared_ptr<DiscreteEvent<Timestamp>> new_event =
 				std::make_shared<DiscreteEvent<Timestamp>>(event_label, event_id, stamp);
 		for (const auto& sm: state_machines)
@@ -437,65 +496,30 @@ public:
 			sm->addEvent(new_event);
 		}
 	}
-};
 
-template<class Timestamp, class Clock> class HybridStateMachineFactory
-{
-private:
-	unsigned int cnt_event;
-	std::map<std::string, unsigned int> event_mapping;
-protected:
-
-	HybridStateMachineFactory(): cnt_event(0)
+	/*
+	 * @brief: Set event mapping from event label to event id
+	 */
+	void setEventMapping(std::map<std::string, unsigned int> event_map)
 	{
-
-	}
-
-public:
-
-	HybridStateMachineFactory(HybridStateMachineFactory& ) = delete;
-	HybridStateMachineFactory& operator=(HybridStateMachineFactory& ) = delete;
-
-	static HybridStateMachineFactory* getInstance()
-	{
-		static HybridStateMachineFactory instance;
-		return &instance;
+		event_mapping = event_map;
 	}
 
 	/*
-	 * @param: sm_delta_time double: delta time between state machines
+	 * @brief: Proapgate event based on internal signal map
 	 */
-	std::shared_ptr<HybridStateMachine<Timestamp, Clock>> createHybridStateMachine(
-			const std::string name, const double sm_delta_time, std::shared_ptr<Clock> sm_clock)
+	void propagateEvent(const std::string& event_label, Timestamp stamp)
 	{
-		std::shared_ptr<HybridStateMachine<Timestamp, Clock>> hy =
-			std::make_shared<HybridStateMachine<Timestamp, Clock>>(name, sm_delta_time);
-		addLocations(*hy, {"PSEUDO_START", "PSEUDO_END"});
-		hy->setClock(sm_clock);
-		hy->initialize();
-		return hy;
+		auto it = event_mapping.find(event_label);
+		if (it!=event_mapping.end()) propagateEvent(event_label, it->second, stamp);
+		else throw rei::exceptions::UnknownEvent();
 	}
 
-	void addLocations(HybridStateMachine<Timestamp, Clock>& sm, const std::initializer_list<std::string>& location_labels)
-	{
-		for (const auto s: location_labels)
-		{
-			LocationPtr l = std::make_shared<Location>(s, sm.getNumberOfLocations());
-			sm.addState(std::move(l));
-		}
-	}
 
-	void addDiscreteTransition(
-			HybridStateMachine<Timestamp, Clock>& sm,
-			std::string event_label, std::pair<std::string, std::string> transit_tuple)
-	{
-		if (event_mapping.find(event_label)==event_mapping.end())
-		{
-			event_mapping.insert(std::pair<std::string, unsigned int>(event_label, cnt_event++));
-		}
-		sm.addTransition(event_mapping[event_label], transit_tuple.first, transit_tuple.second);
-	}
 };
+
+template<class Timestamp, class Clock> using DiscreteEventPipelinePtr = std::shared_ptr<DiscreteEventPipeline<Timestamp, Clock>>;
+
 
 } // namespace node
 

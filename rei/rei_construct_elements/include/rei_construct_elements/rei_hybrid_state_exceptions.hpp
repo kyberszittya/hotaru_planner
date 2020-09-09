@@ -17,19 +17,12 @@ namespace rei
 namespace exceptions
 {
 
-class ClockUnavailableException: std::exception
+struct UnknownEvent: public std::exception
 {
-private:
-	//std::string hymsm_name;
-public:
-	//ClockUnavailableException(const std::string hysm_name): hymsm_name(hymsm_name){}
 
-	virtual const char* what() const noexcept
+	const char* what() const throw()
 	{
-		//std::string s("Clock is unavailable for Hybrid state machine: ");
-		//s += hymsm_name;
-		//return s.c_str();
-		return "WAT";
+		return "Unknown event received on pipeline";
 	}
 };
 

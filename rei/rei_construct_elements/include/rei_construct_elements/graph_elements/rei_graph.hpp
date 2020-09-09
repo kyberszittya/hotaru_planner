@@ -9,9 +9,13 @@
 #define INCLUDE_REI_CONSTRUCT_ELEMENTS_REI_GRAPH_HPP_
 
 #include <memory>
+#include "rei_graph_exceptions.hpp"
+
 
 namespace rei
 {
+
+
 
 enum class EdgeDirectionality {DIRECTED, UNDIRECTED};
 
@@ -55,7 +59,9 @@ public:
 
 	WeakEdgePtr<CacheId, Value> getOutgoingEdge(CacheId cache_id)
 	{
-		return outgoing_edge_map[cache_id];
+		auto it = outgoing_edge_map.find(cache_id);
+		if (it!=outgoing_edge_map.end())	return it->second;
+		throw exceptions::NonexistentEdge();
 	}
 
 	/*
@@ -124,6 +130,8 @@ protected:
 	std::vector<EdgePtr<CacheId, Value> >   edges;
 	// Map labels to location
 	std::map<std::string, VertexPtr<CacheId, Value>> label_to_node;
+	// Map labels to edges
+	std::map<std::string, EdgePtr<CacheId, Value>> label_to_edge;
 public:
 	Graph(const std::string name): number_of_nodes(0), name(name)
 	{
@@ -133,6 +141,7 @@ public:
 	virtual ~Graph()
 	{
 		label_to_node.erase(label_to_node.begin(), label_to_node.end());
+		label_to_edge.erase(label_to_edge.begin(), label_to_edge.end());
 		for (VertexPtr<CacheId, Value> v: vertices)
 		{
 			v.reset();
@@ -164,6 +173,7 @@ public:
 	{
 		edge->source_vertex->addOutgoingEdge(cache_id, edge);
 		edge->target_vertex->addIncomingEdge(cache_id, edge);
+		label_to_edge.insert(std::pair<std::string, EdgePtr<CacheId, Value>>(edge->label, edge));
 		edges.push_back(std::move(edge));
 	}
 
@@ -171,7 +181,7 @@ public:
 	/*
 	 * @brief: Get location labels in a list
 	 */
-	std::vector<std::string> getLocationLabels()
+	std::vector<std::string> getVertexLabels()
 	{
 		std::vector<std::string> labels;
 		for (const auto& v: vertices)
@@ -179,6 +189,14 @@ public:
 			labels.emplace_back(v->getLabel());
 		}
 		return labels;
+	}
+
+	/*
+	 * @brief: Get name of the graph
+	 */
+	const std::string getName() const
+	{
+		return name;
 	}
 };
 

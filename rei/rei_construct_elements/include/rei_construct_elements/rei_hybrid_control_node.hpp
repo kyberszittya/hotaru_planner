@@ -8,6 +8,10 @@
 #ifndef INCLUDE_REI_CONSTRUCT_ELEMENTS_REI_HYBRID_CONTROL_NODE_HPP_
 #define INCLUDE_REI_CONSTRUCT_ELEMENTS_REI_HYBRID_CONTROL_NODE_HPP_
 
+#include "hybrid_dynamic_system/rei_hybrid_state_machine.hpp"
+#include "rei_control_system.hpp"
+
+#include <memory>
 
 namespace rei
 {
@@ -15,13 +19,20 @@ namespace rei
 namespace node
 {
 
-template<class Subscriber, class Publisher> class HybridControlNode
+template<class Timestamp, class Clock, class Subscriber, class Publisher> class HybridControlNode:
+		public rei::hybridsystem::HybridControl<Timestamp, Clock>
 {
 protected:
+	// Publisher interface
+	// Notification context
 	Publisher pub_controlevent;
-	Subscriber sub_controlsignal;
+	Publisher pub_location_event;
+	Publisher pub_transition_event;
+	// Subscriber pipeline
+	Subscriber sub_controlsignal_pipeline;
 public:
-	virtual ~HybridControlNode() = 0;
+	HybridControlNode<Timestamp, Clock, Subscriber, Publisher>() {}
+	virtual ~HybridControlNode() {};
 
 	void startControlReception();
 
@@ -30,6 +41,8 @@ public:
 	 * and induce feedback).
 	 */
 	virtual bool init_control_signal_interface() = 0;
+
+
 };
 
 

@@ -1,4 +1,5 @@
-std_msgs/Header Header
+std_msgs/Header header
+string event_name
 uint32 sig_id
 uint32 START_NODE=1
 uint32 ENABLE_NODE=2

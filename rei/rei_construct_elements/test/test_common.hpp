@@ -9,6 +9,7 @@
 #define TEST_TEST_COMMON_HPP_
 
 #include <rei_construct_elements/hybrid_dynamic_system/rei_hybrid_state_machine.hpp>
+#include <rei_construct_elements/hybrid_dynamic_system/rei_hybrid_state_machine_factory.hpp>
 
 
 constexpr unsigned long DUMMY_DELTA_TIME = 10000000;
@@ -55,11 +56,22 @@ template<class Clock> void addTransitionsTestSM_OnOff(
 		std::shared_ptr<rei::node::HybridStateMachine<unsigned long, Clock>> hy)
 {
 	// Set transitions
-	factory->addDiscreteTransition(*hy, "StartEvent", std::pair<std::string, std::string>("PSEUDO_START","ON"));
+	factory->setTerminalLocations(hy, "StartEvent", "ON", "baz", "OFF");
 	factory->addDiscreteTransition(*hy, "foo", std::pair<std::string, std::string>("ON", "OFF"));
 	factory->addDiscreteTransition(*hy, "bar", std::pair<std::string, std::string>("OFF", "ON"));
-	factory->addDiscreteTransition(*hy, "baz", std::pair<std::string, std::string>("OFF", "PSEUDO_END"));
+}
 
+template<class Clock> void addTransitionsTestSM_OnOffTransitionList(
+		rei::node::HybridStateMachineFactory<unsigned long, Clock>* factory,
+		std::shared_ptr<rei::node::HybridStateMachine<unsigned long, Clock>> hy)
+{
+	// Set transitions
+	factory->setTerminalLocations(hy, "StartEvent", "ON", "baz", "OFF");
+	factory->addDiscreteTransitions(*hy,
+			{{"foo", "ON", "OFF"},
+			{"bar", "OFF", "ON"}});
+	factory->assignTransitionGuardFunction(*hy, "ON", "OFF",  []()->bool{ return true; });
+	factory->assignTransitionGuardFunction(*hy, "OFF", "ON",  []()->bool{ return true; });
 }
 
 #endif /* TEST_TEST_COMMON_HPP_ */

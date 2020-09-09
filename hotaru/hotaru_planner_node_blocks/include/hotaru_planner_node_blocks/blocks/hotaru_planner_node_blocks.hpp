@@ -10,6 +10,8 @@
 
 #include <memory>
 
+#include <hotaru_planner_msgs/TrajectoryArray.h>
+
 namespace hotaru
 {
 
@@ -23,7 +25,16 @@ class EventReceptor
 
 class PlannerAlgorithm
 {
+protected:
+	hotaru_planner_msgs::TrajectoryArray resultant_trajectory;
+public:
+	virtual ~PlannerAlgorithm() {}
+	virtual void calculateTrajectory() = 0;
 
+	hotaru_planner_msgs::TrajectoryArray getResultantTrajectory()
+	{
+		return resultant_trajectory;
+	}
 };
 
 class TrajectorySlicer
@@ -38,20 +49,7 @@ class TrajectoryMerger
 
 } // namespace blocks
 
-namespace planner
-{
 
-class PlannerNode
-{
-protected:
-	std::shared_ptr<blocks::EventReceptor> eventreceptor;
-	std::shared_ptr<blocks::PlannerAlgorithm> planneralgorithm;
-	std::shared_ptr<blocks::TrajectorySlicer> trajectoryslicer;
-	std::shared_ptr<blocks::TrajectoryMerger> trajectorymerger;
-public:
-};
-
-} // namespace planner
 
 } // namespace hotaru
 

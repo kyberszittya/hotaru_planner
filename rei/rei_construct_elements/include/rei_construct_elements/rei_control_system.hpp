@@ -12,6 +12,7 @@
 #include <vector>
 
 #include <rei_construct_elements/hybrid_dynamic_system/rei_hybrid_state_machine.hpp>
+#include <rei_construct_elements/rei_hybrid_control_node.hpp>
 
 namespace rei
 {
@@ -26,29 +27,39 @@ namespace hybridsystem
 template<class Timestamp, class Clock> class HybridControl
 {
 protected:
-	std::vector<rei::node::NotificationContextPtr<Timestamp>> notification_context;
-	std::vector<rei::node::HybridStateMachine<Timestamp, Clock>> hysm;
+	rei::node::DiscreteEventPipelinePtr<Timestamp, Clock> event_pipeline;
+	rei::node::NotificationContextPtr<Timestamp> notification_context;
+	rei::node::HybridStateMachinePtr<Timestamp, Clock> hysm;
 
 	std::shared_ptr<Clock> clock;
 public:
 
-	void addNotificationContext(rei::node::NotificationContextPtr context)
+	void setNotificationContext(rei::node::NotificationContextPtr<Timestamp> context)
 	{
-		notification_context.push_back(context);
+		this->notification_context = context;
+		hysm->setNotificationContext(notification_context);
 	}
 
-	void addHybridSystem(rei::node::HybridStateMachine hysm)
+	void setHybridSystem(rei::node::HybridStateMachinePtr<Timestamp, Clock> hysm)
 	{
-		notification_context.push_back(hysm);
+		this->hysm = hysm;
+	}
+
+	void setDiscreteEventPipeline(rei::node::DiscreteEventPipelinePtr<Timestamp, Clock> pipeline)
+	{
+		event_pipeline = pipeline;
+		event_pipeline->addStateMachine(this->hysm);
 	}
 
 	void setClock(std::shared_ptr<Clock> clock)
 	{
 		this->clock = clock;
-		for (auto hy: hysm)
-		{
-			hy->setClock(clock);
-		}
+		hysm->setClock(clock);
+	}
+
+	const std::string getName() const
+	{
+		return hysm->getName();
 	}
 };
 
