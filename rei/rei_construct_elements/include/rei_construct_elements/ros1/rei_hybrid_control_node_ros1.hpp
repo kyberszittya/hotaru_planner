@@ -27,8 +27,12 @@ class RosClock: public rei::util::ClockInterface<unsigned long>
 {
 public:
 
-	/*
-	 * Return current ROS time
+	/**
+		 * @fn unsigned long getCurrentTime()
+	 * @brief Return current ROS time
+	 *
+	 * @pre
+	 * @post
 	 */
 	virtual unsigned long getCurrentTime() override;
 };
@@ -55,9 +59,13 @@ private:
 public:
 	HybridControlNodeRos1(std::shared_ptr<ros::NodeHandle> nh);
 
-
 	/**
-	 * @brief: We need an ROS 1 version of this.
+		 * @fn bool init_control_signal_interface()
+	 * @brief Initialize control signal interface for ROS 1.
+	 *
+	 * @pre
+	 * @post
+	 * @return
 	 */
 	virtual bool init_control_signal_interface() override;
 
@@ -65,13 +73,25 @@ public:
 
 	void publishNotificationEvents();
 
-	/*
-	 * @brief: Start timer
+
+	/**
+		 * @fn void startTimer(const double)
+	 * @brief Start timer thread processing events and stepping.
+	 *
+	 * @pre
+	 * @post
+	 * @param timer_period
 	 */
 	void startTimer(const double timer_period);
 
-	/*
-	 * @brief: Timer operation (stepping state machine)
+
+	/**
+		 * @fn void opTimer(const ros::TimerEvent&)
+	 * @brief Timer
+	 *
+	 * @pre
+	 * @post
+	 * @param et ROS timer event
 	 */
 	void opTimer(const ros::TimerEvent& et);
 };

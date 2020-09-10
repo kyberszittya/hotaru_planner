@@ -20,9 +20,12 @@ namespace rei
 namespace hybridsystem
 {
 
-/*
- * The hybrid dynamic state control block
- * @input: external clock is required
+/**
+ * @class HybridControl
+ * @brief The hybrid dynamic state control block
+ *
+ * @tparam Timestamp
+ * @tparam Clock
  */
 template<class Timestamp, class Clock> class HybridControl
 {

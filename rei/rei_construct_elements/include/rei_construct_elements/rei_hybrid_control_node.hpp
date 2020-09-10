@@ -23,12 +23,12 @@ template<class Timestamp, class Clock, class Subscriber, class Publisher> class 
 		public rei::hybridsystem::HybridControl<Timestamp, Clock>
 {
 protected:
-	// Publisher interface
-	// Notification context
+	/// Publisher interface
+	/// Notification context
 	Publisher pub_controlevent;
 	Publisher pub_location_event;
 	Publisher pub_transition_event;
-	// Subscriber pipeline
+	/// Subscriber pipeline
 	Subscriber sub_controlsignal_pipeline;
 public:
 	HybridControlNode<Timestamp, Clock, Subscriber, Publisher>() {}
@@ -37,8 +37,12 @@ public:
 	void startControlReception();
 
 	/**
-	 * @brief: Initialize control signal interface (receiving state control messages
-	 * and induce feedback).
+		 * @fn bool init_control_signal_interface()=0
+	 * @brief Initialize control signal interface (receiving state control messages and induce feedback)
+	 *
+	 * @pre
+	 * @post
+	 * @return
 	 */
 	virtual bool init_control_signal_interface() = 0;
 

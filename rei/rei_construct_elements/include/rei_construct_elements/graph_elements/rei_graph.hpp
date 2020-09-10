@@ -16,18 +16,29 @@ namespace rei
 {
 
 
-
-enum class EdgeDirectionality {DIRECTED, UNDIRECTED};
-
+/**
+ * @namespace graph
+ * @brief Namespace holding basic graph development blocks.
+ *
+ */
 namespace graph
 {
+enum class EdgeDirectionality {DIRECTED, UNDIRECTED};
 // Edge forward definition
 template<class CacheId, class Value> class Edge;
 template<class CacheId, class Value> using EdgePtr = std::shared_ptr<Edge<CacheId, Value> >;
 template<class CacheId, class Value> using WeakEdgePtr = std::weak_ptr<Edge<CacheId, Value> >;
 // Graph forward definition
+
 template<class CacheId, class Value> class Graph;
 
+/**
+ * @class Vertex
+ * @brief A node/vertex of a general graph
+ *
+ * @tparam CacheId Enumerable value to refer outgoing/incoming edges
+ * @tparam Value The value assigned to edges
+ */
 template<class CacheId, class Value> class Vertex
 {
 protected:
@@ -57,6 +68,15 @@ public:
 		return location_number;
 	}
 
+	/**
+		 * @fn WeakEdgePtr<CacheId,Value> getOutgoingEdge(CacheId)
+	 * @brief Get an outgoing edge of the node (based on cache id)
+	 *
+	 * @pre
+	 * @post
+	 * @param cache_id the index value of the edge
+	 * @return
+	 */
 	WeakEdgePtr<CacheId, Value> getOutgoingEdge(CacheId cache_id)
 	{
 		auto it = outgoing_edge_map.find(cache_id);
@@ -64,8 +84,14 @@ public:
 		throw exceptions::NonexistentEdge();
 	}
 
-	/*
-	 * @brief: Add incoming edge to the node
+	/**
+		 * @fn void addIncomingEdge(CacheId, WeakEdgePtr<CacheId,Value>)
+	 * @brief Add incoming edge to the node
+	 *
+	 * @pre
+	 * @post
+	 * @param val
+	 * @param source
 	 */
 	void addIncomingEdge(CacheId val, WeakEdgePtr<CacheId, Value> source)
 	{
@@ -73,8 +99,14 @@ public:
 						val, source));
 	}
 
-	/*
-	 * @brief: Add outgoing edge to the node
+	/**
+		 * @fn void addOutgoingEdge(CacheId, WeakEdgePtr<CacheId,Value>)
+	 * @brief Add outgoing edge to the node
+	 *
+	 * @pre
+	 * @post
+	 * @param val
+	 * @param target
 	 */
 	void addOutgoingEdge(CacheId val, WeakEdgePtr<CacheId, Value> target)
 	{
@@ -88,6 +120,13 @@ public:
 
 template<class CacheId, class Value> using VertexPtr = std::shared_ptr<Vertex<CacheId, Value> >;
 
+/**
+ * @class Edge
+ * @brief
+ *
+ * @tparam CacheId
+ * @tparam Value
+ */
 template<class CacheId, class Value> class Edge
 {
 protected:
@@ -115,9 +154,29 @@ public:
 		target_vertex.reset();
 	}
 
+	/**
+		 * @fn const std::string getLabel()const
+	 * @brief get label
+	 *
+	 * @pre
+	 * @post
+	 * @return
+	 */
+	const std::string getLabel() const
+	{
+		return label;
+	}
+
 	friend class Graph<CacheId, Value>;
 };
 
+/**
+ * @class Graph
+ * @brief A general graph structure containing edges and vertices (nodes).
+ *
+ * @tparam CacheId enumerable datatype to index edges & vertices
+ * @tparam Value the value assigned to a graph edge (e.g. double valued edges)
+ */
 template<class CacheId, class Value> class Graph
 {
 protected:
@@ -152,11 +211,16 @@ public:
 		}
 	}
 
-	// Basic graph operations
-
-	/*
-	 * @brief: add a vertex to the graph
-	 * @param: a shared pointer to the vertex
+	///
+	/// @section Basic graph operations
+	///
+	/**
+		 * @fn void addVertex(VertexPtr<CacheId,Value>)
+	 * @brief Add a vertex to the graph
+	 *
+	 * @pre
+	 * @post
+	 * @param vertex A shared pointer to the vertex
 	 */
 	void addVertex(VertexPtr<CacheId, Value> vertex)
 	{
@@ -166,8 +230,14 @@ public:
 		number_of_nodes++;
 	}
 
-	/*
-	 * @brief: add an edge to the graph
+	/**
+		 * @fn void addEdge(EdgePtr<CacheId,Value>, CacheId)
+	 * @brief Add an edge to the graph
+	 *
+	 * @pre
+	 * @post
+	 * @param edge
+	 * @param cache_id
 	 */
 	void addEdge(EdgePtr<CacheId, Value> edge, CacheId cache_id)
 	{
@@ -177,9 +247,13 @@ public:
 		edges.push_back(std::move(edge));
 	}
 
-
-	/*
-	 * @brief: Get location labels in a list
+	/**
+		 * @fn std::vector<std::string> getVertexLabels()
+	 * @brief Get location labels in a list
+	 *
+	 * @pre
+	 * @post
+	 * @return
 	 */
 	std::vector<std::string> getVertexLabels()
 	{
@@ -191,8 +265,13 @@ public:
 		return labels;
 	}
 
-	/*
-	 * @brief: Get name of the graph
+	/**
+		 * @fn const std::string getName()const
+	 * @brief Get name of the graph
+	 *
+	 * @pre
+	 * @post
+	 * @return
 	 */
 	const std::string getName() const
 	{

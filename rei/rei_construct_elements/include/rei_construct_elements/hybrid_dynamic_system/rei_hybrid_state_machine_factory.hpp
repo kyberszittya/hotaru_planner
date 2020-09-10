@@ -45,8 +45,17 @@ public:
 		return event_mapping;
 	}
 
-	/*
-	 * @param: sm_delta_time double: delta time between state machines
+
+	/**
+		 * @fn HybridStateMachinePtr<Timestamp,Clock> createHybridStateMachine(const std::string, const double, std::shared_ptr<Clock>)
+	 * @brief create a hybrid state machine
+	 *
+	 * @pre
+	 * @post
+	 * @param name
+	 * @param sm_delta_time delta time between state machines
+	 * @param sm_clock
+	 * @return
 	 */
 	HybridStateMachinePtr<Timestamp, Clock> createHybridStateMachine(
 			const std::string name, const double sm_delta_time, std::shared_ptr<Clock> sm_clock)
@@ -68,8 +77,17 @@ public:
 		}
 	}
 
-	/*
+	/**
+		 * @fn void setTerminalLocations(std::shared_ptr<rei::node::HybridStateMachine<Timestamp,Clock>>, const std::string&, const std::string&, const std::string&, const std::string&)
+	 * @brief Set terminal locations and assign inducing events based on state labels and events
 	 *
+	 * @pre
+	 * @post
+	 * @param hy
+	 * @param start_event
+	 * @param start_target_location
+	 * @param end_event
+	 * @param end_source_location
 	 */
 	void setTerminalLocations(
 			std::shared_ptr<rei::node::HybridStateMachine<Timestamp, Clock>> hy,
@@ -96,10 +114,14 @@ public:
 		sm.addTransition(event_mapping[event_label], transit_tuple.first, transit_tuple.second);
 	}
 
-	/*
-	 * @brief: Add transitions stored in an initializer list
-	 * @param sm: Transitions shall be added to this hybrid state machine
-	 * @param transition_list: The list which holds a tuple of transition descriptions, in the following order:
+	/**
+		 * @fn void addDiscreteTransitions(HybridStateMachine<Timestamp,Clock>&, std::initializer_list<std::tuple<std::string,std::string,std::string>>)
+	 * @brief Add transitions stored in an initializer list
+	 *
+	 * @pre
+	 * @post
+	 * @param sm Transitions shall be added to this hybrid state machine
+	 * @param transition_list The list which holds a tuple of transition descriptions, in the following order:
 	 * 			<event_label, source, target>
 	 */
 	void addDiscreteTransitions(
@@ -116,8 +138,17 @@ public:
 		}
 	}
 
-	/*
-	 * @brief: Assign transition guard function
+
+	/**
+		 * @fn void assignTransitionGuardFunction(HybridStateMachine<Timestamp,Clock>&, const std::string&, const std::string&, std::function<bool ()>)
+	 * @brief Assign transition guard function
+	 *
+	 * @pre
+	 * @post
+	 * @param sm
+	 * @param source
+	 * @param target
+	 * @param func
 	 */
 	void assignTransitionGuardFunction(HybridStateMachine<Timestamp, Clock>& sm,
 			const std::string& source, const std::string& target,
@@ -126,8 +157,16 @@ public:
 		sm.addEdgeGuardDefinition(source+"->"+target, func);
 	}
 
-	/*
-	 * @brief: Assign transition guard function
+	/**
+		 * @fn void assignTransitionTransitFunction(HybridStateMachine<Timestamp,Clock>&, const std::string&, const std::string&, std::function<void ()>)
+	 * @brief Assign transition guard function
+	 *
+	 * @pre
+	 * @post
+	 * @param sm
+	 * @param source
+	 * @param target
+	 * @param func
 	 */
 	void assignTransitionTransitFunction(HybridStateMachine<Timestamp, Clock>& sm,
 			const std::string& source, const std::string& target,

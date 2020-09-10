@@ -2,10 +2,18 @@
 	<statemachine>
 		<name>parking_scenario</name>
 		<locations>
-			<location>Idle</location>
-			<location>Searching</location>
-			<location>Parking</location>
-			<location>OptimizeParking</location>
+			<location>
+				<name>Idle</name>
+			</location>
+			<location>
+				<name>Searching</name>
+			</location>
+			<location>
+				<name>Parking</name>
+			</location>
+			<location>
+				<name>OptimizeParking</name>
+			</location>
 		</locations>
 		<start_location>
 			<location>Idle</location>
@@ -19,32 +27,32 @@
 			<transition>
 				<source>Idle</source>
 				<target>Searching</target>
-				<event>ParkingStartSignal</event>
+				<discreteevent>ParkingStartSignal</discreteevent>
 			</transition>
 			<transition>
 				<source>Searching</source>
 				<target>Idle</target>
-				<event>InfeasibleParkingPoint</event>
+				<discreteevent>InfeasibleParkingPoint</discreteevent>
 			</transition>
 			<transition>
 				<source>Searching</source>
 				<target>Parking</target>
-				<event>ParkingPointDetectedSignal</event>
+				<discreteevent>ParkingPointDetectedSignal</discreteevent>
 			</transition>
 			<transition>
 				<source>Parking</source>
 				<target>OptimizeParking</target>
-				<event>ParkingPointCloseProximitySIgnal</event>
+				<discreteevent>ParkingPointCloseProximitySIgnal</discreteevent>
 			</transition>
 			<transition>
 				<source>OptimizeParking</source>
 				<target>Parking</target>
-				<event>UnoptimalParkingSignal</event>
+				<discreteevent>UnoptimalParkingSignal</discreteevent>
 			</transition>
 			<transition>
 				<source>OptimizeParking</source>
 				<target>Idle</target>
-				<event>OptimalParkingSignal</event>
+				<discreteevent>OptimalParkingSignal</discreteevent>
 			</transition>
 		</transitions>
 	</statemachine>

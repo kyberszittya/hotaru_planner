@@ -52,8 +52,14 @@ public:
 	DiscreteEvent(const std::string event_label, const unsigned int event_id, const Timestamp stamp):
 		stamp(stamp), event_label(event_label), event_id(event_id){}
 
-	/*
-	 * @brief: get timestamp of the event
+
+	/**
+		 * @fn const Timestamp getTimeStamp()
+	 * @brief get timestamp of the event
+	 *
+	 * @pre
+	 * @post
+	 * @return
 	 */
 	const Timestamp getTimeStamp()
 	{
@@ -84,7 +90,7 @@ public:
 			graph::VertexPtr<unsigned long, double> source_location,
 			graph::VertexPtr<unsigned long, double> target_location):
 			graph::Edge<unsigned long, double>(
-					event_id, 0.0, source_location, target_location, EdgeDirectionality::DIRECTED)
+					event_id, 0.0, source_location, target_location, graph::EdgeDirectionality::DIRECTED)
 			{
 				if (source_location!=nullptr && target_location!=nullptr)
 				{
@@ -99,8 +105,14 @@ public:
 			}
 
 
-	/*
-	 * brief: Retrieve source location
+
+	/**
+		 * @fn const LocationPtr getSource()
+	 * @brief Retrieve source location
+	 *
+	 * @pre
+	 * @post
+	 * @return
 	 */
 	const LocationPtr getSource()
 	{
@@ -112,16 +124,27 @@ public:
 		return std::dynamic_pointer_cast<Location>(target_vertex);
 	}
 
-	/*
-	 * @brief: Evaluate guard function
+
+	/**
+		 * @fn bool checkDiscreteGuard()
+	 * @brief Evaluate guard function
+	 *
+	 * @pre
+	 * @post
+	 * @return
 	 */
 	bool checkDiscreteGuard()
 	{
 		return guard_def();
 	}
 
-	/*
-	 * @brief: Execute associated function
+
+	/**
+		 * @fn void onTransit()
+	 * @brief Execute associated function
+	 *
+	 * @pre
+	 * @post
 	 */
 	void onTransit()
 	{
@@ -129,24 +152,26 @@ public:
 	}
 
 
-	/*
-	 * @brief: get label
-	 */
-	const std::string getLabel() const
-	{
-		return label;
-	}
-
-	/*
-	 * @brief: add guard definition
+	/**
+		 * @fn void setGuardDefinition(std::function<bool ()>)
+	 * @brief add guard definition
+	 *
+	 * @pre
+	 * @post
+	 * @param func
 	 */
 	void setGuardDefinition(std::function<bool()> func)
 	{
 		guard_def = func;
 	}
 
-	/*
-	 * @brief: add transit function
+	/**
+		 * @fn void setOnTransitFunction(std::function<void ()>)
+	 * @brief add transit function
+	 *
+	 * @pre
+	 * @post
+	 * @param func
 	 */
 	void setOnTransitFunction(std::function<void()> func)
 	{
@@ -266,6 +291,13 @@ public:
 
 template<class Timestamp> using NotificationContextPtr = std::shared_ptr<NotificationContext<Timestamp>>;
 
+/**
+ * @class HybridStateMachine
+ * @brief A hybrid state machine of transitions and locations.
+ *
+ * @tparam Timestamp
+ * @tparam Clock
+ */
 template<class Timestamp, class Clock> class HybridStateMachine: public rei::graph::Graph<unsigned long, double>
 {
 protected:
@@ -281,8 +313,14 @@ protected:
 	/// Clock
 	std::shared_ptr<util::ClockInterface<Timestamp>> sm_clock;
 public:
-	/*
-	 * @param: delta_timestamp double: the allowed delta between incoming timestamps
+	/**
+		 * @fn  HybridStateMachine(const std::string, double)
+	 * @brief
+	 *
+	 * @pre
+	 * @post
+	 * @param name
+	 * @param timestamp_delta the allowed delta between incoming timestamps
 	 */
 	HybridStateMachine(const std::string name, double timestamp_delta):
 		rei::graph::Graph<unsigned long, double>(name),
@@ -294,8 +332,13 @@ public:
 		sm_clock.reset();
 	}
 
-	/*
-	 * @brief: Set a current clock
+	/**
+		 * @fn void setClock(std::shared_ptr<util::ClockInterface<Timestamp>>)
+	 * @brief Set a current clock
+	 *
+	 * @pre
+	 * @post
+	 * @param sm_clock
 	 */
 	void setClock(std::shared_ptr<util::ClockInterface<Timestamp>> sm_clock)
 	{
@@ -309,64 +352,100 @@ public:
 		}
 	}
 
-	/*
-	 * @brief: Delay of state variable in current location.
+
+	/**
+		 * @fn void delayStateVar()
+	 * @brief Delay of state variable in current location.
+	 *
+	 * @pre
+	 * @post
 	 */
 	void delayStateVar()
 	{
 		// TODO: implement as well with continuous state definition
 	}
 
-	/*
-	 *
-	 */
+
 	void setNotificationContext(NotificationContextPtr<Timestamp> notification_context)
 	{
 		this->notification_context = notification_context;
 	}
 
-	/*
-	 * @brief: Get number of locations
+
+	/**
+		 * @fn const unsigned int getNumberOfLocations()const
+	 * @brief Get number of locations
+	 *
+	 * @pre
+	 * @post
+	 * @return
 	 */
 	inline const unsigned int getNumberOfLocations() const
 	{
 		return number_of_nodes;
 	}
 
-	/*
-	 * @brief: get current location
+	/**
+		 * @fn ConstLocationPtr getCurrentLocation()const
+	 * @brief get current location
+	 *
+	 * @pre
+	 * @post
+	 * @return
 	 */
 	inline ConstLocationPtr getCurrentLocation() const
 	{
 		return std::dynamic_pointer_cast<Location>(current_location);
 	}
 
-	/*
-	 * @brief: get location based on label
+	/**
+		 * @fn ConstLocationPtr getLocationByLabel(const std::string&)
+	 * @brief get location based on label
+	 *
+	 * @pre
+	 * @post
+	 * @param label
+	 * @return
 	 */
 	inline ConstLocationPtr getLocationByLabel(const std::string& label)
 	{
 		return std::dynamic_pointer_cast<Location>(label_to_node[label]);
 	}
 
-	/*
-	 * @brief: we can expect that start state is always STATE 0
+	/**
+		 * @fn bool isStarted()
+	 * @brief we can expect that start state is always STATE 0
+	 *
+	 * @pre
+	 * @post
+	 * @return
 	 */
 	inline bool isStarted()
 	{
 		return current_location->location_number == 0;
 	}
 
-	/*
-	 * @brief: we can expect that end state is always STATE 1
+
+	/**
+		 * @fn bool isEnded()
+	 * @brief we can expect that end state is always STATE 1
+	 *
+	 * @pre
+	 * @post
+	 * @return
 	 */
 	inline bool isEnded()
 	{
 		return current_location->location_number == 1;
 	}
 
-	/*
-	 * Reset state machine IFF the state machine has not started operation
+
+	/**
+		 * @fn void initialize()
+	 * @brief Reset state machine IFF the state machine has not started operation
+	 *
+	 * @pre
+	 * @post
 	 */
 	void initialize()
 	{
@@ -374,6 +453,14 @@ public:
 	}
 
 
+	/**
+		 * @fn HybridStateStepResult step()
+	 * @brief Step statemachine
+	 *
+	 * @pre
+	 * @post
+	 * @return
+	 */
 	HybridStateStepResult step()
 	{
 		// Exception handling first then all the other stuff
@@ -404,7 +491,6 @@ public:
 		{
 			TransitionPtr tr = std::dynamic_pointer_cast<Transition>(
 					current_location->getOutgoingEdge(event->getEventId()).lock());
-			// If no transition is available, do nothing
 			if (tr->checkDiscreteGuard())
 			{
 				current_location = tr->getTarget();
@@ -416,10 +502,9 @@ public:
 			}
 			else
 			{
+				// If no transition is available, do nothing
 				res = HybridStateStepResult::NO_TRANSITION;
 			}
-			// TODO: handle guard definitions
-
 		}
 		catch(graph::exceptions::NonexistentEdge& e)
 		{
@@ -434,8 +519,13 @@ public:
 		event_queue.push(e);
 	}
 
-	/*
-	 * @brief: Add state explicitly to this state machine
+	/**
+		 * @fn void addState(LocationPtr)
+	 * @brief Add state explicitly to this state machine
+	 *
+	 * @pre
+	 * @post
+	 * @param location
 	 */
 	void addState(LocationPtr location)
 	{
@@ -443,9 +533,15 @@ public:
 	}
 
 
-
-	/*
-	 * @brief: Add transition to the state machine
+	/**
+		 * @fn void addTransition(unsigned int, const std::string&, const std::string&)
+	 * @brief Add transition to the state machine
+	 *
+	 * @pre
+	 * @post
+	 * @param event_id
+	 * @param source
+	 * @param target
 	 */
 	void addTransition(unsigned int event_id,
 			const std::string& source, const std::string& target)
@@ -456,8 +552,15 @@ public:
 		addEdge(edge, event_id);
 	}
 
-	/*
-	 * @brief: add a guard definition to edge
+
+	/**
+		 * @fn void addEdgeGuardDefinition(std::string, std::function<bool ()>)
+	 * @brief add a guard definition to edge
+	 *
+	 * @pre
+	 * @post
+	 * @param label
+	 * @param function
 	 */
 	void addEdgeGuardDefinition(std::string label, std::function<bool()> function)
 	{
@@ -475,7 +578,13 @@ public:
 
 template<class Timestamp, class Clock> using HybridStateMachinePtr = std::shared_ptr<HybridStateMachine<Timestamp, Clock> >;
 
-
+/**
+ * @class DiscreteEventPipeline
+ * @brief Pipeline forwarding discrete events to all assigned state machines
+ *
+ * @tparam Timestamp
+ * @tparam Clock
+ */
 template<class Timestamp, class Clock> class DiscreteEventPipeline
 {
 protected:
@@ -497,16 +606,28 @@ public:
 		}
 	}
 
-	/*
-	 * @brief: Set event mapping from event label to event id
+
+	/**
+		 * @fn void setEventMapping(std::map<std::string,unsigned int>)
+	 * @brief Set event mapping from event label to event id
+	 *
+	 * @pre
+	 * @post
+	 * @param event_map
 	 */
 	void setEventMapping(std::map<std::string, unsigned int> event_map)
 	{
 		event_mapping = event_map;
 	}
 
-	/*
-	 * @brief: Proapgate event based on internal signal map
+	/**
+		 * @fn void propagateEvent(const std::string&, Timestamp)
+	 * @brief Proapgate event based on internal signal map
+	 *
+	 * @pre
+	 * @post
+	 * @param event_label
+	 * @param stamp
 	 */
 	void propagateEvent(const std::string& event_label, Timestamp stamp)
 	{
