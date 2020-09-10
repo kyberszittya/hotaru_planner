@@ -13,8 +13,8 @@
 #include "test_common.hpp"
 
 
-/*
- * @test: Test basic construction of hybrid state machine without any transitions.
+/**
+ * @test Test basic construction of hybrid state machine without any transitions.
  */
 TEST(TestHybridStateMachine, TestBasicConstruction)
 {
@@ -22,7 +22,8 @@ TEST(TestHybridStateMachine, TestBasicConstruction)
 	HybridStateMachineFactory<unsigned long, DummyZeroClock>* factory = HybridStateMachineFactory<unsigned long, DummyZeroClock>::getInstance();
 	std::shared_ptr<DummyZeroClock> sm_clock = std::make_shared<DummyZeroClock>();
 	std::shared_ptr<HybridStateMachine<unsigned long, DummyZeroClock>> hy =
-		factory->createHybridStateMachine("test_sm", DUMMY_DELTA_TIME, sm_clock);
+		factory->createHybridStateMachine("test_sm", DUMMY_DELTA_TIME);
+	hy->setClock(sm_clock);
 	std::vector<std::string> loc_label = hy->getVertexLabels();
 	ASSERT_EQ(loc_label[1], "PSEUDO_END");
 	ASSERT_EQ(loc_label[0], "PSEUDO_START");
@@ -42,8 +43,8 @@ TEST(TestHybridStateMachine, TestBasicConstruction)
 
 }
 
-/*
- * @test: Test construction of state machines with some additional states
+/**
+ * @test Test construction of state machines with some additional states
  */
 TEST(TestHybridStateMachine, TestAssignStatesBasicConstruction)
 {
@@ -51,7 +52,8 @@ TEST(TestHybridStateMachine, TestAssignStatesBasicConstruction)
 	HybridStateMachineFactory<unsigned long, DummyZeroClock>* factory = HybridStateMachineFactory<unsigned long, DummyZeroClock>::getInstance();
 	std::shared_ptr<DummyZeroClock> sm_clock = std::make_shared<DummyZeroClock>();
 	std::shared_ptr<HybridStateMachine<unsigned long, DummyZeroClock>> hy =
-		factory->createHybridStateMachine("test_sm", DUMMY_DELTA_TIME, sm_clock);
+		factory->createHybridStateMachine("test_sm", DUMMY_DELTA_TIME);
+	hy->setClock(sm_clock);
 	factory->addLocations(*hy, {"WAITING", "ENABLED", "DISABLED"});
 	std::vector<std::string> loc_label = hy->getVertexLabels();
 	ASSERT_EQ(loc_label[0], "PSEUDO_START");
@@ -68,8 +70,9 @@ TEST(TestHybridStateMachine, TestAssignStatesBasicConstruction)
 	ASSERT_EQ(hy->getNumberOfLocations(), 5);
 }
 
-/*
- * @test: Test state machine of some states and with transitions (including incoming events).
+
+/**
+ * @test Test state machine of some states and with transitions (including incoming events).
  */
 TEST(TestHybridStateMachine, TestAssignTransitionBasicConstruction)
 {
@@ -78,7 +81,8 @@ TEST(TestHybridStateMachine, TestAssignTransitionBasicConstruction)
 			HybridStateMachineFactory<unsigned long, DummyZeroClock>::getInstance();
 	std::shared_ptr<DummyZeroClock> sm_clock = std::make_shared<DummyZeroClock>();
 	std::shared_ptr<HybridStateMachine<unsigned long, DummyZeroClock>> hy =
-		factory->createHybridStateMachine("test_sm", DUMMY_DELTA_TIME, sm_clock);
+		factory->createHybridStateMachine("test_sm", DUMMY_DELTA_TIME);
+	hy->setClock(sm_clock);
 	factory->addLocations(*hy, {"ON", "OFF"});
 	std::vector<std::string> loc_label = hy->getVertexLabels();
 	ASSERT_EQ(loc_label[0], "PSEUDO_START");
@@ -115,8 +119,9 @@ TEST(TestHybridStateMachine, TestAssignTransitionBasicConstruction)
 	ASSERT_EQ(hy->getCurrentLocation()->getLabel(), "PSEUDO_END");
 }
 
-/*
- * @test: Test transiting state machine construction with initializer list
+
+/**
+ * @test Test transiting state machine construction with initializer list
  */
 TEST(TestHybridStateMachine, TestAssignTransitionInitilaizerListConstruction)
 {
@@ -125,7 +130,8 @@ TEST(TestHybridStateMachine, TestAssignTransitionInitilaizerListConstruction)
 			HybridStateMachineFactory<unsigned long, DummyZeroClock>::getInstance();
 	std::shared_ptr<DummyZeroClock> sm_clock = std::make_shared<DummyZeroClock>();
 	std::shared_ptr<HybridStateMachine<unsigned long, DummyZeroClock>> hy =
-		factory->createHybridStateMachine("test_sm", DUMMY_DELTA_TIME, sm_clock);
+		factory->createHybridStateMachine("test_sm", DUMMY_DELTA_TIME);
+	hy->setClock(sm_clock);
 	factory->addLocations(*hy, {"ON", "OFF"});
 	// Set transitions
 	addTransitionsTestSM_OnOffTransitionList(factory, hy);
@@ -164,9 +170,9 @@ TEST(TestHybridStateMachine, TestAssignTransitionInitilaizerListConstruction)
 }
 
 
-/*
- * @test: Test on multiple steps (ensure it's working even on empty event stack)
- * @req: REQ.HYSM.OP.1: the SM shall not transit on empty event stack
+/**
+ * @brief REQ.HYSM.OP.1: the SM shall not transit on empty event stack
+ * @test Test on multiple steps (ensure it's working even on empty event stack)
  */
 TEST(TestHybridStateMachine, TestMultipleSteps)
 {
@@ -175,7 +181,8 @@ TEST(TestHybridStateMachine, TestMultipleSteps)
 			HybridStateMachineFactory<unsigned long, DummyZeroClock>::getInstance();
 	std::shared_ptr<DummyZeroClock> sm_clock = std::make_shared<DummyZeroClock>();
 	std::shared_ptr<HybridStateMachine<unsigned long, DummyZeroClock>> hy =
-		factory->createHybridStateMachine("test_sm", DUMMY_DELTA_TIME, sm_clock);
+		factory->createHybridStateMachine("test_sm", DUMMY_DELTA_TIME);
+	hy->setClock(sm_clock);
 	factory->addLocations(*hy, {"ON", "OFF"});
 	std::vector<std::string> loc_label = hy->getVertexLabels();
 	ASSERT_EQ(loc_label[0], "PSEUDO_START");
@@ -199,9 +206,10 @@ TEST(TestHybridStateMachine, TestMultipleSteps)
 	ASSERT_EQ(hy->getCurrentLocation()->getLabel(), "ON");
 }
 
-/*
- * @test: Testing the absence of a clock (test exception)
- * @req: REQ.HYSM.OP.2: the SM shall not step on absent clock and throw an exception
+
+/**
+ * @brief REQ.HYSM.OP.2: the SM shall not step on absent clock and throw an exception
+ * @test Testing the absence of a clock (test exception)
  */
 TEST(TestHybridStateMachine, TestAbsentClock)
 {
@@ -210,7 +218,8 @@ TEST(TestHybridStateMachine, TestAbsentClock)
 			HybridStateMachineFactory<unsigned long, DummyZeroClock>::getInstance();
 	std::shared_ptr<DummyZeroClock> sm_clock = std::make_shared<DummyZeroClock>();
 	std::shared_ptr<HybridStateMachine<unsigned long, DummyZeroClock>> hy =
-		factory->createHybridStateMachine("test_sm", DUMMY_DELTA_TIME, sm_clock);
+		factory->createHybridStateMachine("test_sm", DUMMY_DELTA_TIME);
+	hy->setClock(sm_clock);
 	factory->addLocations(*hy, {"ON", "OFF"});
 	std::vector<std::string> loc_label = hy->getVertexLabels();
 	ASSERT_EQ(loc_label[0], "PSEUDO_START");
@@ -234,8 +243,9 @@ TEST(TestHybridStateMachine, TestAbsentClock)
 	ASSERT_THROW(hy->step(), std::runtime_error);
 }
 
-/*
- * @test: Test timeout of events that are coming late or to soon.
+
+/**
+ * @test Test timeout of events that are coming late or to soon.
  */
 TEST(TestHybridStateMachine, TestTimeoutEvent)
 {
@@ -244,7 +254,8 @@ TEST(TestHybridStateMachine, TestTimeoutEvent)
 			HybridStateMachineFactory<unsigned long, DummyConstantClock>::getInstance();
 	std::shared_ptr<DummyConstantClock> sm_clock = std::make_shared<DummyConstantClock>();
 	std::shared_ptr<HybridStateMachine<unsigned long, DummyConstantClock>> hy =
-		factory->createHybridStateMachine("test_sm", DUMMY_DELTA_TIME, sm_clock);
+		factory->createHybridStateMachine("test_sm", DUMMY_DELTA_TIME);
+	hy->setClock(sm_clock);
 	factory->addLocations(*hy, {"ON", "OFF"});
 	ASSERT_EQ(hy->getNumberOfLocations(), 4);
 	// Add transitions
@@ -268,8 +279,9 @@ TEST(TestHybridStateMachine, TestTimeoutEvent)
 	ASSERT_EQ(hy->getCurrentLocation()->getLabel(), "ON");
 }
 
-/*
- * @test: Check one false transit
+
+/**
+ * @test Check one false transit
  */
 TEST(TestHybridStateMachine, TestAssignTransitionFalseGuard)
 {
@@ -278,7 +290,8 @@ TEST(TestHybridStateMachine, TestAssignTransitionFalseGuard)
 			HybridStateMachineFactory<unsigned long, DummyZeroClock>::getInstance();
 	std::shared_ptr<DummyZeroClock> sm_clock = std::make_shared<DummyZeroClock>();
 	std::shared_ptr<HybridStateMachine<unsigned long, DummyZeroClock>> hy =
-		factory->createHybridStateMachine("test_sm", DUMMY_DELTA_TIME, sm_clock);
+		factory->createHybridStateMachine("test_sm", DUMMY_DELTA_TIME);
+	hy->setClock(sm_clock);
 	factory->addLocations(*hy, {"ON", "OFF"});
 	// Set transitions
 	addTransitionsTestSM_OnOffTransitionList(factory, hy);

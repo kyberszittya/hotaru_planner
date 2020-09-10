@@ -17,6 +17,8 @@ namespace rei
 namespace node
 {
 
+typedef std::tuple<std::string, std::string, std::string> TransitionTuple ;
+
 template<class Timestamp, class Clock> class HybridStateMachineFactory
 {
 private:
@@ -58,21 +60,32 @@ public:
 	 * @return
 	 */
 	HybridStateMachinePtr<Timestamp, Clock> createHybridStateMachine(
-			const std::string name, const double sm_delta_time, std::shared_ptr<Clock> sm_clock)
+			const std::string name, const double sm_delta_time)
 	{
 		HybridStateMachinePtr<Timestamp, Clock> hy =
 			std::make_shared<HybridStateMachine<Timestamp, Clock>>(name, sm_delta_time);
 		addLocations(*hy, {"PSEUDO_START", "PSEUDO_END"});
-		hy->setClock(sm_clock);
 		hy->initialize();
 		return hy;
 	}
 
 	void addLocations(HybridStateMachine<Timestamp, Clock>& sm, const std::initializer_list<std::string>& location_labels)
 	{
+		/*
 		for (const auto s: location_labels)
 		{
 			LocationPtr l = std::make_shared<Location>(s, sm.getNumberOfLocations());
+			sm.addState(std::move(l));
+		}
+		*/
+		addLocations(sm, location_labels.begin(), location_labels.end());
+	}
+
+	template<class It> void addLocations(HybridStateMachine<Timestamp, Clock>& sm, It first, It last)
+	{
+		for (auto& it = first; it != last; ++it)
+		{
+			LocationPtr l = std::make_shared<Location>(*it, sm.getNumberOfLocations());
 			sm.addState(std::move(l));
 		}
 	}
@@ -126,8 +139,9 @@ public:
 	 */
 	void addDiscreteTransitions(
 		HybridStateMachine<Timestamp, Clock>& sm,
-		std::initializer_list<std::tuple<std::string, std::string, std::string>> transition_list)
+		std::initializer_list<TransitionTuple> transition_list)
 	{
+		/*
 		for (const auto& t: transition_list)
 		{
 			if (event_mapping.find(std::get<0>(t))==event_mapping.end())
@@ -135,6 +149,22 @@ public:
 				event_mapping.insert(std::pair<std::string, unsigned int>(std::get<0>(t), cnt_event++));
 			}
 			sm.addTransition(event_mapping[std::get<0>(t)], std::get<1>(t), std::get<2>(t));
+		}
+		*/
+		addDiscreteTransitions(sm, transition_list.begin(), transition_list.end());
+	}
+
+	template<class It> void addDiscreteTransitions(
+			HybridStateMachine<Timestamp, Clock>& sm,
+			It first, It last)
+	{
+		for (auto& t = first; t != last; ++t)
+		{
+			if (event_mapping.find(std::get<0>(*t))==event_mapping.end())
+			{
+				event_mapping.insert(std::pair<std::string, unsigned int>(std::get<0>(*t), cnt_event++));
+			}
+			sm.addTransition(event_mapping[std::get<0>(*t)], std::get<1>(*t), std::get<2>(*t));
 		}
 	}
 

@@ -16,7 +16,7 @@ int main(int argc, char** argv)
 	using namespace rei::node;
 	HybridStateMachineFactoryRos1* factory = HybridStateMachineFactoryRos1::getInstance();
 	std::shared_ptr<RosClock> clock = std::make_shared<RosClock>();
-	HybridStateMachinePtrRos1 hysm = factory->createHybridStateMachine("example_hysm", 1000000000, clock);
+	HybridStateMachinePtrRos1 hysm = factory->createHybridStateMachine("example_hysm", 1000000000);
 	factory->addLocations(*hysm, {"Idle", "Searching", "Parking", "OptimizeParking"});
 	factory->setTerminalLocations(hysm, "SwitchBehaviorSignal", "Idle", "ExitBehaviorSignal", "Idle");
 	factory->addDiscreteTransitions(*hysm,

@@ -1,34 +1,28 @@
 cmake_minimum_required(VERSION 3.0.2)
-project(rei_construct_elements)
+project(parking_scenario)
 
 ## Compile as C++11, supported in ROS Kinetic and newer
-add_compile_options(-std=c++11)
+# add_compile_options(-std=c++11)
 
 ## Find catkin macros and libraries
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 ## is used, also find other catkin packages
 find_package(catkin REQUIRED COMPONENTS
-  geometry_msgs
+  hotaru_planner_node_blocks
+  rei_construct_elements
   rei_signal_msgs
   roscpp
   rospy
-  std_msgs
-  roslib
 )
-
 
 ## System dependencies are found with CMake's conventions
 # find_package(Boost REQUIRED COMPONENTS system)
-find_package(tinyxml2 REQUIRED)
-find_library(TINYXML2_LIBRARY tinyxml2)
+
+
 ## Uncomment this if the package has a setup.py. This macro ensures
 ## modules and global scripts declared therein get installed
 ## See http://ros.org/doc/api/catkin/html/user_guide/setup_dot_py.html
 # catkin_python_setup()
-
-if(NOT TinyXML2_LIBRARIES)
-  set(TinyXML2_LIBRARIES ${TINYXML2_LIBRARY})
-endif()
 
 ################################################
 ## Declare ROS messages, services and actions ##
@@ -78,7 +72,7 @@ endif()
 ## Generate added messages and services with any dependencies listed here
 # generate_messages(
 #   DEPENDENCIES
-#   geometry_msgs#   rei_signal_msgs#   std_msgs
+#   rei_signal_msgs
 # )
 
 ################################################
@@ -112,9 +106,9 @@ endif()
 ## DEPENDS: system dependencies of this project that dependent projects also need
 catkin_package(
 #  INCLUDE_DIRS include
-#  LIBRARIES rei_construct_elements
-#  CATKIN_DEPENDS geometry_msgs rei_signal_msgs roscpp rospy std_msgs
-   DEPENDS tinyxml2
+#  LIBRARIES parking_scenario
+#  CATKIN_DEPENDS hotaru_planner_node_blocks rei_construct_elements rei_signal_msgs roscpp rospy
+#  DEPENDS system_lib
 )
 
 ###########
@@ -124,19 +118,14 @@ catkin_package(
 ## Specify additional locations of header files
 ## Your package locations should be listed before other locations
 include_directories(
-  include
+# include
   ${catkin_INCLUDE_DIRS}
 )
 
 ## Declare a C++ library
-add_library(${PROJECT_NAME}_ros1
-  src/rei_hybrid_control_node_ros1.cpp
-)
-target_link_libraries(${PROJECT_NAME}_ros1
-  ${catkin_LIBRARIES}
-  tinyxml2
-)
-
+# add_library(${PROJECT_NAME}
+#   src/${PROJECT_NAME}/parking_scenario.cpp
+# )
 
 ## Add cmake target dependencies of the library
 ## as an example, code may need to be generated before libraries
@@ -146,8 +135,7 @@ target_link_libraries(${PROJECT_NAME}_ros1
 ## Declare a C++ executable
 ## With catkin_make all packages are built within a single CMake context
 ## The recommended prefix ensures that target names across packages don't collide
-add_executable(ros1_example_node src/examples/ros1/example_hybrid_state_machine.cpp)
-add_executable(ros1_hysm_node_reader src/examples/ros1/hybrid_state_machine_reader.cpp)
+# add_executable(${PROJECT_NAME}_node src/parking_scenario_node.cpp)
 
 ## Rename C++ executable without prefix
 ## The above recommended prefix causes long target names, the following renames the
@@ -160,17 +148,9 @@ add_executable(ros1_hysm_node_reader src/examples/ros1/hybrid_state_machine_read
 # add_dependencies(${PROJECT_NAME}_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
 ## Specify libraries to link a library or executable target against
-
-target_link_libraries(ros1_example_node
-  ${catkin_LIBRARIES}
-  ${PROJECT_NAME}_ros1  
-)
-
-target_link_libraries(ros1_hysm_node_reader
-  ${catkin_LIBRARIES}
-  ${PROJECT_NAME}_ros1
-  tinyxml2
-)
+# target_link_libraries(${PROJECT_NAME}_node
+#   ${catkin_LIBRARIES}
+# )
 
 #############
 ## Install ##
@@ -208,28 +188,21 @@ target_link_libraries(ros1_hysm_node_reader
 # )
 
 ## Mark other files for installation (e.g. launch and bag files, etc.)
-install(FILES
+# install(FILES
 #   # myfile1
 #   # myfile2
-   example/parking.xml
-   DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}
-)
+#   DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}
+# )
 
 #############
 ## Testing ##
 #############
 
 ## Add gtest based cpp test target and link libraries
-catkin_add_gtest(hybridstatemachine-test test/test_basic_hybridstatemachine.cpp)
-catkin_add_gtest(hybridstatemachine-pipeline-test test/test_event_pipeline.cpp)
-catkin_add_gtest(hybridstatemachine-readspecxml-test test/test_read_specification_hybrid_sm.cpp)
-if(TARGET ${PROJECT_NAME}-test)
-  target_link_libraries(hybridstatemachine-test ${PROJECT_NAME}_ros1 )
-  target_link_libraries(hybridstatemachine-pipeline-test ${PROJECT_NAME}_ros1 )
-endif()
-if(TARGET hybridstatemachine-readspecxml-test)
-  target_link_libraries(hybridstatemachine-readspecxml-test ${PROJECT_NAME}_ros1)
-endif()
+# catkin_add_gtest(${PROJECT_NAME}-test test/test_parking_scenario.cpp)
+# if(TARGET ${PROJECT_NAME}-test)
+#   target_link_libraries(${PROJECT_NAME}-test ${PROJECT_NAME})
+# endif()
 
 ## Add folders to be run by python nosetests
 # catkin_add_nosetests(test)

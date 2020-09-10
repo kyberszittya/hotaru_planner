@@ -17,7 +17,8 @@ TEST(TestEventPipeline, TestReceivingPipeline)
 				HybridStateMachineFactory<unsigned long, DummyZeroClock>::getInstance();
 	std::shared_ptr<DummyZeroClock> sm_clock = std::make_shared<DummyZeroClock>();
 	std::shared_ptr<HybridStateMachine<unsigned long, DummyZeroClock>> hy =
-		factory->createHybridStateMachine("test_sm", DUMMY_DELTA_TIME, sm_clock);
+		factory->createHybridStateMachine("test_sm", DUMMY_DELTA_TIME);
+	hy->setClock(sm_clock);
 	factory->addLocations(*hy, {"ON", "OFF"});
 	std::vector<std::string> loc_label = hy->getVertexLabels();
 	ASSERT_EQ(loc_label[0], "PSEUDO_START");
@@ -65,7 +66,8 @@ TEST(TestEventPipeline, TestReceivingPipelineNoEvents)
 				HybridStateMachineFactory<unsigned long, DummyZeroClock>::getInstance();
 	std::shared_ptr<DummyZeroClock> sm_clock = std::make_shared<DummyZeroClock>();
 	std::shared_ptr<HybridStateMachine<unsigned long, DummyZeroClock>> hy =
-		factory->createHybridStateMachine("test_sm", DUMMY_DELTA_TIME, sm_clock);
+		factory->createHybridStateMachine("test_sm", DUMMY_DELTA_TIME);
+	hy->setClock(sm_clock);
 	factory->addLocations(*hy, {"ON", "OFF"});
 	std::vector<std::string> loc_label = hy->getVertexLabels();
 	ASSERT_EQ(loc_label[0], "PSEUDO_START");
@@ -94,7 +96,8 @@ TEST(TestEventPipeline, TestReceivingPipelineUnknownEvents)
 				HybridStateMachineFactory<unsigned long, DummyZeroClock>::getInstance();
 	std::shared_ptr<DummyZeroClock> sm_clock = std::make_shared<DummyZeroClock>();
 	std::shared_ptr<HybridStateMachine<unsigned long, DummyZeroClock>> hy =
-		factory->createHybridStateMachine("test_sm", DUMMY_DELTA_TIME, sm_clock);
+		factory->createHybridStateMachine("test_sm", DUMMY_DELTA_TIME);
+	hy->setClock(sm_clock);
 	factory->addLocations(*hy, {"ON", "OFF"});
 	std::vector<std::string> loc_label = hy->getVertexLabels();
 	ASSERT_EQ(loc_label[0], "PSEUDO_START");
