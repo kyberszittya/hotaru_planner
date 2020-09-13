@@ -95,19 +95,15 @@ void HybridControlNodeRos1::startTimer(const double timer_period)
 
 void HybridControlNodeRos1::opTimer(const ros::TimerEvent& et)
 {
-	HybridStateStepResult res = hysm->step();
-	switch(res)
+	HybridStateStepResult res = HybridStateStepResult::TRANSITED;
+	do
 	{
-	case HybridStateStepResult::EMPTY_QUEUE:
-	{
-		break;
-	}
-	case HybridStateStepResult::TRANSITED:
-	{
-		publishNotificationEvents();
-		break;
-	}
-	}
+		res = hysm->step();
+		if (res==HybridStateStepResult::EMPTY_QUEUE)
+		{
+			break;
+		}
+	}while(res == HybridStateStepResult::TRANSITED);
 }
 
 } // namespace node
