@@ -26,10 +26,11 @@ int main(int argc, char** argv)
 		ROS_FATAL_STREAM("File not found: " << param_filename);
 		return -6;
 	}
-	ROS_INFO("Loaded file");
 	readspecxml.readXmlDescription(param_filename);
 	std::shared_ptr<node::HybridStateMachine<unsigned long, node::RosClock>> hy =
 			readspecxml.getCurrentHybridStateMachine();
+	ROS_INFO("Loaded specification file");
+	ROS_INFO_STREAM("Loaded hybrid state machine: " << hy->getName());
 	node::ros1::DiscreteEventPipelinePtrRos1 event_pipeline =
 			std::make_shared<node::ros1::DiscreteEventPipelineRos1>();
 	node::NotificationContextPtrRos1 notification_context =

@@ -16,11 +16,24 @@ class HybridSystemHumanMachineInterface(object):
         
     def addHySm(self, hy):
         self.hysm.append(hy)
+        
+class HybridHumanCommandLine(HybridMachineHumanInterface):
+    
+    def __init__(self, hysm_name):
+        HybridMachineHumanInterface.__init__(self, hysm_name)
+        
+    def cb_eventTransition(self, data):
+        HybridMachineHumanInterface.cb_eventTransition(self, data)
+        print("({0}): {1}".format(self.hysm_name, data.event_label))
+    
+    def cb_eventLocation(self, data):
+        HybridMachineHumanInterface.cb_eventLocation(self, data)
+        print("({0}): {1}".format(self.hysm_name, data.event_label))
 
 def main():
     rospy.init_node("command_line_tester")
     hysm_name = raw_input("Enter name of the hybrid SM: ")
-    h1 = HybridMachineHumanInterface(hysm_name)
+    h1 = HybridHumanCommandLine(hysm_name)
     hy_system = HybridSystemHumanMachineInterface()
     hy_system.addHySm(h1)
     print("Initialized command line tester")

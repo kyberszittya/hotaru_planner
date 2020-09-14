@@ -19,10 +19,16 @@ class HybridMachineHumanInterface(object):
         self.sub_transition_events = rospy.Subscriber(self.hysm_name+"/transition_events", ReiNotificationSignal, self.cb_eventTransition)
         self.sub_location_events = rospy.Subscriber(self.hysm_name+"/location_events", ReiNotificationSignal, self.cb_eventLocation)
         
-        
+    
+    """
+    @param data: Data to be handled 
+    """    
     def cb_eventTransition(self, data):
         pass
     
+    """
+    @param data: Data to be handled
+    """
     def cb_eventLocation(self, data):
         pass
         
