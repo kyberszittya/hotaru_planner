@@ -18,6 +18,7 @@
 
 #include <rei_construct_elements/rei_hybrid_state_exceptions.hpp>
 #include <rei_construct_elements/graph_elements/rei_graph.hpp>
+#include <rei_construct_elements/hybrid_dynamic_system/rei_internal_signaling_structure.hpp>
 
 namespace rei
 {
@@ -205,52 +206,31 @@ public:
 	}
 };
 
-enum class HybridStateStepResult{ TRANSITED, PROCESS_TIMEOUT, SHIFTED_TIMESTAMP, EMPTY_QUEUE, NO_TRANSITION };
-
-template<class Timestamp> class NotificationEvent
-{
-private:
-	const std::string event_name;
-	const Timestamp stamp;
-public:
-	NotificationEvent(std::string name, const Timestamp stamp): event_name(name),
-		stamp(stamp)
-	{}
-
-	const std::string getEventName() const
-	{
-		return event_name;
-	}
-
-	const Timestamp getTimestamp() const
-	{
-		return stamp;
-	}
-};
-
-template<class Timestamp> using NotificationEventPtr = std::shared_ptr<NotificationEvent<Timestamp>>;
 
 template<class Timestamp> class NotificationContext
 {
 private:
 	std::stack<NotificationEventPtr<Timestamp>> stack_event;
-	std::stack<NotificationEventPtr<Timestamp>> stack_location;
-	std::stack<NotificationEventPtr<Timestamp>> stack_transition;
+	std::stack<LocationNotificationEventPtr<Timestamp>> stack_location;
+	std::stack<TransitionNotificationEventPtr<Timestamp>> stack_transition;
 public:
 	virtual ~NotificationContext()
 	{}
 	virtual void notifyLocation(const LocationPtr location, Timestamp stamp)
 	{
-		std::shared_ptr<NotificationEvent<Timestamp>> event =
-			std::make_shared<NotificationEvent<Timestamp>>(location->getLabel(), stamp);
+		std::shared_ptr<LocationNotificationEvent<Timestamp>> event =
+			std::make_shared<LocationNotificationEvent<Timestamp>>(location->getLabel(), stamp, location->getLabel());
 		stack_location.push(std::move(event));
 
 	}
 
 	virtual void notifyTransition(const TransitionPtr transition, Timestamp stamp)
 	{
-		std::shared_ptr<NotificationEvent<Timestamp>> event =
-			std::make_shared<NotificationEvent<Timestamp>>(transition->getLabel(), stamp);
+		std::shared_ptr<TransitionNotificationEvent<Timestamp>> event =
+			std::make_shared<TransitionNotificationEvent<Timestamp>>(
+					transition->getLabel(), stamp,
+					transition->getSource()->getLabel(),
+					transition->getTarget()->getLabel());
 		stack_transition.push(std::move(event));
 	}
 
@@ -265,22 +245,22 @@ public:
 		return nullptr;
 	}
 
-	NotificationEventPtr<Timestamp> popTransitionEvent()
+	TransitionNotificationEventPtr<Timestamp> popTransitionEvent()
 	{
 		if (!stack_transition.empty())
 		{
-			NotificationEventPtr<Timestamp> event = stack_transition.top();
+			TransitionNotificationEventPtr<Timestamp> event = stack_transition.top();
 			stack_transition.pop();
 			return event;
 		}
 		return nullptr;
 	}
 
-	NotificationEventPtr<Timestamp> popLocationEvent()
+	LocationNotificationEventPtr<Timestamp> popLocationEvent()
 	{
 		if (!stack_location.empty())
 		{
-			NotificationEventPtr<Timestamp> event = stack_location.top();
+			LocationNotificationEventPtr<Timestamp> event = stack_location.top();
 			stack_location.pop();
 			return event;
 		}
@@ -479,10 +459,12 @@ public:
 		// Evaluate event timestamp with current time
 		if (sm_clock->getCurrentTime() + timestamp_delta < event->getTimeStamp())
 		{
+			event_queue.pop();
 			return HybridStateStepResult::SHIFTED_TIMESTAMP;
 		}
 		else if (abs(static_cast<long>(sm_clock->getCurrentTime() - event->getTimeStamp())) > timestamp_delta)
 		{
+			event_queue.pop();
 			return HybridStateStepResult::PROCESS_TIMEOUT;
 		}
 		// If everything is OK, try to transit!
@@ -622,7 +604,7 @@ public:
 
 	/**
 		 * @fn void propagateEvent(const std::string&, Timestamp)
-	 * @brief Proapgate event based on internal signal map
+	 * @brief Propagate event based on internal signal map
 	 *
 	 * @pre
 	 * @post

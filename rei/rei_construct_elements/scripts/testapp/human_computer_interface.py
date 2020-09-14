@@ -5,7 +5,7 @@ Created on Sep 9, 2020
 '''
 
 import rospy
-from rei_signal_msgs.msg import ReiRuntimeControl, ReiNotificationSignal 
+from rei_signal_msgs.msg import ReiRuntimeControl, ReiNotificationSignal, ReiTransitionEventSignal, ReiLocationEventSignal
 
 import networkx
 
@@ -16,8 +16,8 @@ class HybridMachineHumanInterface(object):
         # Command publishers
         self.pub_control_signal = rospy.Publisher(self.hysm_name+"/control_signal", ReiRuntimeControl, queue_size=1)
         # Event subscribers
-        self.sub_transition_events = rospy.Subscriber(self.hysm_name+"/transition_events", ReiNotificationSignal, self.cb_eventTransition)
-        self.sub_location_events = rospy.Subscriber(self.hysm_name+"/location_events", ReiNotificationSignal, self.cb_eventLocation)
+        self.sub_transition_events = rospy.Subscriber(self.hysm_name+"/transition_events", ReiTransitionEventSignal, self.cb_eventTransition)
+        self.sub_location_events = rospy.Subscriber(self.hysm_name+"/location_events", ReiLocationEventSignal, self.cb_eventLocation)
         
     
     """

@@ -21,14 +21,15 @@ protected:
 	double distance; // Distance in [m]
 	unsigned int steps;
 public:
-	ForwardMovementAlgorithm(unsigned int steps = 100);
+	ForwardMovementAlgorithm(std::shared_ptr<ros::NodeHandle> nh, unsigned int steps = 100);
 
 	inline void setDistance(const double distance)
 	{
 		this->distance = distance;
 	}
 
-	virtual void calculateTrajectory() override;
+	virtual bool calculateTrajectory(const geometry_msgs::PoseStamped& current_state,
+			const geometry_msgs::PoseStamped& goal_state) override;
 
 };
 

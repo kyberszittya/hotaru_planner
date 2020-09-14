@@ -24,11 +24,12 @@ class HybridHumanCommandLine(HybridMachineHumanInterface):
         
     def cb_eventTransition(self, data):
         HybridMachineHumanInterface.cb_eventTransition(self, data)
-        print("({0}): {1}".format(self.hysm_name, data.event_label))
+        print("({0}): {1}, {2}->{3}".format(
+            self.hysm_name, data.event_name, data.source_location, data.target_location))
     
     def cb_eventLocation(self, data):
         HybridMachineHumanInterface.cb_eventLocation(self, data)
-        print("({0}): {1}".format(self.hysm_name, data.event_label))
+        print("({0}): {1} @ {2}".format(self.hysm_name, data.event_name, data.location))
 
 def main():
     rospy.init_node("command_line_tester")

@@ -6,6 +6,8 @@
  */
 
 #include <rei_signal_msgs/ReiNotificationSignal.h>
+#include <rei_signal_msgs/ReiLocationEventSignal.h>
+#include <rei_signal_msgs/ReiTransitionEventSignal.h>
 #include <rei_construct_elements/ros1/rei_hybrid_control_node_ros1.hpp>
 
 namespace rei
@@ -30,9 +32,9 @@ bool HybridControlNodeRos1::init_control_signal_interface()
 	// Publisher
 	pub_controlevent = nh->advertise<rei_signal_msgs::ReiNotificationSignal>(
 			hysm->getName()+"/control_events", 1);
-	pub_transition_event = nh->advertise<rei_signal_msgs::ReiNotificationSignal>(
+	pub_transition_event = nh->advertise<rei_signal_msgs::ReiTransitionEventSignal>(
 			hysm->getName()+"/transition_events", 1);
-	pub_location_event = nh->advertise<rei_signal_msgs::ReiNotificationSignal>(
+	pub_location_event = nh->advertise<rei_signal_msgs::ReiLocationEventSignal>(
 			hysm->getName()+"/location_events", 1);
 	// Subscriber
 	sub_controlsignal_pipeline = nh->subscribe(hysm->getName()+"/control_signal", 1,
@@ -63,24 +65,24 @@ void HybridControlNodeRos1::publishNotificationEvents()
 			msg.header.stamp.fromNSec(event->getTimestamp());
 			msg.event_label = event->getEventName();
 			msg.sm_name = hysm->getName();
-			//msg.header.stamp = event->
 			pub_transition_event.publish(msg);
 		}
-		NotificationEventPtrRos1 event_location = notification_context->popLocationEvent();
+		LocationNotificationEventPtrRos1 event_location = notification_context->popLocationEvent();
 		if (event_location != nullptr)
 		{
-			rei_signal_msgs::ReiNotificationSignal msg;
+			rei_signal_msgs::ReiLocationEventSignal msg;
 			msg.header.stamp.fromNSec(event_location->getTimestamp());
-			msg.event_label = event_location->getEventName();
+			msg.location = event_location->getLocation();
 			msg.sm_name = hysm->getName();
 			pub_location_event.publish(msg);
 		}
-		NotificationEventPtrRos1 event_transition = notification_context->popTransitionEvent();
+		TransitionNotificationEventPtrRos1 event_transition = notification_context->popTransitionEvent();
 		if (event_transition != nullptr)
 		{
-			rei_signal_msgs::ReiNotificationSignal msg;
+			rei_signal_msgs::ReiTransitionEventSignal msg;
 			msg.header.stamp.fromNSec(event_transition->getTimestamp());
-			msg.event_label = event_transition->getEventName();
+			msg.source_location = event_transition->getSourceLocation();
+			msg.target_location = event_transition->getTargetLocation();
 			msg.sm_name = hysm->getName();
 			pub_transition_event.publish(msg);
 		}
@@ -103,6 +105,7 @@ void HybridControlNodeRos1::opTimer(const ros::TimerEvent& et)
 		{
 			break;
 		}
+		publishNotificationEvents();
 	}while(res == HybridStateStepResult::TRANSITED);
 }
 

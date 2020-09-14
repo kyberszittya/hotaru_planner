@@ -10,7 +10,12 @@
 
 #include <memory>
 
+#include <ros/ros.h>
+
 #include <hotaru_planner_msgs/TrajectoryArray.h>
+#include <geometry_msgs/PoseStamped.h>
+
+#include <Eigen/Dense>
 
 namespace hotaru
 {
@@ -26,14 +31,48 @@ class EventReceptor
 class PlannerAlgorithm
 {
 protected:
-	hotaru_planner_msgs::TrajectoryArray resultant_trajectory;
+	std::shared_ptr<ros::NodeHandle> nh;
+	ros::Timer planner_timer;
+	ros::Publisher pub_trajectory;
+	/// State
+	geometry_msgs::PoseStamped current_state;
+	geometry_msgs::PoseStamped goal_state;
+	hotaru_planner_msgs::Trajectory resultant_trajectory;
 public:
-	virtual ~PlannerAlgorithm() {}
-	virtual void calculateTrajectory() = 0;
+	PlannerAlgorithm(std::shared_ptr<ros::NodeHandle> nh): nh(nh)
+	{}
 
-	hotaru_planner_msgs::TrajectoryArray getResultantTrajectory()
+	virtual ~PlannerAlgorithm() {}
+	virtual bool calculateTrajectory(const geometry_msgs::PoseStamped& current_state,
+			const geometry_msgs::PoseStamped& goal_state) = 0;
+
+
+	hotaru_planner_msgs::Trajectory getResultantTrajectory()
 	{
 		return resultant_trajectory;
+	}
+
+	bool plan(const geometry_msgs::PoseStamped& current_state,
+			geometry_msgs::PoseStamped& goal_state)
+	{
+		return calculateTrajectory(current_state, goal_state);
+	}
+
+	void init_ros_interface_timer(const double planner_timer_period)
+	{
+		resultant_trajectory.header.frame_id = "map";
+		pub_trajectory = nh->advertise<hotaru_planner_msgs::Trajectory>("/refined_trajectory", 1);
+		planner_timer = nh->createTimer(ros::Duration(planner_timer_period), &PlannerAlgorithm::cbTimer, this);
+
+	}
+
+	void cbTimer(const ros::TimerEvent& et)
+	{
+		if (plan(current_state, goal_state))
+		{
+			resultant_trajectory.header.stamp = ros::Time::now();
+			pub_trajectory.publish(resultant_trajectory);
+		}
 	}
 };
 

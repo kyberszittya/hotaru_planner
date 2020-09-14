@@ -47,6 +47,12 @@ typedef HybridStateMachinePtr<unsigned long, RosClock> HybridStateMachinePtrRos1
 // Redefine ROS 1 control node
 typedef hybridsystem::HybridControl<unsigned long, RosClock> HybridControlRos1;
 typedef std::shared_ptr<hybridsystem::HybridControl<unsigned long, RosClock>> HybridControlPtrRos1;
+// Redefine ROS 1 location event
+typedef LocationNotificationEvent<unsigned long> LocationNotificationEventRos1;
+typedef LocationNotificationEventPtr<unsigned long> LocationNotificationEventPtrRos1;
+// Redefine ROS 1 transition event
+typedef TransitionNotificationEvent<unsigned long> TransitionNotificationEventRos1;
+typedef TransitionNotificationEventPtr<unsigned long> TransitionNotificationEventPtrRos1;
 // Redefine ROS 1 notification context
 typedef NotificationContext<unsigned long> NotificationContextRos1;
 typedef NotificationContextPtr<unsigned long> NotificationContextPtrRos1;

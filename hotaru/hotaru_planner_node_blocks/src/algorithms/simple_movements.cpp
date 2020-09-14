@@ -13,12 +13,15 @@ namespace hotaru
 namespace planner
 {
 
-ForwardMovementAlgorithm::ForwardMovementAlgorithm(unsigned int steps): steps(steps), distance(0.0)
+ForwardMovementAlgorithm::ForwardMovementAlgorithm(std::shared_ptr<ros::NodeHandle> nh, unsigned int steps):
+		blocks::PlannerAlgorithm(nh),
+		steps(steps), distance(0.0)
 	{}
 
 
 
-void ForwardMovementAlgorithm::calculateTrajectory()
+bool ForwardMovementAlgorithm::calculateTrajectory(const geometry_msgs::PoseStamped& current_state,
+		const geometry_msgs::PoseStamped& goal_state)
 {
 	hotaru_planner_msgs::Trajectory trajectory;
 	double x = 0.0;
