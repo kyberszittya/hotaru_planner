@@ -44,6 +44,7 @@ public:
 		model(std::move(model)), dt(dt), max_time(max_time), goal_dist(goal_dist)
 	{}
 
+
 	bool lqr_planning(Eigen::VectorXd state, Eigen::VectorXd goal)
 	{
 		resultant_trajectory.waypoints.clear();
@@ -87,18 +88,18 @@ public:
 	}
 
 
-	void dlqr(Eigen::MatrixXd A, Eigen::VectorXd B,
-			Eigen::MatrixXd Q, double R)
+	void dlqr(Eigen::MatrixXd A, Eigen::MatrixXd B,
+			Eigen::MatrixXd Q, Eigen::MatrixXd R)
 	{
 		current_X = algorithm::dareCalculation(A, B, Q, R);
-		double invK = (B.transpose() * current_X * B + R);
-		current_Kgain =  (B.transpose() * current_X * A)/invK;
+		double invK = (B.transpose() * current_X * B + R).inverse();
+		current_Kgain =  invK * (B.transpose() * current_X * A);
 
 	}
 
-	Eigen::VectorXd lqr_control(Eigen::MatrixXd A, Eigen::VectorXd B, Eigen::VectorXd x)
+	Eigen::VectorXd lqr_control(Eigen::MatrixXd A, Eigen::MatrixXd B, Eigen::VectorXd x)
 	{
-		dlqr(A, B, Eigen::MatrixXd::Identity(A.rows(), A.cols()), 1.0);
+		dlqr(A, B, Eigen::MatrixXd::Identity(A.rows(), A.rows()), Eigen::MatrixXd(B.cols(), B.cols()));
 		return -current_Kgain * x;
 	}
 

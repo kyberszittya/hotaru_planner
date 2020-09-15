@@ -13,15 +13,16 @@
 
 TEST(TestBasicCalculations, DareCalculation)
 {
-	Eigen::MatrixXd A(2,2);
+	Eigen::MatrixXd A(2, 2);
 	A << -0.9, -0.3,
 			0.7, 0.1;
-	Eigen::VectorXd B(2);
+	Eigen::MatrixXd B(2, 1);
 	B << 1, 1;
-	Eigen::MatrixXd Q(2,2);
+	Eigen::MatrixXd Q(2, 2);
 	Q << 1, 0,
 		0, 3;
-	double R = 0.1;
+	Eigen::MatrixXd R(1, 1);
+	R << 0.1;
 	Eigen::MatrixXd X = hotaru::algorithm::dareCalculation(A, B, Q, R);
 	std::cout << "Resulting matrix: " << X << '\n';
 	ASSERT_NEAR(X.coeff(0,0), 4.76776,  0.0001);

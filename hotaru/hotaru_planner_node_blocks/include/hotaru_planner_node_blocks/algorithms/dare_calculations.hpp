@@ -19,7 +19,7 @@ namespace algorithm
 
 constexpr double DARE_EPSILON = 0.01;
 
-Eigen::MatrixXd dareCalculation(const Eigen::MatrixXd& A, const Eigen::VectorXd& B, const Eigen::MatrixXd& Q, double R,
+Eigen::MatrixXd dareCalculation(const Eigen::MatrixXd& A, const Eigen::MatrixXd& B, const Eigen::MatrixXd& Q, const Eigen::MatrixXd& R,
 		unsigned int MAX_ITER=1000)
 {
 	Eigen::MatrixXd X = Q;
@@ -27,12 +27,9 @@ Eigen::MatrixXd dareCalculation(const Eigen::MatrixXd& A, const Eigen::VectorXd&
 
 	for (int i = 0; i < MAX_ITER; i++)
 	{
-		double inv_ = (B.transpose() * X * B + R);
-
-		Xn = A.transpose() * X * A - A.transpose() * X * B * 1/inv_ * B.transpose() * X * A + Q;
-
+		Eigen::MatrixXd inv_ = (B.transpose() * X * B + R).inverse();
+		Xn = A.transpose() * X * A - A.transpose() * X * B * inv_ * B.transpose() * X * A + Q;
 		Eigen::MatrixXd err = (Xn - X).cwiseAbs();
-
 		if (err.maxCoeff() < DARE_EPSILON)
 		{
 			break;
