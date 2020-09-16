@@ -78,7 +78,7 @@ class LQRPlanner(object):
         u = -Kopt.dot(x)
         return u
     
-    def getTrajectory(self):
+    def get_trajectory(self):
         return self.current_trajectory
     
     def plan(self, start, goal):
