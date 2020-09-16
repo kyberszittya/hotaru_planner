@@ -5,18 +5,19 @@ from lqr import LQRPlanner, PositionalErrorSystemModel
 
 import matplotlib.pyplot as plt
 
+
 def main():
     points = np.array(
         [[0.0, 0.0],
-         [6.0, 4.0],
-         [7.0, -2.0],
-         [10.0, -5.0],
-         [9.0, -9.0]]
+         [4.0, 4.0],
+         [7.0, 4.0],
+         [10.0, 0.0],
+         [12.0, 0.0]]
     )
     tensions = [-1.5, -1.0, -0.5, -0.25, 0.0, 0.25, 0.5, 1.0, 1.5]
     axes = plt.gca()
-    axes.set_xlim([0, 20])
-    axes.set_ylim([10, -10])
+    axes.set_xlim([0, 12])
+    axes.set_ylim([-6, 6])
     for tension in tensions:
         cv = CatmullRomSpline(tension=tension)
         cv.add_control_vertices(points)

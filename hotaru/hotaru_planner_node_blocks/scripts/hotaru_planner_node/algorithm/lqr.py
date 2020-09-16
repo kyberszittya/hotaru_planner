@@ -46,8 +46,8 @@ class PositionalErrorSystemModel(RobotSystemModel):
         B = np.array([[0.0, 1.0]]).reshape(2,1)
         RobotSystemModel.__init__(self, A, B)
         self.dt = dt
-        
-            
+
+
 class LQRPlanner(object):
     
     def __init__(self, system_model,

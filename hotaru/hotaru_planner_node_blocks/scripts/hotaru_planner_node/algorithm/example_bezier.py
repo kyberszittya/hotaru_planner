@@ -10,6 +10,7 @@ import numpy as np
 
 from bezier import BezierCurve
 
+
 def main():
     bc = BezierCurve()
     points = np.array(
@@ -24,6 +25,7 @@ def main():
     plt.plot(tr[:,0], tr[:,1])
     plt.plot(points[:,0], points[:,1], 'r^')    
     plt.show()   
+
 
 if __name__=="__main__":
     main()
