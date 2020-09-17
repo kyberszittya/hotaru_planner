@@ -11,6 +11,7 @@
 #include <map>
 #include <memory>
 #include <functional>
+#include <vector>
 
 namespace rei
 {
@@ -40,7 +41,6 @@ class PortStateMonitor
 private:
 	// A map of port identifier and the latest timestamp
 	std::map<std::string, std::shared_ptr<PortMonitorState>> signal_timestamps;
-
 public:
 	PortStateMonitor()
 	{}
@@ -64,6 +64,18 @@ public:
 
 	bool isReady();
 
+	const std::vector<std::string> getTimeoutPorts()
+	{
+		std::vector<std::string> timeout_ports;
+		for (const auto k: this->signal_timestamps)
+		{
+			if (!k.second->isFresh())
+			{
+				timeout_ports.emplace_back(k.first);
+			}
+		}
+		return timeout_ports;
+	}
 
 };
 

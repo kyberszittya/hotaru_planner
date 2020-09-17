@@ -13,7 +13,9 @@
 
 #include "state_machine/trajectory_statemachine.hpp"
 
+
 #include <memory>
+#include <mutex>
 
 #include <tf2_ros/transform_listener.h>
 #include <tf2_ros/buffer.h>
@@ -96,11 +98,11 @@ protected:
 public:
 
 	HotaruPlannerNodeRos(
+			std::shared_ptr<ros::NodeHandle> private_nh,
 			std::shared_ptr<ros::NodeHandle> nh,
-			std::string base_frame, std::string target_frame,
-			const bool debug = false
+			std::string base_frame, std::string target_frame
 			):
-		InterfaceRos_AbstractHotaruPlannerNode(nh, debug),
+		InterfaceRos_AbstractHotaruPlannerNode(private_nh, nh),
 		tf_planner_state(base_frame, target_frame){}
 };
 

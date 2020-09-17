@@ -1,7 +1,9 @@
 <launch>
-	<node pkg="rei_waypoint_monitor" type="rei_waypoint_monitor_node" name="waypoint_monitor">	  
+	<node pkg="rei_waypoint_monitor" type="rei_waypoint_monitor_node" name="waypoint_monitor" output="screen">
+		<remap from="input_trajectory" to="hotaru_teb_1/input_trajectory" />
 	</node>
 	<node pkg="rei_perception_monitor" type="rei_obstacle_monitor_local_node" name="obstacle_monitor">
+		<remap from="input_trajectory" to="hotaru_teb_1/input_trajectory" />
 		<param name="global_frame" value="map"/>
 		<param name="local_frame" value="base_link"/>
 		<param name="sensor_frame" value="left_os1/os1_sensor"/>

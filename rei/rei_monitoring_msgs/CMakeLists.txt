@@ -58,6 +58,8 @@ add_message_files(
   # Perception msgs
   Obstacle.msg
   DetectedObstacles.msg
+  # Dynamic constraints
+  MotionDynamicConstraints.msg
 )
 
 ## Generate services in the 'srv' folder

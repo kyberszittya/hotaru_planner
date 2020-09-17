@@ -10,6 +10,7 @@
 
 #include <geometry_msgs/Point.h>
 #include <geometry_msgs/Point32.h>
+#include <geometry_msgs/Twist.h>
 
 namespace rei
 {
@@ -24,6 +25,11 @@ double spatialDistance(const geometry_msgs::Point& msg0,
 		const geometry_msgs::Point& msg1);
 double planarDistance(const geometry_msgs::Point& msg0,
 		const geometry_msgs::Point& msg1);
+
+inline double velocityScalar(const geometry_msgs::Twist& msg)
+{
+	return sqrt(msg.linear.x*msg.linear.x + msg.linear.y * msg.linear.y + msg.linear.z * msg.linear.z);
+}
 
 inline bool isInvalidPoint(const geometry_msgs::Point p0)
 {

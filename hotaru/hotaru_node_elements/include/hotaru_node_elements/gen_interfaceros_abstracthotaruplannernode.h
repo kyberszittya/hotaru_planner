@@ -3,13 +3,13 @@
 
 #include <ros/ros.h>
 /// ROS msgs
-#include <geometry_msgs/PoseStamped.h>		
-#include <hotaru_msgs/RefinedTrajectory.h>		
-#include <rei_monitoring_msgs/DetectedObstacles.h>		
-#include <std_msgs/Int32.h>		
-#include <geometry_msgs/TwistStamped.h>		
-#include <std_msgs/Float64.h>		
 #include <rei_planner_signals/ReplanRequest.h>		
+#include <std_msgs/Int32.h>		
+#include <std_msgs/Float64.h>		
+#include <rei_monitoring_msgs/DetectedObstacles.h>		
+#include <hotaru_msgs/RefinedTrajectory.h>		
+#include <geometry_msgs/PoseStamped.h>		
+#include <geometry_msgs/TwistStamped.h>		
 #include <rei_statemachine_library/ros/ros_sync_state_machine.hpp>
 // State-machine node element
 #include <rei_common/gen_node_elements/interface_simple_ros_node.hpp>
@@ -21,7 +21,8 @@ namespace hotaru {
 struct StateAbstractHotaruPlannerNode
 {
 	// Flags
-	const bool debug;
+	const bool debug;				///< Publish debug parameters
+	const bool bypass_behavior;     ///< Bypass behavioral state machines
 	// ROS input messages
 	hotaru_msgs::RefinedTrajectory msg_port_input_trajectory; ///< port_input_trajectory store to hotaru_msgs::RefinedTrajectory
 	geometry_msgs::PoseStamped msg_port_current_pose; ///< port_current_pose store to geometry_msgs::PoseStamped
@@ -33,7 +34,7 @@ struct StateAbstractHotaruPlannerNode
 	hotaru_msgs::RefinedTrajectory msg_port_refined_trajectory; ///< port_refined_trajectory store to hotaru_msgs::RefinedTrajectory
 	std_msgs::Float64 msg_port_calc_planner_time; ///< port_calc_planner_time store to std_msgs::Float64
 	
-	StateAbstractHotaruPlannerNode(const bool debug): debug(debug) {}
+	StateAbstractHotaruPlannerNode(const bool debug, const bool bypass_behavior): debug(debug), bypass_behavior(bypass_behavior) {}
 };
 
 /**
@@ -52,6 +53,7 @@ class InterfaceRos_AbstractHotaruPlannerNode: public rei::Interface_SimpleRosNod
 private:
 protected:
 	/// ROS utils
+	std::shared_ptr<ros::NodeHandle> private_nh;
 	std::shared_ptr<ros::NodeHandle> nh;
 	/// ROS Subscribers
 	ros::Subscriber port_input_trajectory; ///< port_input_trajectory subscriber to hotaru_msgs::RefinedTrajectory
@@ -74,7 +76,7 @@ protected:
 	// Set ALL STATES CB
 	virtual void setSyncStateMachineCallbacks() = 0;
 public:
-	InterfaceRos_AbstractHotaruPlannerNode(std::shared_ptr<ros::NodeHandle> nh, const bool debug=false): nh(nh) {}
+	InterfaceRos_AbstractHotaruPlannerNode(std::shared_ptr<ros::NodeHandle> private_nh, std::shared_ptr<ros::NodeHandle> nh): private_nh(private_nh), nh(nh) {}
 	
 	virtual ~InterfaceRos_AbstractHotaruPlannerNode() = 0;
 	
@@ -103,8 +105,9 @@ public:
 	
 	/*
 	 * @brief: initialize middleware
+	 * @param debug: defines whether the debug information should be provided or not.
 	 */
-	virtual bool initMiddleware(const bool debug) override;
+	virtual bool initMiddleware(const bool debug, const bool bypass_behavior) override;
 	
 	/*
 	 * @brief: post initialize
@@ -115,31 +118,32 @@ public:
 	 * Callback method for input_trajectory
 	 */
 	void cbPort_input_trajectory(const hotaru_msgs::RefinedTrajectory::ConstPtr& msg); ///< port_input_trajectory subscriber to hotaru_msgs::RefinedTrajectory
-	virtual void execute_update_input_trajectory() = 0;
+	virtual void execute_update_input_trajectory(const hotaru_msgs::RefinedTrajectory::ConstPtr& msg) = 0;
 	/**
 	 * Callback method for current_pose
 	 */
 	void cbPort_current_pose(const geometry_msgs::PoseStamped::ConstPtr& msg); ///< port_current_pose subscriber to geometry_msgs::PoseStamped
-	virtual void execute_update_current_pose() = 0;
+	virtual void execute_update_current_pose(const geometry_msgs::PoseStamped::ConstPtr& msg) = 0;
 	/**
 	 * Callback method for current_velocity
 	 */
 	void cbPort_current_velocity(const geometry_msgs::TwistStamped::ConstPtr& msg); ///< port_current_velocity subscriber to geometry_msgs::TwistStamped
-	virtual void executeUpdate_velocity() = 0;
+	virtual void executeUpdate_velocity(const geometry_msgs::TwistStamped::ConstPtr& msg) = 0;
 	/**
 	 * Callback method for replan_request_sig
 	 */
 	void cbPort_replan_request_sig(const rei_planner_signals::ReplanRequest::ConstPtr& msg); ///< port_replan_request_sig subscriber to rei_planner_signals::ReplanRequest
+	virtual void executeReplan_request_sig(const rei_planner_signals::ReplanRequest::ConstPtr& msg) = 0;
 	/**
 	 * Callback method for closest_waypoint
 	 */
 	void cbPort_closests_waypoint(const std_msgs::Int32::ConstPtr& msg); ///< port_closests_waypoint subscriber to std_msgs::Int32
-	virtual void executeUpdate_closest_waypoint() = 0;
+	virtual void executeUpdate_closest_waypoint(const std_msgs::Int32::ConstPtr& msg) = 0;
 	/**
 	 * Callback method for rei_perception_monitor/detected_obstacles
 	 */
 	void cbPort_poly_obstacle(const rei_monitoring_msgs::DetectedObstacles::ConstPtr& msg); ///< port_poly_obstacle subscriber to rei_monitoring_msgs::DetectedObstacles
-	virtual void executeUpdate_obstacles() = 0;
+	virtual void executeUpdate_obstacles(const rei_monitoring_msgs::DetectedObstacles::ConstPtr& msg) = 0;
 	
 	/**
 	 * Publish method to publish message to refined_trajectory

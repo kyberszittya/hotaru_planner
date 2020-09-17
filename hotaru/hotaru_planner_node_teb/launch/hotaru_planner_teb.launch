@@ -1,0 +1,13 @@
+<launch>
+  <arg name="bypass_behavior" default="false"/>
+  <node type="hotaru_planner_node_teb_node" pkg="hotaru_planner_node_teb" name="hotaru_planner_node_teb_node" output="screen">    
+  	<!--<rosparam command="load" file="$(find hotaru_planner_node_teb)/param/teb_lowspeed.yaml"/>-->
+  	<rosparam command="load" file="$(find hotaru_planner_node_teb)/param/teb_lowspeed.yaml"/>
+  	<remap from="input_trajectory" to="hotaru_teb_1/input_trajectory" />
+  	<remap from="refined_trajectory" to="hotaru_teb_1/refined_trajectory" />
+  </node>
+  <node type="trajectory_visualizer.py" name="hotaru_trajectory_visualizer_teb" pkg="hotaru_node_elements">
+  	<remap from="input_trajectory" to="hotaru_teb_1/input_trajectory" />
+  	<remap from="refined_trajectory" to="hotaru_teb_1/refined_trajectory" />
+  </node>
+</launch>

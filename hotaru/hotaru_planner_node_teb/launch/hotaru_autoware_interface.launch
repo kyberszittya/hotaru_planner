@@ -1,5 +1,7 @@
 <launch>
   <node type="hotaru_autoware_bridge_node" pkg="hotaru_autoware_bridge" name="hotaru_autoware_bridge">
+  	<remap from="input_trajectory" to="hotaru_teb_1/input_trajectory"/>
+  	<remap from="refined_trajectory" to="hotaru_teb_1/refined_trajectory"/>
   </node>
   <include file="$(find hotaru_planner_node_teb)/launch/hotaru_system_local_env.launch">
   </include>

@@ -30,14 +30,19 @@ class RosSyncStateMachine
 private:
 	const std::string name;
 	std::shared_ptr<ros::NodeHandle> nh;
+	const double step_hz_rate;
 protected:
 	std::shared_ptr<PortStateMonitorRos> port_state_monitor;
 	std::shared_ptr<RosCommunicationGraphNotifier> notifier;
 	std::shared_ptr<SyncStateMachine> sync_state_machine;
-
+	// Timer to step and update messages
+	ros::Timer timer_syn_sm;
+	// Exclusive mutex to step
+	std::shared_ptr<std::mutex> mtx_sm;
 public:
 	RosSyncStateMachine(std::shared_ptr<ros::NodeHandle> nh,
-			const std::string name): nh(nh), name(name){
+			const std::string name, const double step_hz_rate = 5.0):
+				nh(nh), name(name), step_hz_rate(step_hz_rate){
 
 	}
 
@@ -46,20 +51,50 @@ public:
 			std::shared_ptr<SyncStateMachine> sync_state_machine,
 			std::shared_ptr<PortStateMonitorRos> port_state_monitor,
 			std::shared_ptr<RosCommunicationGraphNotifier> notifier,
-			const std::string name): nh(nh),
+			const std::string name, const double step_hz_rate = 60.0): nh(nh),
 					port_state_monitor(port_state_monitor),
 					notifier(notifier),
 					sync_state_machine(sync_state_machine),
-					name(name){
+					name(name), step_hz_rate(step_hz_rate){
+	}
+
+	void cbTimerSynSm(const ros::TimerEvent& e)
+	{
+		uint64_t time = e.current_real.toNSec();
+		port_state_monitor->checkAllStatesTimestamp(time);
+		/// If waiting, inform whether there are topics to be waited of
+		if (sync_state_machine->isWaiting())
+		{
+			if (port_state_monitor->isReady())
+			{
+				ROS_ERROR("Unexpected error attempting to react with sync sm");
+				port_state_monitor->react_Fresh(time);
+				mtx_sm->lock();
+				sync_state_machine->stepstatemachine();
+				mtx_sm->unlock();
+			}
+			else
+			{
+				for (const auto& v: port_state_monitor->getTimeoutPorts())
+				{
+					ROS_WARN_STREAM("Waiting for input on: " << v);
+				}
+			}
+		}
 	}
 
 	bool initialize()
 	{
-
+		// Initialize mutex
+		mtx_sm = std::make_shared<std::mutex>();
+		if (mtx_sm==nullptr)
+		{
+			return false;
+		}
 		// If the state machine hasn't been initialized externally, let's initialize it
 		if (sync_state_machine==nullptr)
 		{
-			port_state_monitor= std::shared_ptr<PortStateMonitorRos>(new PortStateMonitorRos());
+			port_state_monitor= std::shared_ptr<PortStateMonitorRos>(new PortStateMonitorRos(mtx_sm));
 			if (port_state_monitor == nullptr)
 			{
 				return false;
@@ -91,6 +126,10 @@ public:
 	void startRos()
 	{
 		ROS_INFO_STREAM("Initializing sync_state_machine: " << name);
+		timer_syn_sm = nh->createTimer(
+				ros::Duration(1.0/step_hz_rate),
+				&RosSyncStateMachine::cbTimerSynSm, this);
+		ROS_INFO_STREAM("Started ROS timer for Sync state machine");
 	}
 
 	void addTopicGuard(std::string name, double estimated_frequency)
@@ -111,13 +150,18 @@ public:
 
 	void step()
 	{
+		mtx_sm->lock();
 		sync_state_machine->stepstatemachine();
+		mtx_sm->unlock();
 	}
 
 	bool isReady()
 	{
 		return sync_state_machine->isStarted();
 	}
+
+
+
 
 };
 

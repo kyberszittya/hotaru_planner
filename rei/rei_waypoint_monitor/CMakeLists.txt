@@ -13,6 +13,7 @@ find_package(catkin REQUIRED COMPONENTS
   rospy
   std_msgs
   hotaru_msgs
+  rei_common
 )
 
 IF(CMAKE_BUILD_TYPE MATCHES Coverage)

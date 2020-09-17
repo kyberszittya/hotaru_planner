@@ -5,10 +5,14 @@
  *      Author: kyberszittya
  */
 
+#include <hotaru_node_elements/hotaru_planner_node_ros1.hpp>
+
 #include <hotaru_node_elements/trajectory_slicer_strategy.hpp>
 
 namespace hotaru
 {
+
+
 TrajectorySlicerStrategy::~TrajectorySlicerStrategy(){}
 }
 

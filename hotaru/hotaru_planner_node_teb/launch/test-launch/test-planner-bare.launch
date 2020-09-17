@@ -1,0 +1,12 @@
+<launch>
+  <include file="$(find hotaru_planner_node_teb)/launch/hotaru_planner_teb.launch">
+  </include>
+  <node type="hotaru_tester.py" name="hotaru_tester" pkg="hotaru_node_elements">
+  	<param name="test_case_path" value="$(find hotaru_planner_node_teb)/basic-test-cases/relay-test.json" output="screen"/>
+  </node>
+  <include file="$(find hotaru_planner_node_teb)/launch/test-launch/hotaru_test_util.launch">
+  </include>
+  <node type="syncsignalmonitor.py" name="syncsignalmonitor" pkg="rei_sync_monitor" output="screen">
+  	<param name="test_case_path" value="$(find hotaru_planner_node_teb)/basic-test-cases/relay-test.json" output="screen"/>
+  </node>
+</launch>

@@ -175,10 +175,12 @@ target_link_libraries(${PROJECT_NAME}
 
 ## Mark executable scripts (Python etc.) for installation
 ## in contrast to setup.py, you can choose the destination
-# install(PROGRAMS
-#   scripts/my_python_script
-#   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
-# )
+install(PROGRAMS
+  scripts/test-util/hotaru_tester.py
+  scripts/visualization/trajectory_visualizer.py
+  scripts/visualization/planner_signal_visualizer.py
+  DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
+)
 
 ## Mark executables for installation
 ## See http://docs.ros.org/melodic/api/catkin/html/howto/format1/building_executables.html
@@ -215,9 +217,11 @@ target_link_libraries(${PROJECT_NAME}
 ## Add gtest based cpp test target and link libraries
 catkin_add_gtest(trajectory-slicer-test test/trajectory_utilities/test_trajectory_slicer.cpp)
 catkin_add_gtest(planner-statemachine-test test/test_statemachine/test_local_planner_state_machine.cpp)
+catkin_add_gtest(trajectory-velocity-test test/test_velocity_profile.cpp)
 if(TARGET trajectory-slicer-test)
   target_link_libraries(trajectory-slicer-test ${PROJECT_NAME} ${CATKIN_LIBRARIES})
   target_link_libraries(planner-statemachine-test ${PROJECT_NAME} ${CATKIN_LIBRARIES})
+  target_link_libraries(trajectory-velocity-test ${PROJECT_NAME} ${CATKIN_LIBRARIES})
 endif()
 
 ## Add folders to be run by python nosetests

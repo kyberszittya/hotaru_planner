@@ -78,7 +78,7 @@ public:
 	 *           4. Initialize middleware functionalities
 	 *           5. Initialize descendant node-specific functionalities
 	 */
-	void initialize(const bool debug)
+	void initialize(const bool debug, const bool bypass_behavior)
 	{
 		// Initialize node before initialization
 		if (!initPre())
@@ -96,7 +96,7 @@ public:
 			throw ExceptionTimeoutStateMachineInitialization();
 		}
 		// Initialize middleware
-		if (!initMiddleware(debug))
+		if (!initMiddleware(debug, bypass_behavior))
 		{
 			throw ExceptionNodeMiddleWare();
 		}
@@ -109,7 +109,7 @@ public:
 	virtual bool initPre() = 0;   						///< Initialize pre middleware parts of the node
 	virtual bool initTimeoutStateMachine() = 0;			///< Initialize timeout statemachine part of the node
 	virtual bool assignSyncGuards() = 0;				///< Assign sync guards to state machine tranisitions
-	virtual bool initMiddleware(const bool debug) = 0;	///< Initialize middleware
+	virtual bool initMiddleware(const bool debug, const bool bypass_behavior) = 0;	///< Initialize middleware
 	virtual bool initPost() = 0;						///< Initialize post middleware part of the node
 };
 

@@ -40,7 +40,6 @@ void PortStateMonitor::updateTimestamp(std::string portmonitorstate, const unsig
 
 void PortStateMonitor::checkStateTimestamp(std::shared_ptr<PortMonitorState> portmonitorstate, const unsigned long long timestamp)
 {
-	// TODO: Kekeke, this does occur, let's investigate it further
 	unsigned long long dt;
 	if (portmonitorstate->timestamp > timestamp)
 	{
@@ -50,13 +49,13 @@ void PortStateMonitor::checkStateTimestamp(std::shared_ptr<PortMonitorState> por
 	{
 		dt = timestamp - portmonitorstate->timestamp;
 	}
-	//std::cout << portmonitorstate->name << ": "<< dt << '\n';
 	switch (portmonitorstate->state)
 	{
 		case PortMonitorState_State::FRESH:
 		{
 			if (dt >= portmonitorstate->freq)
 			{
+				ROS_WARN_STREAM("Timeout on port: " << portmonitorstate->name << ", expected sample time [ns]: " << portmonitorstate->freq);
 				portmonitorstate->state = PortMonitorState_State::TIMEOUT;
 				react_TimeOut(timestamp);
 			}
@@ -87,7 +86,6 @@ void PortStateMonitor::checkAllStatesTimestamp(const unsigned long long timestam
 
 void PortStateMonitor::updateTimestamp(std::shared_ptr<PortMonitorState> portmonitorstate, const unsigned long long timestamp)
 {
-	//checkAllStatesTimestamp(timestamp);
 	checkStateTimestamp(portmonitorstate, timestamp);
 	portmonitorstate->timestamp = timestamp;
 	switch (portmonitorstate->state)
