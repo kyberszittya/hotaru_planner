@@ -24,7 +24,8 @@ def main():
     axes = plt.gca()
     axes.set_xlim([0, 15])
     axes.set_ylim([0, 15])
-    bc.add_control_vertices(points)    
+    bc.add_control_vertices(points)
+    bc.initialize_parameter_values()
     tr = bc.generate_path(100)
     plt.plot(tr[:,0], tr[:,1])
     weights = [0.5, 0.8, 1.0, 1.2, 1.5, 1.75 ,2.5, 3.0, 4.0, 10.0]
@@ -34,6 +35,8 @@ def main():
         point_weights[3] = wi
         bcr = RationalBezierCurve()
         bcr.add_control_vertices(points)
+        bcr.initialize_parameter_values()
+
         bcr.set_weights(point_weights)
         tr = bcr.generate_path(100)
         plt.plot(tr[:,0], tr[:,1])

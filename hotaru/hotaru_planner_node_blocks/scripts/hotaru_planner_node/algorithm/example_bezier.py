@@ -20,7 +20,8 @@ def main():
          [10.0, -5.0],
          [9.0,  -9.0]]
     )
-    bc.add_control_vertices(points)    
+    bc.add_control_vertices(points)
+    bc.initialize_parameter_values()
     tr = bc.generate_path(100)
     plt.plot(tr[:,0], tr[:,1])
     plt.plot(points[:,0], points[:,1], 'r^')    

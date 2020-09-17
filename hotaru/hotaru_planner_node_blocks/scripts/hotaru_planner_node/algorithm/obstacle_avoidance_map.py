@@ -10,13 +10,12 @@ from hotaru_planner_node.algorithm.heuristics import obstacle_avoidance_euclidea
 
 import matplotlib.pyplot as plt
 from hotaru_planner_node.algorithm.bezier import RationalBezierCurve
+from hotaru_planner_node.algorithm.test_scenario_generator import test_case_generate
+
+import time
 
 def main():
-    obs = np.array([6, 1])
-    mesh_map_x = np.linspace(-15, 15, 150) 
-    mesh_map_y = np.linspace(-15, 15, 150)
-    mesh_map_xx, mesh_map_yy = np.meshgrid(mesh_map_x, mesh_map_y)
-    z = obstacle_avoidance_euclidean_distance(obs[0], obs[1], mesh_map_xx, mesh_map_yy)
+    mesh_map_xx, mesh_map_yy, z, obs = test_case_generate(0.05, 0.2)
     plt.contourf(mesh_map_xx,mesh_map_yy, z)
     # Bezier weights according to distance to objects
     ref_trajectory_points = np.array([
@@ -28,13 +27,18 @@ def main():
         [12, 0],
         [15, 0]
     ])    
+    start = time.perf_counter()
     cv_weights = calc_cv_weights(obs, ref_trajectory_points, obstacle_avoidance_euclidean_distance)
-    print(cv_weights)
+
     bezier = RationalBezierCurve()
     bezier.add_control_vertices(ref_trajectory_points)
     bezier.initialize_parameter_values()
     bezier.set_weights(cv_weights)
-    tr = bezier.generate_path(100)    
+    tr = bezier.generate_path(100)
+    end = time.perf_counter()
+    print(end - start)
+    print(cv_weights)
+
     for i in range(len(tr) - 1):
         x = tr[i][0]
         y = tr[i][1]
