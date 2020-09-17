@@ -10,6 +10,13 @@ def hermite_interpolation(p0, v0, t0, p1, v1, t1, t):
     a3 = 2*(p0 - p1)/(t1 - t0)**3 + (v1 + v0)/(t1 - t0)**2
     return a3*dt**3 + a2*dt**2 + a1*dt + a0
 
+def d_hermite_interpolation(p0, v0, t0, p1, v1, t1, t):
+    dt = t - t0
+    a1 = v0
+    a2 = 3*(p1 - p0)/(t1 - t0)**2 - (v1 + 2 * v0)/(t1 - t0)
+    a3 = 2*(p0 - p1)/(t1 - t0)**3 + (v1 + v0)/(t1 - t0)**2
+    return 3*a3*dt**2 + 2*a2*dt + a1
+
 
 class CatmullRomSpline(Interpolator):
 
@@ -48,6 +55,14 @@ class CatmullRomSpline(Interpolator):
     def r(self, t):
         for i in range(len(self.cvs) - 1):
             if self.ts[i] <= t <= self.ts[i + 1]:
-                return hermite_interpolation(self.cvs[i], self.velocities[i], self.ts[i], \
-                                             self.cvs[i + 1], self.velocities[i + 1], self.ts[i + 1], t)
+                p0 = self.cvs[i]
+                v0 = self.velocities[i]
+                t0 = self.ts[i]
+                p1 = self.cvs[i + 1]
+                v1 = self.velocities[i + 1]
+                t1 = self.ts[i + 1]
+                r = hermite_interpolation(p0, v0, t0, p1, v1, t1, t)
+                dr = d_hermite_interpolation(p0, v0, t0, p1, v1, t1, t)
+                orien = np.arctan2(dr[1],dr[0])
+                return np.array([r[0], r[1], orien])
 

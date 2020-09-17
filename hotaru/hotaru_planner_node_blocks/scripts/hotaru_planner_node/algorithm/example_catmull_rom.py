@@ -21,11 +21,19 @@ def main():
         cv = CatmullRomSpline(tension=tension)
         cv.add_control_vertices(points)
         cv.initialize_parameter_values()
-        tr = cv.generate_path(100)
-        plt.plot(tr[:, 0], tr[:, 1])
+        tr = cv.generate_path(100)        
+        line,  = plt.plot(tr[:, 0], tr[:, 1])
+        line.set_label("T: {0}".format(tension))
+        # Draw orientation
+        for v in tr:
+            x = v[0]+2*np.cos(v[2])
+            y = v[1]+2*np.sin(v[2])            
+            plt.plot((x,v[0]), (y, v[1]), color='purple', alpha=0.3)
         plt.plot(points[:, 0], points[:, 1], 'r^')
+    plt.legend()
     plt.show()
 
 
 if __name__=="__main__":
     main()
+    

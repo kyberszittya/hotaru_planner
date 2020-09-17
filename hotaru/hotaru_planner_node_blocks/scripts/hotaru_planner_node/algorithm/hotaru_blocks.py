@@ -41,8 +41,17 @@ class Interpolator(object):
     
     def r(self, t):
         raise NotImplementedError
+    
+    def dr(self, t):
+        raise NotImplementedError
+    
+    def ddr(self,t):
+        raise NotImplementedError
         
     def generate_path(self, steps):
+        """
+        Return with yaw (axis-z rotation)
+        """
         path = []
         for t in np.linspace(0, self.maxT, steps):
             path.append(self.r(t))
