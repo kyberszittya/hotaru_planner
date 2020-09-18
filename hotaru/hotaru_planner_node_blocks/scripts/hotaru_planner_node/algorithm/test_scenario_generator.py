@@ -19,8 +19,8 @@ def test_case_generate_graphs(resolution_x, resolution_y):
         [5, 4],
         [4.5, 15]
     ])
-    mesh_map_x = np.linspace(0, 15, 150)
-    mesh_map_y = np.linspace(0, 15, 150)
+    mesh_map_x = np.linspace(-2, 15, 150)
+    mesh_map_y = np.linspace(-2, 15, 150)
     mesh_map_xx, mesh_map_yy = np.meshgrid(mesh_map_x, mesh_map_y)
     z = None
     for o in obs:

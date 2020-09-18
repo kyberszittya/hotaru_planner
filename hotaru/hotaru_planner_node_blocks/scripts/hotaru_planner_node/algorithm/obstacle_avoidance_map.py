@@ -27,15 +27,15 @@ def main():
         [12, 0],
         [15, 0]
     ])    
-    start = time.perf_counter()
+    start = time.time()
     cv_weights = calc_cv_weights(obs, ref_trajectory_points, obstacle_avoidance_euclidean_distance)
 
     bezier = RationalBezierCurve()
     bezier.add_control_vertices(ref_trajectory_points)
     bezier.initialize_parameter_values()
     bezier.set_weights(cv_weights)
-    tr = bezier.generate_path(100)
-    end = time.perf_counter()
+    tr = bezier.generate_path(50)
+    end = time.time()
     print(end - start)
     print(cv_weights)
 
