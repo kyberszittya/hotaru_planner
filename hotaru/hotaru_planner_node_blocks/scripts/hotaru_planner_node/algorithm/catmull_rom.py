@@ -52,6 +52,19 @@ class CatmullRomSpline(Interpolator):
             return 0.5 * (1 - self.tension) * (self.cvs[i + 1] - self.cvs[i]) / (self.ts[i + 1] - self.ts[i]) + \
                 0.5 * (1 - self.tension) * (self.cvs[i] - self.cvs[i - 1]) / (self.ts[i] - self.ts[i - 1])
 
+    def dr(self, t):
+        for i in range(len(self.cvs) - 1):
+            if self.ts[i] <= t <= self.ts[i + 1]:
+                p0 = self.cvs[i]
+                v0 = self.velocities[i]
+                t0 = self.ts[i]
+                p1 = self.cvs[i + 1]
+                v1 = self.velocities[i + 1]
+                t1 = self.ts[i + 1]                
+                dr = d_hermite_interpolation(p0, v0, t0, p1, v1, t1, t)
+                dr = dr/np.linalg.norm(dr)
+                return dr                
+    
     def r(self, t):
         for i in range(len(self.cvs) - 1):
             if self.ts[i] <= t <= self.ts[i + 1]:
@@ -62,7 +75,5 @@ class CatmullRomSpline(Interpolator):
                 v1 = self.velocities[i + 1]
                 t1 = self.ts[i + 1]
                 r = hermite_interpolation(p0, v0, t0, p1, v1, t1, t)
-                dr = d_hermite_interpolation(p0, v0, t0, p1, v1, t1, t)
-                orien = np.arctan2(dr[1],dr[0])
-                return np.array([r[0], r[1], orien])
+                return np.array([r[0], r[1]])
 

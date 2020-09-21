@@ -47,6 +47,15 @@ class Interpolator(object):
     
     def ddr(self,t):
         raise NotImplementedError
+    
+    def generate_dpath(self, steps):
+        """
+        Return with derviative in t
+        """
+        path = []
+        for t in np.linspace(0, self.maxT, steps):
+            path.append(self.dr(t))
+        return np.stack(path)
         
     def generate_path(self, steps):
         """
