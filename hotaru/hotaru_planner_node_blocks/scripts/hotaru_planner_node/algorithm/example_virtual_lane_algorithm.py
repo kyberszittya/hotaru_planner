@@ -12,6 +12,7 @@ import matplotlib.pyplot as plt
 
 import numpy as np
 
+
 def generate_waypoints():
     waypoints = np.array([
         [0.0, 0.0],
@@ -23,6 +24,7 @@ def generate_waypoints():
         [30.0, 0.0]
     ])
     return waypoints
+
 
 def test_object_detected():
     representation = ObstacleRepresentation()
@@ -55,6 +57,7 @@ def test_object_detected():
     
 def main():
     test_object_detected()
-    
+
+
 if __name__=="__main__":
     main()
