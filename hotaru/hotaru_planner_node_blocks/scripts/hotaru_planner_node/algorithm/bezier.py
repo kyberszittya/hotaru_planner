@@ -47,10 +47,7 @@ class BezierCurve(Interpolator):
         
     def r(self, t):
         r = self._bezier(self.d_cv[0], t)
-        dr = self._bezier(self.d_cv[1], t)
-        dr /= np.linalg.norm(dr)
-        ori = np.arctan2(dr[1],dr[0])
-        return np.array([r[0], r[1], ori])
+        return np.array([r[0], r[1]])
 
 
 class RationalBezierCurve(BezierCurve):

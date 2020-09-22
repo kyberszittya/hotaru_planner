@@ -10,13 +10,14 @@ import time
 
 import matplotlib.pyplot as plt
 from hotaru_planner_node.algorithm.dynamic_lane_astar import DynamicLanePolygon, Obstacle, DynamicLaneAstarPlanner
+from hotaru_planner_node.algorithm.bezier import RationalBezierCurve
 
 
 def example_with_traj(trajectory, c=Obstacle((10.1, 8.1), 0.7)):
     lane_width = 3.0
     c0 = c
     start = time.clock()
-    lane_polygon = DynamicLanePolygon(lane_width, 5, 15)
+    lane_polygon = DynamicLanePolygon(lane_width, 5, 15, 100)
     lane_polygon.set_reference_trajectory(trajectory)
     env_repr_traj, tangent_traj, normal_traj, poly_vertices = lane_polygon.calc()
     grid_indices = lane_polygon.get_obstacle_grid_indices(c0)
@@ -46,9 +47,22 @@ def example_with_traj(trajectory, c=Obstacle((10.1, 8.1), 0.7)):
     axes.add_artist(circle1)
     # Plan!
     planner = DynamicLaneAstarPlanner(None, lane_polygon)
-    traj = planner.plan()
-    print(traj)
-
+    start = time.clock()    
+    traj, weights = planner.plan()
+    print(weights)
+    final_cv = lane_polygon.get_points(traj)
+    end = time.clock()
+    print("Elapsed time to plan: {0}".format(end - start))
+    plt.plot(final_cv[:, 0], final_cv[:, 1], linewidth=2.0, linestyle='dashed')
+    start = time.clock()
+    final_waypoints = RationalBezierCurve()
+    final_waypoints.add_control_vertices(final_cv)    
+    final_waypoints.initialize_parameter_values()
+    final_waypoints.set_weights(weights)
+    f = final_waypoints.generate_path(20)    
+    end = time.clock()
+    print("Elapsed time to interpolate (curve): {0}".format(end - start))        
+    plt.plot(f[:, 0], f[:, 1], linewidth=3.0)
     plt.show()
 
 
@@ -83,5 +97,5 @@ def ex_dynamic_lane_polygon_generation_straight():
 
 
 if __name__ == "__main__":
-    #ex_dynamic_lane_polygon_generation()
+    ex_dynamic_lane_polygon_generation()
     ex_dynamic_lane_polygon_generation_straight()
