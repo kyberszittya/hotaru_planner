@@ -39,13 +39,13 @@ class Interpolator(object):
     def initialize_parameter_values(self):
         raise NotImplementedError
     
-    def r(self, t):
+    def r(self, t, start=0):
         raise NotImplementedError
     
-    def dr(self, t):
+    def dr(self, t, start=0):
         raise NotImplementedError
     
-    def ddr(self,t):
+    def ddr(self,t , start=0):
         raise NotImplementedError
     
     def generate_dpath(self, steps):

@@ -28,6 +28,7 @@ class CatmullRomSpline(Interpolator):
         # Velocities
         self.ts = []
         self.velocities = []
+        self.coefficients = None
 
     def initialize_parameter_values(self):
         ti = 0
@@ -52,8 +53,8 @@ class CatmullRomSpline(Interpolator):
             return 0.5 * (1 - self.tension) * (self.cvs[i + 1] - self.cvs[i]) / (self.ts[i + 1] - self.ts[i]) + \
                 0.5 * (1 - self.tension) * (self.cvs[i] - self.cvs[i - 1]) / (self.ts[i] - self.ts[i - 1])
 
-    def dr(self, t):
-        for i in range(len(self.cvs) - 1):
+    def dr(self, t, start=0):
+        for i in range(start, len(self.cvs) - 1):
             if self.ts[i] <= t <= self.ts[i + 1]:
                 p0 = self.cvs[i]
                 v0 = self.velocities[i]
@@ -65,8 +66,8 @@ class CatmullRomSpline(Interpolator):
                 dr = dr/np.linalg.norm(dr)
                 return dr                
     
-    def r(self, t):
-        for i in range(len(self.cvs) - 1):
+    def r(self, t, start=0):
+        for i in range(start, len(self.cvs) - 1):
             if self.ts[i] <= t <= self.ts[i + 1]:
                 p0 = self.cvs[i]
                 v0 = self.velocities[i]
@@ -76,4 +77,30 @@ class CatmullRomSpline(Interpolator):
                 t1 = self.ts[i + 1]
                 r = hermite_interpolation(p0, v0, t0, p1, v1, t1, t)
                 return np.array([r[0], r[1]])
+
+    def generate_uniform_path(self, slices):
+        """
+        Generate path
+
+        :param steps: slices per section
+        :return:
+        """
+        path = []
+        dpath = []
+        ts = []
+        endp = False
+        all_slices = 0
+        for i in range(len(self.cvs) - 1):
+            t0 = self.ts[i]
+            t1 = self.ts[i + 1]
+
+            if i == len(self.cvs) - 2:
+                endp = True
+            for t in np.linspace(t0, t1, slices, endpoint=endp):
+                path.append(self.r(t, i))
+                dpath.append(self.dr(t, i))
+                ts.append(t)
+                all_slices += 1
+        return np.stack(path), np.stack(dpath), np.stack(ts), all_slices
+
 

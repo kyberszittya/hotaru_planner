@@ -13,14 +13,15 @@ from hotaru_planner_node.algorithm.dynamic_lane_astar import DynamicLanePolygon,
 from hotaru_planner_node.algorithm.bezier import RationalBezierCurve
 
 
-def example_with_traj(trajectory, c=Obstacle((10.1, 8.1), 0.7)):
+def example_with_traj(trajectory, c0=[]):
     lane_width = 3.0
-    c0 = c
     start = time.clock()
     lane_polygon = DynamicLanePolygon(lane_width, 5, 15, 100)
     lane_polygon.set_reference_trajectory(trajectory)
     env_repr_traj, tangent_traj, normal_traj, poly_vertices = lane_polygon.calc()
-    grid_indices = lane_polygon.get_obstacle_grid_indices(c0)
+    for c in c0:
+        lane_polygon.add_obstacle(c)
+    grid_indices = lane_polygon.get_obstacle_grid_indices()
     end = time.clock()
     obstacle_faces = lane_polygon.get_faces(grid_indices)
     print("Elapsed time to interpolate: {0}".format(end - start))
@@ -43,8 +44,9 @@ def example_with_traj(trajectory, c=Obstacle((10.1, 8.1), 0.7)):
     print(grid_indices)
     axes.set_xlim([-2, 18])
     axes.set_ylim([-2, 18])
-    circle1 = plt.Circle((c0.position[0], c0.position[1]), c0.obstacle_radius, color='r')
-    axes.add_artist(circle1)
+    for c in c0:
+        circle1 = plt.Circle((c.position[0], c.position[1]), c.obstacle_radius, color='r')
+        axes.add_artist(circle1)
     # Plan!
     planner = DynamicLaneAstarPlanner(None, lane_polygon)
     start = time.clock()    
@@ -79,7 +81,7 @@ def ex_dynamic_lane_polygon_generation():
         [7.0, 11.0],
         [5.0, 14.0]                
     ])
-    example_with_traj(trajectory)
+    example_with_traj(trajectory, [Obstacle((10.1, 8.1), 0.7)])
 
 
 def ex_dynamic_lane_polygon_generation_straight():
@@ -93,9 +95,86 @@ def ex_dynamic_lane_polygon_generation_straight():
         [13.0, 0.0],
         [15.0, 0.0]
     ])
-    example_with_traj(trajectory, Obstacle((10.1, 0.1), 0.7))
+    example_with_traj(trajectory, [Obstacle((10.1, 0.1), 0.7)])
+
+
+def ex_dynamic_lane_polygon_generation_straight_obstacle_end():
+    # Basic setup
+    trajectory = np.array([
+        [0.0, 0.0],
+        [2.0, 1.0],
+        [5.0, 0.0],
+        [7.0, 0.0],
+        [10.0, 0.5],
+        [13.0, 0.0],
+        [15.0, 0.0]
+    ])
+    example_with_traj(trajectory, [Obstacle((14.7, 0.1), 0.7)])
+
+
+def ex_dynamic_lane_polygon_generation_no_obstacle():
+    # Basic setup
+    trajectory = np.array([
+        [0.0, 0.0],
+        [2.0, 1.0],
+        [5.0, 0.0],
+        [7.0, 0.0],
+        [10.0, 0.5],
+        [13.0, 0.0],
+        [15.0, 0.0]
+    ])
+    example_with_traj(trajectory)
+
+
+def ex_dynamic_lane_polygon_generation_muiltiple_obstacle():
+    # Basic setup
+    trajectory = np.array([
+        [0.0, 0.0],
+        [2.0, 1.0],
+        [5.0, 0.0],
+        [7.0, 0.0],
+        [10.0, 0.5],
+        [13.0, 0.0],
+        [15.0, 0.0]
+    ])
+    example_with_traj(trajectory, [Obstacle((14.7, 0.1), 0.7), Obstacle((12.7, 0.1), 0.7)])
+
+
+def ex_dynamic_lane_polygon_generation_muiltiple_obstacle2():
+    # Basic setup
+    trajectory = np.array([
+        [0.0, 0.0],
+        [2.0, 1.0],
+        [5.0, 0.0],
+        [7.0, 0.0],
+        [10.0, 0.5],
+        [13.0, 0.0],
+        [15.0, 0.0]
+    ])
+    example_with_traj(trajectory, [Obstacle((14.7, 0.1), 0.7),
+                                   Obstacle((12.7, 0.1), 0.7),
+                                   Obstacle((8.7, 4.1), 0.7)])
+
+def ex_dynamic_lane_polygon_generation_muiltiple_obstacle3():
+    # Basic setup
+    trajectory = np.array([
+        [0.0, 0.0],
+        [2.0, 1.0],
+        [5.0, 0.0],
+        [7.0, 0.0],
+        [10.0, 0.5],
+        [13.0, 0.0],
+        [15.0, 0.0]
+    ])
+    example_with_traj(trajectory, [Obstacle((14.7, 0.1), 0.7),
+                                   Obstacle((8.7, 0.1), 0.7)])
 
 
 if __name__ == "__main__":
-    ex_dynamic_lane_polygon_generation()
+    ex_dynamic_lane_polygon_generation_no_obstacle()
+    #ex_dynamic_lane_polygon_generation()
     ex_dynamic_lane_polygon_generation_straight()
+    #ex_dynamic_lane_polygon_generation_straight_obstacle_end()
+    ex_dynamic_lane_polygon_generation_muiltiple_obstacle()
+    ex_dynamic_lane_polygon_generation_muiltiple_obstacle2()
+    ex_dynamic_lane_polygon_generation_muiltiple_obstacle3()
