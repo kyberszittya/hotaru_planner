@@ -86,7 +86,6 @@ class DynamicLanePolygon(PolygonRepresentation):
         print(end - start)
         self.obstacles.append(obstacle)
 
-
     def get_faces(self, indices):
         face_list = []
         if len(indices)==0:
@@ -131,11 +130,13 @@ class DynamicLanePolygon(PolygonRepresentation):
             self.poly_vertices[i, 4] = traj[i] - no * 3 * self.lane_width/2.0
         return traj, tangent, normal, self.poly_vertices
 
+
 class AstarNode(object):
 
     def __init__(self, i, parent=None):
         self.x, self.y = i
         self.parent = parent
+
 
 class DynamicLaneAstarPlanner(object):
 
@@ -145,7 +146,6 @@ class DynamicLaneAstarPlanner(object):
                  obstacle_scale = 100):
         self.vehicle_model = model
         self.environment_representation = representation
-        # MAGIC NUMBER WARNING
         self.current_lane = 1
         self.preferred_lane = preferred_lane
         self.interp_weight_mult = interp_weight_mult
@@ -158,7 +158,25 @@ class DynamicLaneAstarPlanner(object):
             (2, -1, 3)
         ]
 
+    def find_closest_lane(self, pose):
+        """
+        Find the closest lane to a current position (Euclidean distance)
+
+        :param pose: the pose to check
+        :return: index of lane
+        """
+        distance = np.linalg.norm(pose - self.environment_representation.poly_vertices[0, :], axis=1)
+        print(distance)
+        ind = np.argmin(distance)
+        return ind
+
     def set_lane_position(self, lane_num):
+        """
+        Set lane number explicitly
+
+        :param lane_num: new lane number
+        :return:
+        """
         self.current_lane = lane_num
 
     def update_trajectory(self, trajectory):
@@ -187,7 +205,6 @@ class DynamicLaneAstarPlanner(object):
                     weight += self.environment_representation.obstacle_grid[p.x, p.y]
                     weights.appendleft(weight)
                     p = p.parent
-                print(node_cnt)
                 return trajectory, weights
             for n in self.neighbor_indices:                
                 new_ind = (new_node[1].x + n[0], new_node[1].y + n[1])

@@ -13,7 +13,34 @@ from hotaru_planner_node.algorithm.dynamic_lane_astar import DynamicLanePolygon,
 from hotaru_planner_node.algorithm.bezier import RationalBezierCurve
 
 
-def example_with_traj(trajectory, c0=[]):
+def example_bare_setup(trajectory, c0=[], start_lane=1):
+    lane_width = 3.0
+    lane_polygon = DynamicLanePolygon(lane_width, 5, 15, 100)
+    lane_polygon.set_reference_trajectory(trajectory)
+    env_repr_traj, tangent_traj, normal_traj, poly_vertices = lane_polygon.calc()
+    for c in c0:
+        lane_polygon.add_obstacle(c)
+    grid_indices = lane_polygon.get_obstacle_grid_indices()
+    obstacle_faces = lane_polygon.get_faces(grid_indices)
+    planner = DynamicLaneAstarPlanner(None, lane_polygon)
+    planner.set_lane_position(start_lane)
+    for rv in poly_vertices:
+        plt.scatter(rv[:, 0], rv[:, 1], color="purple", alpha=0.5)
+    pose = np.array([0.05, 0.8])
+    closest_lane = planner.find_closest_lane(pose)
+    # Plot closest lane point
+    plt.plot(poly_vertices[0, closest_lane, 0], poly_vertices[0, closest_lane, 1], 'b^')
+    # Plot pose
+    plt.plot(pose[0], pose[1], 'r^')
+
+    axes = plt.gca()
+    axes.set_xlim([-2, 18])
+    axes.set_ylim([-2, 18])
+    plt.show()
+
+
+
+def example_with_traj(trajectory, c0=[], start_lane=1):
     lane_width = 3.0
     start = time.clock()
     lane_polygon = DynamicLanePolygon(lane_width, 5, 15, 100)
@@ -49,7 +76,9 @@ def example_with_traj(trajectory, c0=[]):
         axes.add_artist(circle1)
     # Plan!
     planner = DynamicLaneAstarPlanner(None, lane_polygon)
-    start = time.clock()    
+    planner.set_lane_position(start_lane)
+
+    start = time.clock()
     traj, weights = planner.plan()
     print(weights)
     final_cv = lane_polygon.get_points(traj)
@@ -169,12 +198,40 @@ def ex_dynamic_lane_polygon_generation_muiltiple_obstacle3():
     example_with_traj(trajectory, [Obstacle((14.7, 0.1), 0.7),
                                    Obstacle((8.7, 0.1), 0.7)])
 
+def ex_dynamic_lane_polygon_generation_different_starting_lane():
+    # Basic setup
+    trajectory = np.array([
+        [0.0, 0.0],
+        [2.0, 1.0],
+        [5.0, 0.0],
+        [7.0, 0.0],
+        [10.0, 0.5],
+        [13.0, 0.0],
+        [15.0, 0.0]
+    ])
+    example_with_traj(trajectory, [Obstacle((1.7, 0.1), 0.7)], start_lane=3)
+
+
+def ex_planner_closest_waypoint():
+    trajectory = np.array([
+        [0.0, 0.0],
+        [2.0, 1.0],
+        [5.0, 0.0],
+        [7.0, 0.0],
+        [10.0, 0.5],
+        [13.0, 0.0],
+        [15.0, 0.0]
+    ])
+    example_bare_setup(trajectory, c0=[], start_lane=1)
+
 
 if __name__ == "__main__":
     ex_dynamic_lane_polygon_generation_no_obstacle()
-    #ex_dynamic_lane_polygon_generation()
+    ex_dynamic_lane_polygon_generation()
     ex_dynamic_lane_polygon_generation_straight()
-    #ex_dynamic_lane_polygon_generation_straight_obstacle_end()
+    ex_dynamic_lane_polygon_generation_straight_obstacle_end()
     ex_dynamic_lane_polygon_generation_muiltiple_obstacle()
     ex_dynamic_lane_polygon_generation_muiltiple_obstacle2()
     ex_dynamic_lane_polygon_generation_muiltiple_obstacle3()
+    ex_dynamic_lane_polygon_generation_different_starting_lane()
+    ex_planner_closest_waypoint()
