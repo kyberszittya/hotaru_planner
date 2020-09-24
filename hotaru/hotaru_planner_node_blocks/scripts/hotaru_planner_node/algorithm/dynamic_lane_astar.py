@@ -57,8 +57,13 @@ class DynamicLanePolygon(PolygonRepresentation):
         self.obstacle_grid = None
         self.poly_vertices = None
 
+    def reset_obstacle_list(self):
+        self.obstacles = []
+
     def add_obstacle(self, obstacle):
         # TODO: I know this sucks, but will use different method anyway
+        if self.poly_vertices is None:
+            return None
         start = time.clock()
         for i in range(self.horizon_steps):
             for j in range(self.steps_width):
@@ -83,7 +88,6 @@ class DynamicLanePolygon(PolygonRepresentation):
                         #print(self.val_scale*d)
                         self.obstacle_grid[o[0], o[1]] *= self.val_scale
         end = time.clock()
-        print(end - start)
         self.obstacles.append(obstacle)
 
     def get_faces(self, indices):
@@ -154,8 +158,8 @@ class DynamicLaneAstarPlanner(object):
             (1,  0, 1),
             (1,  1, 2),
             (1, -1, 2),
-            (2,  1, 3),
-            (2, -1, 3)
+            #(2,  1, 3),
+            #(2, -1, 3)
         ]
 
     def find_closest_lane(self, pose):
@@ -166,7 +170,7 @@ class DynamicLaneAstarPlanner(object):
         :return: index of lane
         """
         distance = np.linalg.norm(pose - self.environment_representation.poly_vertices[0, :], axis=1)
-        print(distance)
+        #print(distance)
         ind = np.argmin(distance)
         return ind
 
