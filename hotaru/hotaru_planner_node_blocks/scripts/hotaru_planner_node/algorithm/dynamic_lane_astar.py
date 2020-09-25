@@ -36,16 +36,24 @@ class PolygonRepresentation(object):
         d3 = self.line_distance(p0, v3, v0) - r
         return d0, d1, d2, d3
 
+class VehicleModel(object):
+
+    def __init__(self, length, width):
+        self.length = length
+        self.width = width
+
 
 class DynamicLanePolygon(PolygonRepresentation):
 
-    def __init__(self, lane_width, steps_width, horizon_steps, val_scale=100):
+    def __init__(self, lane_width, steps_width, horizon_steps, lethal_val_scale=100.0,
+                 non_lethal_val_scale=5.0):
         self.reference_trajectory = []
         self.lane_width = lane_width
         self.spline = CatmullRomSpline(0.0, 0.2)
         self.steps_width = steps_width
         self.horizon_steps = horizon_steps
-        self.val_scale = val_scale
+        self.lethal_val_scale = lethal_val_scale
+        self.non_lethal_val_scale = non_lethal_val_scale
         # TODO: make a better way to store obstacles
         self.obstacles_indices = []
         self.obstacles = []
@@ -71,7 +79,7 @@ class DynamicLanePolygon(PolygonRepresentation):
                     self.poly_vertices[i, j][0],
                     self.poly_vertices[i, j][1],
                     obstacle.position[0],
-                    obstacle.position[1])
+                    obstacle.position[1], obstacle_radius=0.0, val_scale=self.non_lethal_val_scale)
                 self.obstacle_grid[i, j] += d
         for i in range(self.horizon_steps - 1):
             for j in range(self.steps_width - 1):
@@ -80,13 +88,14 @@ class DynamicLanePolygon(PolygonRepresentation):
                      self.poly_vertices[i + 1, j],
                      self.poly_vertices[i + 1, j + 1],
                      self.poly_vertices[i, j + 1]]
-                d0, d1, d2, d3 = self.inside_polygon(v[0], v[1], v[2], v[3], obstacle.position, obstacle.obstacle_radius)
+                d0, d1, d2, d3 = self.inside_polygon(v[0], v[1], v[2], v[3], obstacle.position,
+                    obstacle.obstacle_radius)
                 if d0 < 0.0 and d1 < 0.0 and d2 < 0.0 and d3 < 0.0:
                     indici = [(i, j), (i + 1, j), (i, j + 1), (i + 1, j + 1)]
                     self.obstacles_indices.append(indici)
                     for oi, o in enumerate(indici):
                         #print(self.val_scale*d)
-                        self.obstacle_grid[o[0], o[1]] *= self.val_scale
+                        self.obstacle_grid[o[0], o[1]] *= self.lethal_val_scale
         end = time.clock()
         self.obstacles.append(obstacle)
 
@@ -227,4 +236,5 @@ class DynamicLaneAstarPlanner(object):
                     neigh = AstarNode(new_ind, new_node[1])
                     fringe.put((cost, neigh))
             node_cnt += 1
+
 

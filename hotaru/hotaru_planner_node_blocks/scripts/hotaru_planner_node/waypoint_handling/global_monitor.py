@@ -1,6 +1,6 @@
 import rospy
 
-from std_msgs.msg import Int64
+from std_msgs.msg import Int32
 
 from autoware_msgs.msg import Lane
 
@@ -13,8 +13,8 @@ import math
 class WaypointMonitor(object):
 
     def __init__(self, hz, visualize=False):
-        self.pub_closest_waypoint = rospy.Publisher("/closest_waypoint", Int64, queue_size=1)
-        self.sub_global_waypoints = rospy.Subscriber("/global_waypoints", Lane,
+        self.pub_closest_waypoint = rospy.Publisher("/closest_waypoint", Int32, queue_size=1)
+        self.sub_global_waypoints = rospy.Subscriber("/base_waypoints", Lane,
                 self.cb_incoming_waypoints, queue_size=1)
         self.sub_global_waypoints = rospy.Subscriber("/current_pose", PoseStamped,
                  self.cb_current_pose, queue_size=1)
@@ -24,7 +24,7 @@ class WaypointMonitor(object):
         self.current_lane = None
         self.current_pose = None
 
-        self.msg_closest_waypoint = Int64()
+        self.msg_closest_waypoint = Int32()
         if visualize:
             self.waypoint_marker = Marker()
             self.waypoint_marker.header.frame_id = "map"

@@ -23,7 +23,7 @@ class WaypointLoaderGlobalPlanner(object):
 
     def __init__(self, hz, visualize=False):
         self.visualize = visualize
-        self.pub_waypoint = rospy.Publisher("/global_waypoints", Lane, queue_size=2)
+        self.pub_waypoint = rospy.Publisher("/base_waypoints", Lane, queue_size=2)
         self.pub_test = rospy.Publisher("/pose", PoseStamped, queue_size=1)
         self.msg_pub_lane = Lane()
         self.msg_pose = PoseStamped()
@@ -78,7 +78,7 @@ class WaypointLoaderGlobalPlanner(object):
                 y = float(values[1])
                 z = float(values[2])
                 yaw = float(values[3])
-                lin_vel = float(values[4])
+                lin_vel = float(values[4])/3.6
                 wp = StructWaypoint(x, y, yaw, lin_vel)
                 waypoint_list.append(wp)
                 w0 = Waypoint()
@@ -126,7 +126,8 @@ def main():
     rospy.init_node("global_planner_waypoint_publisher")
     global_planner = WaypointLoaderGlobalPlanner(10.0, True)
     global_planner.initialize_timer()
-    waypoint_list = global_planner.load_csv("/home/kyberszittya/zalazone_ws/waypoints/zala_sav_kozep2.csv")
+    #waypoint_list = global_planner.load_csv("/home/kyberszittya/zalazone_ws/waypoints/zala_sav_kozep2.csv")
+    waypoint_list = global_planner.load_csv("/home/kyberszittya/zalazone_ws/waypoints/smart_city/smart_city_sav_kozep_duro1.csv")
     rospy.loginfo("All set, publishing lane information")
     rospy.spin()
 

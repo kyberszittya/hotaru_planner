@@ -9,7 +9,8 @@ import numpy as np
 import time
 
 import matplotlib.pyplot as plt
-from hotaru_planner_node.algorithm.dynamic_lane_astar import DynamicLanePolygon, Obstacle, DynamicLaneAstarPlanner
+from hotaru_planner_node.algorithm.dynamic_lane_astar import DynamicLanePolygon, Obstacle, \
+    DynamicLaneAstarPlanner, VehicleModel
 from hotaru_planner_node.algorithm.bezier import RationalBezierCurve
 
 
@@ -40,7 +41,7 @@ def example_bare_setup(trajectory, c0=[], start_lane=1):
 
 
 
-def example_with_traj(trajectory, c0=[], start_lane=1):
+def example_with_traj(trajectory, c0=[], model=None, start_lane=1):
     lane_width = 3.0
     start = time.clock()
     lane_polygon = DynamicLanePolygon(lane_width, 5, 15, 100)
@@ -198,6 +199,7 @@ def ex_dynamic_lane_polygon_generation_muiltiple_obstacle3():
     example_with_traj(trajectory, [Obstacle((14.7, 0.1), 0.7),
                                    Obstacle((8.7, 0.1), 0.7)])
 
+
 def ex_dynamic_lane_polygon_generation_different_starting_lane():
     # Basic setup
     trajectory = np.array([
@@ -210,6 +212,23 @@ def ex_dynamic_lane_polygon_generation_different_starting_lane():
         [15.0, 0.0]
     ])
     example_with_traj(trajectory, [Obstacle((1.7, 0.1), 0.7)], start_lane=3)
+
+
+def ex_dynamic_lane_polygon_generation_vehicle_model():
+    # Basic setup
+    trajectory = np.array([
+        [0.0, 0.0],
+        [2.0, 1.0],
+        [5.0, 0.0],
+        [7.0, 0.0],
+        [10.0, 0.5],
+        [13.0, 0.0],
+        [15.0, 0.0]
+    ])
+    model = VehicleModel(length=2.7, width=1.5)
+    example_with_traj(trajectory, [Obstacle((14.7, 0.1), 0.7),
+                                   Obstacle((8.7, 0.1), 0.7)], model=model)
+
 
 
 def ex_planner_closest_waypoint():
@@ -226,12 +245,13 @@ def ex_planner_closest_waypoint():
 
 
 if __name__ == "__main__":
-    ex_dynamic_lane_polygon_generation_no_obstacle()
-    ex_dynamic_lane_polygon_generation()
-    ex_dynamic_lane_polygon_generation_straight()
-    ex_dynamic_lane_polygon_generation_straight_obstacle_end()
-    ex_dynamic_lane_polygon_generation_muiltiple_obstacle()
-    ex_dynamic_lane_polygon_generation_muiltiple_obstacle2()
-    ex_dynamic_lane_polygon_generation_muiltiple_obstacle3()
-    ex_dynamic_lane_polygon_generation_different_starting_lane()
-    ex_planner_closest_waypoint()
+    #ex_dynamic_lane_polygon_generation_no_obstacle()
+    #ex_dynamic_lane_polygon_generation()
+    #ex_dynamic_lane_polygon_generation_straight()
+    #ex_dynamic_lane_polygon_generation_straight_obstacle_end()
+    #ex_dynamic_lane_polygon_generation_muiltiple_obstacle()
+    #ex_dynamic_lane_polygon_generation_muiltiple_obstacle2()
+    #ex_dynamic_lane_polygon_generation_muiltiple_obstacle3()
+    #ex_dynamic_lane_polygon_generation_different_starting_lane()
+    #ex_planner_closest_waypoint()
+    ex_dynamic_lane_polygon_generation_vehicle_model()
