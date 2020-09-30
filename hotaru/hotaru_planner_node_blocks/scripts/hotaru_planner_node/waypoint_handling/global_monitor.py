@@ -33,9 +33,9 @@ class WaypointMonitor(object):
             self.waypoint_marker.color.g = 1.0
             self.waypoint_marker.color.b = 0.0
             self.waypoint_marker.color.a = 1.0
-            self.waypoint_marker.scale.x = 2.0
-            self.waypoint_marker.scale.y = 2.0
-            self.waypoint_marker.scale.z = 2.0
+            self.waypoint_marker.scale.x = 1.0
+            self.waypoint_marker.scale.y = 1.0
+            self.waypoint_marker.scale.z = 1.0
             self.pub_visualize = rospy.Publisher("closest_waypoints/visualization", Marker, queue_size=1)
 
     def is_ready(self):

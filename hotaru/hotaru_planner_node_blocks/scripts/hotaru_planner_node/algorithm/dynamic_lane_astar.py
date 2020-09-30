@@ -5,10 +5,11 @@ Created on Sep 21, 2020
 '''
 from Queue import PriorityQueue
 
+from hotaru_blocks import Interpolator
 from hotaru_planner_node.algorithm.catmull_rom import CatmullRomSpline
 
 import numpy as np
-from hotaru_planner_node.algorithm.heuristics import obstacle_avoidance_euclidean_distance
+from hotaru_planner_node.algorithm.heuristics import obstacle_avoidance_euclidean_distance, obstacle_gaussian_distance
 
 import time
 
@@ -23,6 +24,15 @@ class Obstacle(object):
 
 class PolygonRepresentation(object):
 
+
+    def __init__(self, lethal_val_scale=100.0,
+                 non_lethal_val_scale=5.0,
+                 sigma_x=3.5, sigma_y=3.0):
+        self.sigma_x = sigma_x
+        self.sigma_y = sigma_y
+        self.lethal_val_scale = lethal_val_scale
+        self.non_lethal_val_scale = non_lethal_val_scale
+
     def line_distance(self, p, v0, v1):
         nz = np.linalg.norm(v0 - v1)
         nom = (v1[1] - v0[1]) * p[0] - (v1[0] - v0[0]) * p[1] + v1[0] * v0[1] - v1[1] * v0[0]
@@ -36,35 +46,6 @@ class PolygonRepresentation(object):
         d3 = self.line_distance(p0, v3, v0) - r
         return d0, d1, d2, d3
 
-class VehicleModel(object):
-
-    def __init__(self, length, width):
-        self.length = length
-        self.width = width
-
-
-class DynamicLanePolygon(PolygonRepresentation):
-
-    def __init__(self, lane_width, steps_width, horizon_steps, lethal_val_scale=100.0,
-                 non_lethal_val_scale=5.0):
-        self.reference_trajectory = []
-        self.lane_width = lane_width
-        self.spline = CatmullRomSpline(0.0, 0.2)
-        self.steps_width = steps_width
-        self.horizon_steps = horizon_steps
-        self.lethal_val_scale = lethal_val_scale
-        self.non_lethal_val_scale = non_lethal_val_scale
-        # TODO: make a better way to store obstacles
-        self.obstacles_indices = []
-        self.obstacles = []
-        # Grid representation
-        # Face status
-        # 0: indicates no occupance
-        # 1: indicate occupance
-        #self.poly_faces = np.zeros((self.horizon_steps - 1, self.steps_width - 1, 3))
-        self.obstacle_grid = None
-        self.poly_vertices = None
-
     def reset_obstacle_list(self):
         self.obstacles = []
 
@@ -75,11 +56,20 @@ class DynamicLanePolygon(PolygonRepresentation):
         start = time.clock()
         for i in range(self.horizon_steps):
             for j in range(self.steps_width):
+                d = obstacle_gaussian_distance(
+                    self.poly_vertices[i, j][0],
+                    self.poly_vertices[i, j][1],
+                    obstacle.position[0],
+                    obstacle.position[1],
+                    self.sigma_x, self.sigma_y, val_scale=self.non_lethal_val_scale)
+                """
                 d = obstacle_avoidance_euclidean_distance(
                     self.poly_vertices[i, j][0],
                     self.poly_vertices[i, j][1],
                     obstacle.position[0],
-                    obstacle.position[1], obstacle_radius=0.0, val_scale=self.non_lethal_val_scale)
+                    obstacle.position[1],
+                    obstacle_radius=0.0, val_scale=self.non_lethal_val_scale)
+                """
                 self.obstacle_grid[i, j] += d
         for i in range(self.horizon_steps - 1):
             for j in range(self.steps_width - 1):
@@ -101,7 +91,7 @@ class DynamicLanePolygon(PolygonRepresentation):
 
     def get_faces(self, indices):
         face_list = []
-        if len(indices)==0:
+        if len(indices) == 0:
             return face_list
         for n in indices:
             face = []
@@ -117,7 +107,7 @@ class DynamicLanePolygon(PolygonRepresentation):
         self.reference_trajectory = reference_trajectory
         self.spline.add_control_vertices(reference_trajectory)
         self.spline.initialize_parameter_values()
-        
+
     def get_points(self, index_set):
         point_set = []
         for p in index_set:
@@ -127,21 +117,84 @@ class DynamicLanePolygon(PolygonRepresentation):
     def calc(self):
         traj, tangent, self.ts, self.horizon_steps = self.spline.generate_uniform_path(2)
         self.obstacle_grid = np.zeros((self.horizon_steps, self.steps_width))
-        self.obstacle_grid[:, self.steps_width - 1] = 1000
-        self.obstacle_grid[:, 0] = 1000
+        self.obstacle_grid[:, self.steps_width - 1] = 10000
+        self.obstacle_grid[:, 0] = 10000
         self.poly_vertices = np.zeros((self.horizon_steps, self.steps_width, 2))
 
-        #traj = self.spline.generate_path(self.horizon_steps)
-        #tangent = self.spline.generate_dpath(self.horizon_steps)
-        normal = tangent[:,[1,0]]
+        # traj = self.spline.generate_path(self.horizon_steps)
+        # tangent = self.spline.generate_dpath(self.horizon_steps)
+        normal = tangent[:, [1, 0]]
         normal[:, 1] = -normal[:, 1]
-        for i,no in enumerate(normal):
-            self.poly_vertices[i, 0] = traj[i] + no * self.lane_width/2.0
+        for i, no in enumerate(normal):
+            self.poly_vertices[i, 0] = traj[i] + no * self.lane_width / 2.0
             self.poly_vertices[i, 1] = traj[i]
-            self.poly_vertices[i, 2] = traj[i] - no * self.lane_width/2.0
-            self.poly_vertices[i, 3] = traj[i] - no * self.lane_width
-            self.poly_vertices[i, 4] = traj[i] - no * 3 * self.lane_width/2.0
+            step_increment = (2 * self.lane_width) / (self.steps_width - 1)
+            for j in range(2, self.steps_width):
+                self.poly_vertices[i, j] = traj[i] - no * (j - 1) * step_increment
         return traj, tangent, normal, self.poly_vertices
+
+
+class VehicleModel(object):
+
+    def __init__(self, length, width):
+        self.length = length
+        self.width = width
+
+
+class DynamicLanePolygon(PolygonRepresentation):
+
+    def __init__(self, lane_width, steps_width, horizon_steps,
+                 lethal_val_scale=100.0,
+                 non_lethal_val_scale=5.0,
+                 sigma_x=3.5, sigma_y=3.0):
+        PolygonRepresentation.__init__(self, lethal_val_scale, non_lethal_val_scale, sigma_x, sigma_y)
+        self.reference_trajectory = []
+        self.lane_width = lane_width
+        self.spline = CatmullRomSpline(0.0, 0.2)
+        self.steps_width = steps_width
+        self.horizon_steps = horizon_steps
+        self.lethal_val_scale = lethal_val_scale
+        self.non_lethal_val_scale = non_lethal_val_scale
+        self.obstacles_indices = []
+        self.obstacles = []
+        # Grid representation
+        # Face status
+        # 0: indicates no occupance
+        # 1: indicate occupance
+        #self.poly_faces = np.zeros((self.horizon_steps - 1, self.steps_width - 1, 3))
+        self.obstacle_grid = None
+        self.poly_vertices = None
+
+
+class WaypointSpline(Interpolator):
+
+    def __init__(self):
+        Interpolator.__init__(self)
+
+    def generate_uniform_path(self, slices):
+        for cv in self.cvs:
+            print(cv)
+
+
+
+class WaypointTesselation(PolygonRepresentation):
+
+    def __init__(self, lane_width, steps_width, horizon_steps,
+                 lethal_val_scale=100.0,
+                 non_lethal_val_scale=5.0,
+                 sigma_x=3.5, sigma_y=3.0):
+        PolygonRepresentation.__init__(self, lethal_val_scale, non_lethal_val_scale, sigma_x, sigma_y)
+        self.reference_trajectory = []
+        self.lane_width = lane_width
+        self.steps_width = steps_width
+        self.horizon_steps = horizon_steps
+        self.lethal_val_scale = lethal_val_scale
+        self.non_lethal_val_scale = non_lethal_val_scale
+
+    def calc(self):
+
+
+
 
 
 class AstarNode(object):
@@ -165,10 +218,8 @@ class DynamicLaneAstarPlanner(object):
         self.neighbor_indices = [
             # X,Y, COST
             (1,  0, 1),
-            (1,  1, 2),
-            (1, -1, 2),
-            #(2,  1, 3),
-            #(2, -1, 3)
+            (1,  1, 1.2),
+            (1, -1, 1.3)
         ]
 
     def find_closest_lane(self, pose):
@@ -181,6 +232,9 @@ class DynamicLaneAstarPlanner(object):
         distance = np.linalg.norm(pose - self.environment_representation.poly_vertices[0, :], axis=1)
         #print(distance)
         ind = np.argmin(distance)
+        # Some kindof hysteresis to avoid aggressive switching
+        #if distance[ind] - 0.05 > distance[self.current_lane] or distance[ind] + 0.05 < distance[self.current_lane]:
+        #    return self.current_lane
         return ind
 
     def set_lane_position(self, lane_num):

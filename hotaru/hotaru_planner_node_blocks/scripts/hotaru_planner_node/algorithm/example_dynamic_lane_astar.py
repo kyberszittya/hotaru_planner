@@ -98,6 +98,8 @@ def example_with_traj(trajectory, c0=[], model=None, start_lane=1):
     plt.show()
 
 
+
+
 def ex_dynamic_lane_polygon_generation():
     # Basic setup
     trajectory = np.array([

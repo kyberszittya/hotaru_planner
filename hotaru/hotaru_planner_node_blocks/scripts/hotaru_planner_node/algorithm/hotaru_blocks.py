@@ -7,6 +7,12 @@ Created on Sep 16, 2020
 import numpy as np
 
 
+def quaternion_to_yaw(qw, qx, qy, qz):
+    x = 2*(qw*qz + qx*qy)
+    y = 1 - 2*(qy**2+qz**2)
+    return np.arctan2(y, x)
+
+
 
 def sparse_points(tr, epsilon=1.0):
     selected_indices = set([len(tr)-1])

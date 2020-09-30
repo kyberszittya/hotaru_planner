@@ -29,50 +29,26 @@ class WaypointLoaderGlobalPlanner(object):
         self.msg_pose = PoseStamped()
         self.hz = hz
         if visualize:
-            self.pub_visualize = rospy.Publisher("/global_waypoints/visualization", MarkerArray, queue_size=1)
+            self.pub_visualize = rospy.Publisher("/global_waypoints/visualization",
+                                                 MarkerArray, queue_size=1, latch=True)
             self.waypoint_marker = MarkerArray()
+            # Color
             self.lane_marker = Marker()
             self.lane_marker.header.frame_id = "map"
-            # Color
             self.lane_marker.ns = "waypoint_strip"
             self.lane_marker.color.r = 0.7
             self.lane_marker.color.g = 0.4
             self.lane_marker.color.b = 0.8
             self.lane_marker.color.a = 0.5
-            self.lane_marker.scale.x = 1.0
-            self.lane_marker.scale.z = 1.0
+            self.lane_marker.scale.x = 0.2
+            self.lane_marker.scale.z = 0.2
             self.lane_marker.type = Marker.LINE_STRIP
-            #
-            self.lane_points = Marker()
-            self.lane_points.header.frame_id = "map"
-            self.lane_points.ns = "lane_points"
-            self.lane_points.type = Marker.SPHERE_LIST
-            self.lane_points.color.r = 0.0
-            self.lane_points.color.g = 1.0
-            self.lane_points.color.b = 1.0
-            self.lane_points.color.a = 1.0
-            self.lane_points.scale.x = 1.0
-            self.lane_points.scale.y = 1.0
-            self.lane_points.scale.z = 1.0
-            #
-            self.lane_points = Marker()
-            self.lane_points.header.frame_id = "map"
-            self.lane_points.ns = "lane_points"
-            self.lane_points.type = Marker.ARROW
-            self.lane_points.color.r = 1.0
-            self.lane_points.color.g = 0.0
-            self.lane_points.color.b = 1.0
-            self.lane_points.color.a = 1.0
-            self.lane_points.scale.x = 1.0
-            self.lane_points.scale.y = 1.0
-            self.lane_points.scale.z = 1.0
-
 
     def load_csv(self, path):
         waypoint_list = []
         with open(path) as f:
             header = f.readline()
-            for line in f:
+            for i,line in enumerate(f):
                 values = line.strip().split(',')
                 x = float(values[0])
                 y = float(values[1])
@@ -98,10 +74,58 @@ class WaypointLoaderGlobalPlanner(object):
                     p.y = y
                     p.z = z
                     self.lane_marker.points.append(p)
-                    self.lane_points.points.append(p)
+                # Orientation
+                ori_arrow = Marker()
+                ori_arrow.type = Marker.ARROW
+                ori_arrow.pose.position.x = x
+                ori_arrow.pose.position.y = y
+                ori_arrow.pose.position.z = z
+                ori_arrow.pose.orientation.z = math.sin(yaw/2.0)
+                ori_arrow.pose.orientation.w = math.cos(yaw/2.0)
+                ori_arrow.action = Marker.ADD
+                ori_arrow.color.r = 0.2
+                ori_arrow.color.g = 1.0
+                ori_arrow.color.b = 0.6
+                ori_arrow.color.a = 1.0
+                ori_arrow.scale.x = 1.0
+                ori_arrow.scale.y = 0.1
+                ori_arrow.id = i
+                ori_arrow.ns = "orientation"
+                ori_arrow.header.frame_id = "map"
+                self.waypoint_marker.markers.append(ori_arrow)
+                # Velocity
+                marker_lin_vel = Marker()
+                marker_lin_vel.type = Marker.TEXT_VIEW_FACING
+                marker_lin_vel.pose.position.x = x
+                marker_lin_vel.pose.position.y = y
+                marker_lin_vel.pose.position.z = z + 0.7
+                marker_lin_vel.ns = "linvel"
+                marker_lin_vel.header.frame_id = "map"
+                marker_lin_vel.color.r = 1.0
+                marker_lin_vel.color.g = 1.0
+                marker_lin_vel.color.a = 1.0
+                marker_lin_vel.scale.z = 0.5
+                marker_lin_vel.id = i
+                marker_lin_vel.text = str(round(lin_vel,1))
+                self.waypoint_marker.markers.append(marker_lin_vel)
+                # Sphere
+                marker_lane_points = Marker()
+                marker_lane_points.header.frame_id = "map"
+                marker_lane_points.ns = "lane_points"
+                marker_lane_points.type = Marker.SPHERE
+                marker_lane_points.color.r = 0.0
+                marker_lane_points.color.g = 0.7
+                marker_lane_points.color.b = 1.0
+                marker_lane_points.color.a = 1.0
+                marker_lane_points.scale.x = 0.5
+                marker_lane_points.scale.y = 0.5
+                marker_lane_points.scale.z = 0.5
+                marker_lane_points.pose.position = p
+                marker_lane_points.pose.orientation.w = 1.0
+                marker_lane_points.id = i
+                self.waypoint_marker.markers.append(marker_lane_points)
             if self.visualize:
                 self.waypoint_marker.markers.append(self.lane_marker)
-                self.waypoint_marker.markers.append(self.lane_points)
         rospy.loginfo("Successfully loaded lane description (CSV)")
         self.msg_pub_lane.header.frame_id = "map"
         return waypoint_list
@@ -124,10 +148,13 @@ class WaypointLoaderGlobalPlanner(object):
 
 def main():
     rospy.init_node("global_planner_waypoint_publisher")
-    global_planner = WaypointLoaderGlobalPlanner(10.0, True)
+    global_planner = WaypointLoaderGlobalPlanner(20, True)
     global_planner.initialize_timer()
     #waypoint_list = global_planner.load_csv("/home/kyberszittya/zalazone_ws/waypoints/zala_sav_kozep2.csv")
-    waypoint_list = global_planner.load_csv("/home/kyberszittya/zalazone_ws/waypoints/smart_city/smart_city_sav_kozep_duro1.csv")
+    #waypoint_list = global_planner.load_csv("/home/kyberszittya/zalazone_ws/waypoints/smart_city/smart_city_sav_kozep_duro1.csv")
+
+    #waypoint_list = global_planner.load_csv("/home/kyberszittya/zalazone_ws/waypoints/smart_city_2/smart_city_akadaly_kerules.csv")
+    waypoint_list = global_planner.load_csv("/home/kyberszittya/zalazone_ws/waypoints/smart_city_2/csabi_tmp5_duro.csv")
     rospy.loginfo("All set, publishing lane information")
     rospy.spin()
 
