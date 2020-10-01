@@ -50,7 +50,8 @@ class WaypointMonitor(object):
     def initialize_timer(self):
         self.timer_closest_waypoint = rospy.Timer(rospy.Duration(1.0 / self.hz), self.cb_timer_lane, reset=True)
         if self.visualize:
-            self.timer_visualization = rospy.Timer(rospy.Duration(1.0 / (self.hz / 2.0)), self.timer_visualization)
+            self.timer_visualization = rospy.Timer(rospy.Duration(1.0 / (self.hz / 2.0)),
+                                                   self.timer_visualization, reset=True)
 
     def timer_visualization(self, event):
         if self.is_ready():

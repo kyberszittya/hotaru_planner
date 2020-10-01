@@ -191,7 +191,6 @@ class WaypointTesselation(PolygonRepresentation):
         self.lethal_val_scale = lethal_val_scale
         self.non_lethal_val_scale = non_lethal_val_scale
 
-    def calc(self):
 
 
 

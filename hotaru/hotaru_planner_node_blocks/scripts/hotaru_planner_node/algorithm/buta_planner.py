@@ -6,9 +6,11 @@ from std_msgs.msg import Int32
 
 from rei_monitoring_msgs.msg import DetectedObstacles
 
-from geometry_msgs.msg import PointStamped, Point, PoseStamped
+from geometry_msgs.msg import PointStamped, Point, PoseStamped, Quaternion
 
 from visualization_msgs.msg import MarkerArray, Marker
+
+from jsk_rviz_plugins.msg import OverlayText
 
 import tf2_ros
 
@@ -69,19 +71,27 @@ class PlannerVisualization(object):
         self.msg_viz_final_trajectory = MarkerArray()
         self.pub_viz_final_trajectory = rospy.Publisher("/final_trajectory/visualization", MarkerArray, queue_size=1)
 
-
-
+    def delete_markers(self):
+        self.msg_viz_final_trajectory.markers = []
+        m = Marker()
+        m.action = m.DELETEALL
+        self.msg_viz_final_trajectory.markers.append(m)
+        self.pub_viz_final_trajectory.publish(self.msg_viz_final_trajectory)
 
 class ButaPlanner(object):
 
     def __init__(self, hz, global_frame="map", robot_frame="base_link",
-                 max_height = 3.0, prior_seg = 7, poster_seg= 14):
+                 max_height = 3.0, prior_seg = 7, poster_seg= 14, middle_seg=3,
+                 safety_distance=5):
         #
         self.hz = hz
         # Planner parameters
         self.max_height = max_height
         self.prior_seg = prior_seg
         self.poster_seg = poster_seg
+        self.middle_seg = middle_seg
+        self.planning_end_point = 0
+        self.safety_distance = safety_distance
         # TF initialization
         self.global_frame = global_frame
         self.robot_frame = robot_frame
@@ -109,10 +119,10 @@ class ButaPlanner(object):
     def normal_vector_calculation(self, i):
         position_0 = self.planner_state.global_waypoints.waypoints[i].pose.pose.position
         position_1 = self.planner_state.global_waypoints.waypoints[i + 1].pose.pose.position
-        norm = np.array([[position_1.x - position_0.x,
-                          position_1.y - position_0.y]])
-        norm = norm / np.linalg.norm(norm)
-        norm = norm[:, [1, 0]]
+        norm_tmp = np.array([position_1.x - position_0.x,
+                          position_1.y - position_0.y])
+        norm_tmp = norm_tmp / np.linalg.norm(norm_tmp)
+        norm = np.array([-norm_tmp[1], norm_tmp[0]])
         return norm
 
     def tangent_vector_calculation(self, i):
@@ -135,13 +145,19 @@ class ButaPlanner(object):
             # Middle segment points
             middle_waypoints = []
             for i in range(ob.closest_waypoint - 1, ob.closest_waypoint + 2):
+                # Set ending point of the planning process
+                # (i.e. relay after this point)
+                self.planning_end_point = ob.closest_waypoint + self.poster_seg + int(self.safety_distance/2)
+                #
                 wp = Waypoint()
                 wp.pose = self.planner_state.global_waypoints.waypoints[i].pose
                 wp.twist = self.planner_state.global_waypoints.waypoints[i].twist
                 position_1 = self.planner_state.global_waypoints.waypoints[i].pose.pose.position
                 norm = self.normal_vector_calculation(i)
-                position_1.x += norm[0, 0] * self.max_height
-                position_1.y += norm[0, 1] * self.max_height
+                #position_1.x += norm[0, 0] * self.max_height
+                #position_1.y += norm[0, 1] * self.max_height
+                position_1.x += norm[0] * self.max_height
+                position_1.y += norm[1] * self.max_height
                 wp.pose.pose.position = position_1
                 middle_waypoints.append(wp)
             # Beginning segments
@@ -150,7 +166,7 @@ class ButaPlanner(object):
             v_beginning = np.array([[
                 middle_waypoints[0].pose.pose.position.x - wp_beginning.pose.pose.position.x,
                 middle_waypoints[0].pose.pose.position.y - wp_beginning.pose.pose.position.y]])
-            v_beginning = v_beginning/np.linalg.norm(v_beginning)
+            v_beginning_norm = v_beginning/np.linalg.norm(v_beginning)
             yaw_beginning = np.arctan2(v_beginning[0, 1], v_beginning[0, 0])
             wp_beginning.pose.pose.orientation.x = 0.0
             wp_beginning.pose.pose.orientation.y = 0.0
@@ -159,15 +175,17 @@ class ButaPlanner(object):
             # End segments
             ending_segment_index = ob.closest_waypoint + self.poster_seg
             wp_ending = self.planner_state.global_waypoints.waypoints[ending_segment_index]
+            wp_ending_start = middle_waypoints[-1]
             v_ending = np.array([[
-                middle_waypoints[-1].pose.pose.position.x - wp_ending.pose.pose.position.x,
-                middle_waypoints[-1].pose.pose.position.y - wp_ending.pose.pose.position.y]])
-            v_ending = v_ending / np.linalg.norm(v_ending)
+                wp_ending.pose.pose.position.x - wp_ending_start.pose.pose.position.x,
+                wp_ending.pose.pose.position.y - wp_ending_start.pose.pose.position.y]]
+            )
             yaw_ending = np.arctan2(v_ending[0, 1], v_ending[0, 0])
-            wp_ending.pose.pose.orientation.x = 0.0
-            wp_ending.pose.pose.orientation.y = 0.0
-            wp_ending.pose.pose.orientation.z = np.sin(yaw_ending / 2.0)
-            wp_ending.pose.pose.orientation.w = np.cos(yaw_ending / 2.0)
+            ending_segment_orientation = Quaternion()
+            ending_segment_orientation.x = 0.0
+            ending_segment_orientation.y = 0.0
+            ending_segment_orientation.z = np.sin(yaw_ending / 2.0)
+            ending_segment_orientation.w = np.cos(yaw_ending / 2.0)
             # STEP #2: Merge beginning, middle, end parts
             # STEP #2.1: Merge original part
             for i in range(self.planner_state.closest_waypoint, beginning_segment_index):
@@ -178,8 +196,9 @@ class ButaPlanner(object):
                 wp.pose = PoseStamped()
                 wp.pose.pose.position.x = wp_beginning.pose.pose.position.x
                 wp.pose.pose.position.y = wp_beginning.pose.pose.position.y
-                wp.pose.pose.position.x += v_beginning[0, 0] * i
-                wp.pose.pose.position.y += v_beginning[0, 1] * i
+                wp.pose.pose.position.z = wp_beginning.pose.pose.position.z
+                wp.pose.pose.position.x += v_beginning[0, 0]/self.prior_seg * i
+                wp.pose.pose.position.y += v_beginning[0, 1]/self.prior_seg * i
                 wp.pose.pose.orientation.x = wp_beginning.pose.pose.orientation.x
                 wp.pose.pose.orientation.y = wp_beginning.pose.pose.orientation.y
                 wp.pose.pose.orientation.z = wp_beginning.pose.pose.orientation.z
@@ -193,21 +212,22 @@ class ButaPlanner(object):
                 wp.pose = wp_ending.pose
                 wp.twist = wp_ending.twist
                 wp.pose = PoseStamped()
-                wp.pose.pose.position.x = wp_ending.pose.pose.position.x
-                wp.pose.pose.position.y = wp_ending.pose.pose.position.y
-                wp.pose.pose.orientation.x = wp_ending.pose.pose.orientation.x
-                wp.pose.pose.orientation.y = wp_ending.pose.pose.orientation.y
-                wp.pose.pose.orientation.z = wp_ending.pose.pose.orientation.z
-                wp.pose.pose.orientation.w = wp_ending.pose.pose.orientation.w
-                wp.pose.pose.position.x += v_ending[0, 0] * i
-                wp.pose.pose.position.y += v_ending[0, 1] * i
+                wp.pose.pose.position.x = wp_ending_start.pose.pose.position.x
+                wp.pose.pose.position.y = wp_ending_start.pose.pose.position.y
+                wp.pose.pose.position.z = wp_ending_start.pose.pose.position.z
+                wp.pose.pose.orientation = ending_segment_orientation
+                wp.pose.pose.position.x += v_ending[0, 0]/self.poster_seg * i
+                wp.pose.pose.position.y += v_ending[0, 1]/self.poster_seg * i
                 wp.twist = self.planner_state.global_waypoints.waypoints[ob.closest_waypoint + i + 1].twist
                 self.planner_state.final_lane.waypoints.append(wp)
-        self.planner_visualization.msg_viz_final_trajectory.markers = []
-        m = Marker()
-        m.action = m.DELETEALL
-        self.planner_visualization.msg_viz_final_trajectory.markers.append(m)
-        self.planner_visualization.pub_viz_final_trajectory.publish(self.planner_visualization.msg_viz_final_trajectory)
+            self.planner_state.final_lane.waypoints[-1].pose.pose.orientation = \
+                self.planner_state.global_waypoints.waypoints[ending_segment_index].pose.pose.orientation
+            for i in range(ending_segment_index,
+                           min(ending_segment_index + self.safety_distance,
+                               len(self.planner_state.global_waypoints.waypoints))):
+                wp = self.planner_state.global_waypoints.waypoints[i]
+                self.planner_state.final_lane.waypoints.append(wp)
+        self.planner_visualization.delete_markers()
         self.planner_visualization.msg_viz_final_trajectory.markers = []
         for i,wp in enumerate(self.planner_state.final_lane.waypoints):
             m = Marker()
@@ -217,9 +237,9 @@ class ButaPlanner(object):
             m.color.r = 1.0
             m.color.b = 1.0
             m.color.a = 1.0
-            m.scale.x = 1.0
-            m.scale.y = 1.0
-            m.scale.z = 1.0
+            m.scale.x = 0.9
+            m.scale.y = 0.9
+            m.scale.z = 0.9
             m.type = Marker.SPHERE
             m.header.frame_id = "map"
             self.planner_visualization.msg_viz_final_trajectory.markers.append(m)
@@ -230,12 +250,13 @@ class ButaPlanner(object):
             m.color.g = 1.0
             m.color.b = 1.0
             m.color.a = 1.0
-            m.scale.x = 0.7
+            m.scale.x = 1.0
             m.scale.y = 0.2
             m.scale.z = 0.4
             m.type = Marker.ARROW
             m.header.frame_id = "map"
             self.planner_visualization.msg_viz_final_trajectory.markers.append(m)
+        """
         if wp_beginning is not None:
             m = Marker()
             m.pose = wp_beginning.pose.pose
@@ -263,6 +284,7 @@ class ButaPlanner(object):
             m.scale.y = 0.2
             m.scale.z = 0.4
             self.planner_visualization.msg_viz_final_trajectory.markers.append(m)
+        """
 
 
 
@@ -285,21 +307,24 @@ class ButaPlanner(object):
 
 
     # REGION
-    # Timer
+    # Timer callback
     def cb_plan_timer(self, event):
         if self.planner_state.is_initialized():
+            # Our own little state machine
             if self.state==self.states["RELAY"]:
-                print("RELAY")
                 if self.planner_state.is_obstacle_detected():
                     self.state = self.states["REPLANNING"]
                     self.event_plan()
                 else:
                     self.relay()
             elif self.state==self.states["REPLANNING"]:
-                if not self.planner_state.is_obstacle_detected():
+                if not self.planner_state.is_obstacle_detected() and \
+                        self.planner_state.closest_waypoint >= self.planning_end_point:
                     self.state = self.states["RELAY"]
+                    self.planner_visualization.delete_markers()
             self.publish_final_waypoints()
             self.planner_visualization.pub_viz_final_trajectory.publish(self.planner_visualization.msg_viz_final_trajectory)
+
     # REGION:
     # Subscriber callbacks
     #
@@ -325,7 +350,7 @@ class ButaPlanner(object):
 
 def main():
     rospy.init_node("buta_planner")
-    buta_planner = ButaPlanner(20, max_height=2.0)
+    buta_planner = ButaPlanner(20, max_height=2.3, prior_seg=10, poster_seg=12, safety_distance=9)
     buta_planner.initialize_timers()
     rospy.spin()
 

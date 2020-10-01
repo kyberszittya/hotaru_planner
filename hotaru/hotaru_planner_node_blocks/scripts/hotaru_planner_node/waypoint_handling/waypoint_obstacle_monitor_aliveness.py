@@ -44,6 +44,8 @@ class WaypointObstacleMonitor(object):
         self.global_waypoint = None
         self.sensor_frame = None
         self.closest_waypoint = None
+        self.global_obstacles = []
+        self.alive_obstacles = []
         self.min_object_radius = min_threshold_radius
         # REI
         self.msg_detected_obstacles = DetectedObstacles()
@@ -54,9 +56,9 @@ class WaypointObstacleMonitor(object):
             self.marker_obstacles = MarkerArray()
 
     def initialize_timers(self):
-        self.timer_obstacle_detection = rospy.Timer(rospy.Duration(1.0/self.hz), self.cb_timer_detection)
+        self.timer_obstacle_detection = rospy.Timer(rospy.Duration(1.0/self.hz), self.cb_timer_detection, reset=True)
         if self.visualize:
-            self.viz_timer = rospy.Timer(rospy.Duration(1.0/(self.hz/2.0)), self.cb_viz_timer)
+            self.viz_timer = rospy.Timer(rospy.Duration(1.0/(self.hz/2.0)), self.cb_viz_timer, reset=True)
 
 
     def cb_goal_waypoints(self, data):
@@ -76,10 +78,9 @@ class WaypointObstacleMonitor(object):
             i = 0
 
     def cb_object_detector(self, data):
-
         self.sensor_frame = data.header.frame_id
         self.msg_detected_obstacles.header.frame_id = self.robot_frame
-        OBSTACLE_RADIUS = 1.0
+        OBSTACLE_RADIUS = 1.2
         if self.closest_waypoint is not None:
             try:
                 self.trans_sensor = self.tf_buffer.lookup_transform(self.robot_frame, self.sensor_frame,  rospy.Time())
@@ -87,10 +88,8 @@ class WaypointObstacleMonitor(object):
                 #self.trans_base_global = self.tf_buffer.lookup_transform(self.global_frame, self.robot_frame, rospy.Time())
                 self.trans_base_global = self.tf_buffer.lookup_transform(self.global_frame, self.robot_frame, rospy.Time())
                 if self.global_waypoint is not None:
-                    self.lock_obstacle.acquire()
                     self.detected_obstacles = []
                     for ob in data.objects:
-
                         o = PointStamped()
                         o.header.frame_id = ob.header.frame_id
                         o.point.x = ob.pose.position.x
@@ -99,6 +98,7 @@ class WaypointObstacleMonitor(object):
                         obstacle_position = tf2_geometry_msgs.do_transform_point(o, self.trans_sensor)
                         p = np.array([obstacle_position.point.x, obstacle_position.point.y])
                         if 0.0 < obstacle_position.point.x < 25.0:
+                            mind, mini = np.inf, 0
                             for i in range(self.closest_waypoint, min(len(self.global_waypoint.waypoints) - 2, self.closest_waypoint+40)):
                                 p0 = PointStamped()
                                 p0.header.frame_id = self.global_waypoint.waypoints[i].pose.header.frame_id
@@ -116,32 +116,58 @@ class WaypointObstacleMonitor(object):
                                 d = self.linear_distance(
                                     w0.point.x, w0.point.y,
                                     w1.point.x, w1.point.y,
-                                    obstacle_position.point.x, obstacle_position.point.y)
-                                if np.linalg.norm(w - p) > 4.0:
+                                    obstacle_position.point.x,
+                                    obstacle_position.point.y)
+                                if np.linalg.norm(w - p) > 2.0:
                                     continue
                                 if d < OBSTACLE_RADIUS:
-                                    print("Detected obstacle: ", d, obstacle_position.point.x)
-                                    gl_o = tf2_geometry_msgs.do_transform_point(obstacle_position, self.trans_base_global)
+                                    gl_o = tf2_geometry_msgs.do_transform_point(obstacle_position,
+                                                                                self.trans_base_global)
                                     self.detected_obstacles.append(
                                         np.array([obstacle_position.point.x,
                                                   obstacle_position.point.y,
                                                   gl_o.point.x, gl_o.point.y, i]))
                                     break
-                    print()
-                    self.lock_obstacle.release()
                     # TODO: migrate to thread
                     self.msg_detected_obstacles.obstacles = []
                     for o in self.detected_obstacles:
+                        # Search for existing obstacle
+                        match = False
+                        for ob in self.global_obstacles:
+                            if ob[2] - o[2] < 0.5 and ob[3] - o[3] < 0.5:
+                                match = True
+                                ob[5] += 1
+                                print(match)
+                                break
+                        if not match:
+                            self.global_obstacles.append(o)
+                    # Search for alive obstacles and publish them
+                    for o in self.global_obstacles:
+                        if o[5] >= 10:
+                            match = False
+                            for ob in self.alive_obstacles:
+                                if ob[2] - o[2] < 0.8 and ob[3] - o[3] < 0.8:
+                                    match = True
+                            if not match:
+                                self.alive_obstacles.append(o)
+                    for o in self.alive_obstacles:
                         obs = Obstacle()
+                        print("Detected obstacle: ", d, o[2], o[3])
                         obs.pose.position.x = o[0]
                         obs.pose.position.y = o[1]
                         # Global position
                         obs.global_pose.position.x = o[2]
                         obs.global_pose.position.y = o[3]
                         # Waypoint index
-                        obs.closest_waypoint = o[4] # ATTENTION: remove closest waypoint on the other side!
+                        obs.closest_waypoint = o[4]  # ATTENTION: remove closest waypoint on the other side!
                         obs.radius = 0.7
+                        if o[4] < self.closest_waypoint:
+                            o[5] -= 1
                         self.msg_detected_obstacles.obstacles.append(obs)
+                    # Check if obstacles are not detected
+                    for o in self.alive_obstacles:
+                        if o[5] <= 0:
+                            self.alive_obstacles.remove(o)
                     self.msg_detected_obstacles.header.stamp = rospy.Time.now()
                     self.pub_detected_obstacles.publish(self.msg_detected_obstacles)
                     # TODO: migrate to visualization thread
@@ -150,11 +176,11 @@ class WaypointObstacleMonitor(object):
                     delete_marker.action = Marker.DELETEALL
                     self.marker_obstacles.markers.append(delete_marker)
                     self.pub_viz_detected_obstacle_marker.publish(self.marker_obstacles)
-                    for i, o in enumerate(self.detected_obstacles):
+                    for i, o in enumerate(self.alive_obstacles):
                         m = Marker()
                         p = Point()
-                        p.x = o[0]
-                        p.y = o[1]
+                        p.x = o[2]
+                        p.y = o[3]
                         m.type = Marker.SPHERE
                         m.scale.x = 1.0
                         m.scale.y = 1.0
@@ -163,7 +189,7 @@ class WaypointObstacleMonitor(object):
                         m.color.g = 0.0
                         m.color.b = 0.0
                         m.color.a = 1.0
-                        m.header.frame_id = self.robot_frame
+                        m.header.frame_id = self.global_frame
                         m.pose.position = p
                         m.id = i
                         m.ns = "obstacle"

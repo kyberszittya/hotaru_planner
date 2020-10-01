@@ -176,6 +176,24 @@ class RosDynamicLanePlanner(object):
 
     def cb_obstacle_detection(self, data):
         if self.is_initialized():
+            for i, o in enumerate(data.obstacles):
+                gl_pos = np.array([o.global_pose.position.x, o.global_pose.position.y])
+                ob = Obstacle(gl_pos, o.radius)
+                self.obstacle_deque.append(ob)
+                self.obstacle_list.append([ob, gl_pos, 1])
+                if not self.feasible_plan or self.current_state == self.states["RELAY"]:
+                    self.event_plan()
+                    self.current_state = self.states["REPLANNING"]
+                if len(self.final_lane.waypoints) > 0:
+                    self.feasible_plan = True
+                    self.planning_point = self.search_for_waypoint(self.final_lane.waypoints[-1].pose.pose.position)
+                else:
+                    self.feasible_plan = False
+            if self.closest_waypoint > self.planning_point \
+                    and self.current_state == self.states["REPLANNING"]:
+                self.current_state = self.states["RELAY"]
+
+            """
             if len(data.obstacles) == 0:
                 for o in self.obstacle_list:
                     o[2] -= 1
@@ -221,6 +239,7 @@ class RosDynamicLanePlanner(object):
             if self.cnt_obstacles == 0 and self.closest_waypoint > self.planning_point and self.current_state==self.states["REPLANNING"]:
                 self.current_state = self.states["RELAY"]
             self.prev_obstacle_event = rospy.Time.now()
+            """
 
     def cb_lane_waypoints(self, data):
         if self.is_initialized():
@@ -239,7 +258,8 @@ class RosDynamicLanePlanner(object):
                 self.cvs = []
                 for i in point_indices:
                     self.current_wps.append(data.waypoints[i])
-                    tr_pose = tf2_geometry_msgs.do_transform_pose(data.waypoints[i].pose, self.trans)
+                    #tr_pose = tf2_geometry_msgs.do_transform_pose(data.waypoints[i].pose, self.trans)
+                    tr_pose = data.waypoints[i].pose
                     self.current_cvs.append(tr_pose)
                     self.cvs.append(np.array([tr_pose.pose.position.x, tr_pose.pose.position.y]))
                 self.planner_lock.release()
@@ -267,7 +287,8 @@ class RosDynamicLanePlanner(object):
         viz_tesselation.action = Marker.DELETEALL
         self.viz_marker_tesselation.markers.append(viz_tesselation)
         self.pub_viz_tesselation_points.publish(self.viz_marker_tesselation)
-        self.trans_base_global = self.tf_buffer.lookup_transform(self.global_frame, self.robot_frame, rospy.Time())
+
+        #self.trans_base_global = self.tf_buffer.lookup_transform(self.global_frame, self.robot_frame, rospy.Time())
         if self.poly_vertices is not None:
             for i,t in enumerate(self.poly_vertices):
                 for j,s in enumerate(t):
@@ -279,17 +300,18 @@ class RosDynamicLanePlanner(object):
                     viz_tesselation.type = Marker.SPHERE
                     viz_tesselation.ns = "tesselation"
                     viz_tesselation.id = id
-                    gl_o = tf2_geometry_msgs.do_transform_point(p, self.trans_base_global)
+                    #gl_o = tf2_geometry_msgs.do_transform_point(p, self.trans_base_global)
                     if self.lane_polygon.obstacle_grid is None:
                         viz_tesselation.color.r = 1.0
                         viz_tesselation.color.b = 1.0
                         viz_tesselation.color.a = 0.4
                     else:
                         obstacle_val = self.lane_polygon.obstacle_grid[i, j]
-                        viz_tesselation.color.r = obstacle_val
+                        viz_tesselation.color.r = np.fmod(obstacle_val, 1.0)
                         viz_tesselation.color.g = 1.0 / (obstacle_val+1)
                         viz_tesselation.color.a = 1.0
-                    viz_tesselation.pose.position = gl_o.point
+                    #viz_tesselation.pose.position = gl_o.point
+                    viz_tesselation.pose.position = p.point
                     viz_tesselation.scale.x = 0.5
                     viz_tesselation.scale.y = 0.5
                     viz_tesselation.scale.z = 0.5
@@ -302,42 +324,43 @@ class RosDynamicLanePlanner(object):
         if self.final_lane is not None:
             self.viz_marker_orientation_field.points = []
             # Points
-            viz_marker_final_trajectory = Marker()
-            viz_marker_final_trajectory.action = Marker.DELETEALL
-            self.viz_marker_array_final_trajectory.markers.append(viz_marker_final_trajectory)
-            self.pub_viz_final_trajectory.publish(self.viz_marker_array_final_trajectory)
-            for i, w in enumerate(self.final_lane.waypoints):
+            if self.current_state==self.states["REPLANNING"]:
                 viz_marker_final_trajectory = Marker()
-                viz_marker_final_trajectory.ns = "final_trajectory_points"
-                viz_marker_final_trajectory.type = Marker.SPHERE
-                viz_marker_final_trajectory.pose.position = w.pose.pose.position
-                viz_marker_final_trajectory.color.r = 0.4
-                viz_marker_final_trajectory.color.g = 0.8
-                viz_marker_final_trajectory.color.b = 1.0
-                viz_marker_final_trajectory.color.a = 0.8
-                viz_marker_final_trajectory.scale.x = 0.8
-                viz_marker_final_trajectory.scale.y = 0.8
-                viz_marker_final_trajectory.scale.z = 0.8
-                viz_marker_final_trajectory.header.frame_id = self.global_frame
-                viz_marker_final_trajectory.id = i
+                viz_marker_final_trajectory.action = Marker.DELETEALL
                 self.viz_marker_array_final_trajectory.markers.append(viz_marker_final_trajectory)
-                #
-                viz_marker_arrow = Marker()
-                viz_marker_arrow.ns = "orientation_arrow"
-                viz_marker_arrow.type = Marker.ARROW
-                viz_marker_arrow.pose.position = w.pose.pose.position
-                viz_marker_arrow.pose.orientation = w.pose.pose.orientation
-                viz_marker_arrow.color.r = 0.8
-                viz_marker_arrow.color.g = 0.4
-                viz_marker_arrow.color.b = 1.0
-                viz_marker_arrow.color.a = 1.0
-                viz_marker_arrow.scale.x = 0.9
-                viz_marker_arrow.scale.y = 0.1
-                viz_marker_arrow.scale.z = 0.1
-                viz_marker_arrow.header.frame_id = self.global_frame
-                viz_marker_arrow.id = i
-                self.viz_marker_array_final_trajectory.markers.append(viz_marker_arrow)
-            self.pub_viz_final_trajectory.publish(self.viz_marker_array_final_trajectory)
+                self.pub_viz_final_trajectory.publish(self.viz_marker_array_final_trajectory)
+                for i, w in enumerate(self.final_lane.waypoints):
+                    viz_marker_final_trajectory = Marker()
+                    viz_marker_final_trajectory.ns = "final_trajectory_points"
+                    viz_marker_final_trajectory.type = Marker.SPHERE
+                    viz_marker_final_trajectory.pose.position = w.pose.pose.position
+                    viz_marker_final_trajectory.color.r = 0.4
+                    viz_marker_final_trajectory.color.g = 0.8
+                    viz_marker_final_trajectory.color.b = 1.0
+                    viz_marker_final_trajectory.color.a = 0.8
+                    viz_marker_final_trajectory.scale.x = 0.8
+                    viz_marker_final_trajectory.scale.y = 0.8
+                    viz_marker_final_trajectory.scale.z = 0.8
+                    viz_marker_final_trajectory.header.frame_id = self.global_frame
+                    viz_marker_final_trajectory.id = i
+                    self.viz_marker_array_final_trajectory.markers.append(viz_marker_final_trajectory)
+                    #
+                    viz_marker_arrow = Marker()
+                    viz_marker_arrow.ns = "orientation_arrow"
+                    viz_marker_arrow.type = Marker.ARROW
+                    viz_marker_arrow.pose.position = w.pose.pose.position
+                    viz_marker_arrow.pose.orientation = w.pose.pose.orientation
+                    viz_marker_arrow.color.r = 0.8
+                    viz_marker_arrow.color.g = 0.4
+                    viz_marker_arrow.color.b = 1.0
+                    viz_marker_arrow.color.a = 1.0
+                    viz_marker_arrow.scale.x = 0.9
+                    viz_marker_arrow.scale.y = 0.1
+                    viz_marker_arrow.scale.z = 0.1
+                    viz_marker_arrow.header.frame_id = self.global_frame
+                    viz_marker_arrow.id = i
+                    self.viz_marker_array_final_trajectory.markers.append(viz_marker_arrow)
+                self.pub_viz_final_trajectory.publish(self.viz_marker_array_final_trajectory)
 
     def cb_plan_timer(self, event):
         #self.plan()
@@ -387,7 +410,7 @@ class RosDynamicLanePlanner(object):
             self.lane_polygon.set_reference_trajectory(self.current_cvs_2d)
         else:
             return None
-        pose = np.array([0, 0])
+        pose = np.array([self.current_pose.pose.position.x, self.current_pose.pose.position.y])
         self.planner_lock.acquire()
         self.planner_lock.release()
         _, _, _, self.poly_vertices = self.lane_polygon.calc()
@@ -428,7 +451,8 @@ class RosDynamicLanePlanner(object):
             pose_local.pose.orientation.y = 0.0
             pose_local.pose.orientation.z = np.sin(yaw / 2.0)
             pose_local.pose.orientation.w = np.cos(yaw / 2.0)
-            wp.pose = tf2_geometry_msgs.do_transform_pose(pose_local, self.trans_global)
+            #wp.pose = tf2_geometry_msgs.do_transform_pose(pose_local, self.trans_global)
+            wp.pose = pose_local
             i_closest_twist = self.closest_ref_waypoint(
                 (wp.pose.pose.position.x, wp.pose.pose.position.y),
                 current_wps)
@@ -447,10 +471,10 @@ def main():
     rospy.init_node("dynamic_lane_astar")
     dynamic_planner_ros = RosDynamicLanePlanner(10, visualize=True,
                                                 skip_points=3,
-                                                lethal_obstacle_val=150,
-                                                non_lethal_val_scale=100,
-                                                sigma_x=7,
-                                                sigma_y=0.5)
+                                                lethal_obstacle_val=120,
+                                                non_lethal_val_scale=80,
+                                                sigma_x=15,
+                                                sigma_y=1.5)
     dynamic_planner_ros.initialize_timers()
     #while not rospy.is_shutdown():
     #    dynamic_planner_ros.plan()

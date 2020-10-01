@@ -192,7 +192,6 @@ class ConvexObjectObstacleMonitor(object):
             try:
                 # TF
                 self.trans_sensor_global = self.tf_buffer.lookup_transform(self.global_frame, self.sensor_frame, rospy.Time())
-                self.trans_sensor_base = self.tf_buffer.lookup_transform(self.robot_frame, self.sensor_frame, rospy.Time())
                 mon_state = self.obstacle_monitor_state
                 alive_obstacles = set()
 
@@ -204,9 +203,6 @@ class ConvexObjectObstacleMonitor(object):
                     o_point.point.z = o.pose.position.z
                     position_obstacle_base = tf2_geometry_msgs.do_transform_point(
                         o_point, self.trans_sensor_base).point
-                    if position_obstacle_base.x < 0.0 or position_obstacle_base.x > 30.0\
-                            or position_obstacle_base.y < -6.0 or position_obstacle_base.y > 6.0:
-                        continue
                     raw_pose = PointStamped()
                     raw_pose.header.frame_id = self.sensor_frame
                     raw_pose.point.x = o.pose.position.x
@@ -224,7 +220,7 @@ class ConvexObjectObstacleMonitor(object):
                             ob.position_obstacle_global = position_obstacle_global
                             ob.ttl += 1
                             if ob.ttl > int(self.hz)*2:
-                                ob.tt = int(self.hz*2)
+                                ob.ttl = int(self.hz*2)
                             ob.position_obstacle_base = position_obstacle_base
                     if not match:
                         # STEP 1: Search for the closest waypoint of the center
