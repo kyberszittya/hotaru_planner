@@ -1,6 +1,10 @@
 geometry_msgs/Pose pose
+geometry_msgs/Pose global_pose
 float64 radius
 geometry_msgs/Point[] convex_hull
+float64 linear_distance
+float64 leftmost_distance
+float64 rightmost_distance
 int32 closest_waypoint
 uint8 PERIMETER=1
 uint8 STATIC_OBSTACLE=1

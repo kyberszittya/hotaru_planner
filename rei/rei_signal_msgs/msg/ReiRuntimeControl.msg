@@ -1,0 +1,9 @@
+std_msgs/Header header
+string event_name
+uint32 sig_id
+uint32 START_NODE=1
+uint32 ENABLE_NODE=2
+uint32 DISABLE_NODE=3
+uint32 STOP_NODE=4
+uint32 PREEMPT_NODE=5
+uint32 CANCEL_NODE=6

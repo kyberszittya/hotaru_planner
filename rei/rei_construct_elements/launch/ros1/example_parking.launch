@@ -1,0 +1,5 @@
+<launch>
+	<node name="rei_loader_xml" pkg="rei_construct_elements" type="ros1_hysm_node_reader" output="screen">
+		<param name="filename" value="$(find rei_construct_elements)/example/parking.xml"/>
+	</node>
+</launch>

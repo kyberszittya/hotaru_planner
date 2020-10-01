@@ -1,0 +1,15 @@
+/*
+ * filter_block.hpp
+ *
+ *  Created on: Sep 9, 2020
+ *      Author: kyberszittya
+ */
+
+#ifndef INCLUDE_REI_RECOGNITION_NODES_FILTER_FILTER_BLOCK_HPP_
+#define INCLUDE_REI_RECOGNITION_NODES_FILTER_FILTER_BLOCK_HPP_
+
+
+
+
+
+#endif /* INCLUDE_REI_RECOGNITION_NODES_FILTER_FILTER_BLOCK_HPP_ */

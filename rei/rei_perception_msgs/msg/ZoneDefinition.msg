@@ -1,0 +1,10 @@
+std_msgs/Header stamp
+string label
+geometry_msgs/Polygon zone
+int32 TYPE_STATIC=0
+int32 TYPE_DYNAMIC=1
+int32 SEVERITY_PASSABLE=0
+int32 SEVERITY_DANGER=1
+int32 SEVERITY_FORBIDDEN=2
+int32 zone_type
+int32 zone_severity

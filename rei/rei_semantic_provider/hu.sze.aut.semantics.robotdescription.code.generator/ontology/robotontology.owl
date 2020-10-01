@@ -1,0 +1,148 @@
+<?xml version="1.0"?>
+<rdf:RDF xmlns="http://aut.sze.hu/RobotOntology/ontology.owl#"
+     xml:base="http://aut.sze.hu/RobotOntology/ontology.owl"
+     xmlns:owl="http://www.w3.org/2002/07/owl#"
+     xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+     xmlns:xml="http://www.w3.org/XML/1998/namespace"
+     xmlns:xsd="http://www.w3.org/2001/XMLSchema#"
+     xmlns:rdfs="http://www.w3.org/2000/01/rdf-schema#">
+    <owl:Ontology rdf:about="http://aut.sze.hu/RobotOntology/ontology.owl"/>
+    
+
+
+    <!-- 
+    ///////////////////////////////////////////////////////////////////////////////////////
+    //
+    // Data properties
+    //
+    ///////////////////////////////////////////////////////////////////////////////////////
+     -->
+
+    
+
+
+    <!-- http://aut.sze.hu/RobotOntology/ontology.owl#dynamicparameters -->
+
+    <owl:DatatypeProperty rdf:about="http://aut.sze.hu/RobotOntology/ontology.owl#dynamicparameters">
+        <rdfs:domain rdf:resource="http://aut.sze.hu/RobotOntology/ontology.owl#Robot"/>
+    </owl:DatatypeProperty>
+    
+
+
+    <!-- http://aut.sze.hu/RobotOntology/ontology.owl#frontrackwidth -->
+
+    <owl:DatatypeProperty rdf:about="http://aut.sze.hu/RobotOntology/ontology.owl#frontrackwidth">
+        <rdfs:subPropertyOf rdf:resource="http://aut.sze.hu/RobotOntology/ontology.owl#kinematicparameters"/>
+    </owl:DatatypeProperty>
+    
+
+
+    <!-- http://aut.sze.hu/RobotOntology/ontology.owl#kinematicparameters -->
+
+    <owl:DatatypeProperty rdf:about="http://aut.sze.hu/RobotOntology/ontology.owl#kinematicparameters">
+        <rdfs:domain rdf:resource="http://aut.sze.hu/RobotOntology/ontology.owl#Robot"/>
+    </owl:DatatypeProperty>
+    
+
+
+    <!-- http://aut.sze.hu/RobotOntology/ontology.owl#mass -->
+
+    <owl:DatatypeProperty rdf:about="http://aut.sze.hu/RobotOntology/ontology.owl#mass">
+        <rdfs:subPropertyOf rdf:resource="http://aut.sze.hu/RobotOntology/ontology.owl#dynamicparameters"/>
+        <rdfs:domain rdf:resource="http://aut.sze.hu/RobotOntology/ontology.owl#DifferentialRobot"/>
+        <rdfs:domain rdf:resource="http://aut.sze.hu/RobotOntology/ontology.owl#Vehicle"/>
+    </owl:DatatypeProperty>
+    
+
+
+    <!-- http://aut.sze.hu/RobotOntology/ontology.owl#maxacceleration -->
+
+    <owl:DatatypeProperty rdf:about="http://aut.sze.hu/RobotOntology/ontology.owl#maxacceleration">
+        <rdfs:subPropertyOf rdf:resource="http://aut.sze.hu/RobotOntology/ontology.owl#dynamicparameters"/>
+        <rdfs:domain rdf:resource="http://aut.sze.hu/RobotOntology/ontology.owl#DifferentialRobot"/>
+        <rdfs:domain rdf:resource="http://aut.sze.hu/RobotOntology/ontology.owl#Vehicle"/>
+    </owl:DatatypeProperty>
+    
+
+
+    <!-- http://aut.sze.hu/RobotOntology/ontology.owl#reartrackwidth -->
+
+    <owl:DatatypeProperty rdf:about="http://aut.sze.hu/RobotOntology/ontology.owl#reartrackwidth">
+        <rdfs:subPropertyOf rdf:resource="http://aut.sze.hu/RobotOntology/ontology.owl#kinematicparameters"/>
+    </owl:DatatypeProperty>
+    
+
+
+    <!-- http://aut.sze.hu/RobotOntology/ontology.owl#wheelbase -->
+
+    <owl:DatatypeProperty rdf:about="http://aut.sze.hu/RobotOntology/ontology.owl#wheelbase">
+        <rdfs:subPropertyOf rdf:resource="http://aut.sze.hu/RobotOntology/ontology.owl#kinematicparameters"/>
+        <rdfs:domain rdf:resource="http://aut.sze.hu/RobotOntology/ontology.owl#DifferentialRobot"/>
+        <rdfs:domain rdf:resource="http://aut.sze.hu/RobotOntology/ontology.owl#Vehicle"/>
+    </owl:DatatypeProperty>
+    
+
+
+    <!-- 
+    ///////////////////////////////////////////////////////////////////////////////////////
+    //
+    // Classes
+    //
+    ///////////////////////////////////////////////////////////////////////////////////////
+     -->
+
+    
+
+
+    <!-- http://aut.sze.hu/RobotOntology/ontology.owl#DifferentialRobot -->
+
+    <owl:Class rdf:about="http://aut.sze.hu/RobotOntology/ontology.owl#DifferentialRobot">
+        <rdfs:subClassOf rdf:resource="http://aut.sze.hu/RobotOntology/ontology.owl#Robot"/>
+    </owl:Class>
+    
+
+
+    <!-- http://aut.sze.hu/RobotOntology/ontology.owl#Robot -->
+
+    <owl:Class rdf:about="http://aut.sze.hu/RobotOntology/ontology.owl#Robot"/>
+    
+
+
+    <!-- http://aut.sze.hu/RobotOntology/ontology.owl#Vehicle -->
+
+    <owl:Class rdf:about="http://aut.sze.hu/RobotOntology/ontology.owl#Vehicle">
+        <rdfs:subClassOf rdf:resource="http://aut.sze.hu/RobotOntology/ontology.owl#Robot"/>
+    </owl:Class>
+    
+
+
+    <!-- 
+    ///////////////////////////////////////////////////////////////////////////////////////
+    //
+    // Individuals
+    //
+    ///////////////////////////////////////////////////////////////////////////////////////
+     -->
+
+    
+
+
+    <!-- http://aut.sze.hu/RobotOntology/ontology.owl#FiekRobotKocsi -->
+
+    <owl:NamedIndividual rdf:about="http://aut.sze.hu/RobotOntology/ontology.owl#FiekRobotKocsi">
+        <rdf:type rdf:resource="http://aut.sze.hu/RobotOntology/ontology.owl#DifferentialRobot"/>
+    </owl:NamedIndividual>
+    
+
+
+    <!-- http://aut.sze.hu/RobotOntology/ontology.owl#NissanLeaf -->
+
+    <owl:NamedIndividual rdf:about="http://aut.sze.hu/RobotOntology/ontology.owl#NissanLeaf">
+        <rdf:type rdf:resource="http://aut.sze.hu/RobotOntology/ontology.owl#Vehicle"/>
+    </owl:NamedIndividual>
+</rdf:RDF>
+
+
+
+<!-- Generated by the OWL API (version 4.5.9.2019-02-01T07:24:44Z) https://github.com/owlcs/owlapi -->
+
