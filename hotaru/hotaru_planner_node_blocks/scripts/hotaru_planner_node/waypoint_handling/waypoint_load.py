@@ -141,7 +141,6 @@ class WaypointLoaderGlobalPlanner(object):
     def timer_waypoint(self, event):
         self.msg_pub_lane.header.stamp = rospy.Time.now()
         self.pub_waypoint.publish(self.msg_pub_lane)
-        self.pub_test.publish(self.msg_pose)
 
 
 
