@@ -19,7 +19,7 @@ def obstacle_avoidance_euclidean_distance(pr_x, pr_y, p0_x, p0_y, obstacle_radiu
 
 
 def obstacle_gaussian_distance(pr_x, pr_y, p0_x, p0_y, sigma_x, sigma_y, val_scale= 1.0):
-    d = np.sqrt(((pr_x - p0_x) ** 2)/sigma_x + ((pr_y - p0_y) ** 2)/sigma_y)
+    d = ((pr_x - p0_x) ** 2)/(2 * sigma_x) + ((pr_y - p0_y) ** 2)/(2 * sigma_y)
     return val_scale*np.exp(-d)
 
 

@@ -56,6 +56,7 @@ class PolygonRepresentation(object):
         start = time.clock()
         for i in range(self.horizon_steps):
             for j in range(self.steps_width):
+                """
                 d = obstacle_gaussian_distance(
                     self.poly_vertices[i, j][0],
                     self.poly_vertices[i, j][1],
@@ -69,7 +70,6 @@ class PolygonRepresentation(object):
                     obstacle.position[0],
                     obstacle.position[1],
                     obstacle_radius=0.0, val_scale=self.non_lethal_val_scale)
-                """
                 self.obstacle_grid[i, j] += d
         for i in range(self.horizon_steps - 1):
             for j in range(self.steps_width - 1):

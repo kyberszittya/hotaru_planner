@@ -86,6 +86,7 @@ class AbstractPlanner(object):
     def cb_plan_timer(self, event):
         if self.planner_state.is_initialized():
             self.relay()
+            print(self.planner_state.final_lane)
             self.publish_final_waypoints()
 
     # REGION:

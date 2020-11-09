@@ -50,7 +50,6 @@ class WaypointObstacleMonitor(object):
             self.trans_sensor = self.tf_buffer.lookup_transform(self.robot_frame, data.header.frame_id, rospy.Time())
             self.trans_sensor_global = self.tf_buffer.lookup_transform(self.global_frame, data.header.frame_id, rospy.Time())
             detected_obstacles = []
-
             for ob in data.objects:
                 o = PointStamped()
                 o.header.frame_id = ob.header.frame_id

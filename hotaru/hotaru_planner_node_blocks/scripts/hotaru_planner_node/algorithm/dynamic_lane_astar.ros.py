@@ -1,7 +1,6 @@
 import rospy
 
 import tf2_ros
-import tf2_geometry_msgs
 
 from threading import Lock
 
@@ -13,21 +12,16 @@ from rei_monitoring_msgs.msg import DetectedObstacles
 
 from hotaru_planner_node.algorithm.dynamic_lane_astar import DynamicLanePolygon, Obstacle, DynamicLaneAstarPlanner
 from hotaru_planner_node.algorithm.bezier import RationalBezierCurve
-from hotaru_blocks import quaternion_to_yaw
 from visualization_msgs.msg import Marker, MarkerArray
 
 from jsk_rviz_plugins.msg import OverlayText
 
 import numpy as np
 
-import matplotlib.pyplot as plt
 
 import time
 
 from collections import deque
-
-
-
 
 
 class RosDynamicLanePlanner(object):
@@ -176,6 +170,7 @@ class RosDynamicLanePlanner(object):
 
     def cb_obstacle_detection(self, data):
         if self.is_initialized():
+            self.obstacle_list = []
             for i, o in enumerate(data.obstacles):
                 gl_pos = np.array([o.global_pose.position.x, o.global_pose.position.y])
                 ob = Obstacle(gl_pos, o.radius)
@@ -307,7 +302,7 @@ class RosDynamicLanePlanner(object):
                         viz_tesselation.color.a = 0.4
                     else:
                         obstacle_val = self.lane_polygon.obstacle_grid[i, j]
-                        viz_tesselation.color.r = np.fmod(obstacle_val, 1.0)
+                        viz_tesselation.color.r = min(obstacle_val, 1.0)
                         viz_tesselation.color.g = 1.0 / (obstacle_val+1)
                         viz_tesselation.color.a = 1.0
                     #viz_tesselation.pose.position = gl_o.point
@@ -389,7 +384,7 @@ class RosDynamicLanePlanner(object):
             self.pub_state_text.publish(self.msg_state_text)
 
     def closest_ref_waypoint(self, p, current_wps):
-        mini, mindist = 0, 100000
+        mini, mindist = 0, np.inf
         for i,wp in enumerate(current_wps):
             d = (p[0]-wp.pose.pose.position.x)**2 + (p[1]-wp.pose.pose.position.y)**2
             if d < mindist:
@@ -414,7 +409,6 @@ class RosDynamicLanePlanner(object):
         self.planner_lock.acquire()
         self.planner_lock.release()
         _, _, _, self.poly_vertices = self.lane_polygon.calc()
-        self.lane_polygon.reset_obstacle_list()
         # Obstacles
         self.lane_polygon.reset_obstacle_list()
         for o in self.obstacle_list:
@@ -471,10 +465,10 @@ def main():
     rospy.init_node("dynamic_lane_astar")
     dynamic_planner_ros = RosDynamicLanePlanner(10, visualize=True,
                                                 skip_points=3,
-                                                lethal_obstacle_val=120,
-                                                non_lethal_val_scale=80,
-                                                sigma_x=15,
-                                                sigma_y=1.5)
+                                                lethal_obstacle_val=50,
+                                                non_lethal_val_scale=35,
+                                                sigma_x=12,
+                                                sigma_y=4)
     dynamic_planner_ros.initialize_timers()
     #while not rospy.is_shutdown():
     #    dynamic_planner_ros.plan()

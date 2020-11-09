@@ -152,8 +152,8 @@ def main():
     #waypoint_list = global_planner.load_csv("/home/kyberszittya/zalazone_ws/waypoints/smart_city/smart_city_sav_kozep_duro1.csv")
     # Simulation
     #waypoint_list = global_planner.load_csv("/home/kyberszittya/zalazone_ws/waypoints/smart_city_2/smart_city_akadaly_kerules.csv")
-    waypoint_list = global_planner.load_csv("/home/kyberszittya/zalazone_ws/waypoints/smart_city_2/csabi_tmp5_duro.csv")
-    #waypoint_list = global_planner.load_csv("/home/kyberszittya/zalazone_ws/waypoints/demo/demo_kulso_sav_nova.csv")
+    #waypoint_list = global_planner.load_csv("/home/kyberszittya/zalazone_ws/waypoints/smart_city_2/csabi_tmp5_duro.csv")
+    waypoint_list = global_planner.load_csv("/home/kyberszittya/zalazone_ws/waypoints/demo/demo_kulso_sav_nova.csv")
     rospy.loginfo("All set, publishing lane information")
     rospy.spin()
 
