@@ -1,6 +1,0 @@
-<launch>
-  <node type="trajectory_visualizer.py" name="hotaru_trajectory_visualizer" pkg="hotaru_node_elements">	
-  </node>
-  <node type="perception_visualization.py" name="perception_visualization" pkg="rei_perception_monitor">
-  </node>
-</launch>

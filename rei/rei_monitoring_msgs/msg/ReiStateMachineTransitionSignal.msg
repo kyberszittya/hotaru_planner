@@ -1,5 +1,0 @@
-std_msgs/Header header
-uint64 sig_id
-string signal_name
-string transition_from
-string transition_to

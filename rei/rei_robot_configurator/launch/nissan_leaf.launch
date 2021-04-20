@@ -1,5 +1,0 @@
-<launch>
-	<node name="rei_robot_nissan_leaf_configurator" pkg="rei_robot_configurator" type="rei_node_conf">
-		<rosparam command="load" file="$(find rei_robot_configurator)/param/nissan_leaf.yaml"/>
-	</node>
-</launch>

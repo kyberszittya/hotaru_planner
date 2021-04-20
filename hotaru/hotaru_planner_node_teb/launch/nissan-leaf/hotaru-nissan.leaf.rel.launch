@@ -1,6 +1,0 @@
-<launch>  
-  <include file="$(find hotaru_planner_node_teb)/launch/hotaru_autoware_interface.launch">
-  </include>
-  <include file="$(find nissan_sim_bringup)/launch/hotaru/test.localtrajectory.rel.launch">
-  </include>
-</launch>

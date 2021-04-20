@@ -1,5 +1,0 @@
-std_msgs/Header header
-geometry_msgs/Pose pose
-geometry_msgs/Twist twist
-geometry_msgs/Polygon bounding_box
-sensor_msgs/PointCloud2 detected_points

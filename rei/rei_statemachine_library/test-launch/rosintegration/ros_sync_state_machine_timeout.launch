@@ -1,4 +1,0 @@
-<launch>
-	<node pkg="rei_statemachine_library" type="example_sync_node" name="example_sync_node" />
-	<test pkg="rei_statemachine_library" type="test_sync_simple_ros" test-name="test_sync_simple_ros" />
-</launch>

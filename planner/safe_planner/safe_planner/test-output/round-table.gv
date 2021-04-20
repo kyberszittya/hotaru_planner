@@ -1,0 +1,53 @@
+// Quadtree visualization
+digraph {
+	graph [rotation=180]
+	<fuzzy_network_engine.naive_quadtree_example.QuadTreeNode object at 0x7fdbd72ddb80> [label=X]
+	<fuzzy_network_engine.naive_quadtree_example.QuadTreeNode object at 0x7fdbd72dde80> [label=X3]
+	<fuzzy_network_engine.naive_quadtree_example.QuadTreeNode object at 0x7fdbd72e8040> [label=X31]
+	<fuzzy_network_engine.naive_quadtree_example.QuadTreeNode object at 0x7fdbd72dddc0> [label=X2]
+	<fuzzy_network_engine.naive_quadtree_example.QuadTreeNode object at 0x7fdbd72ddd00> [label=X1]
+	<fuzzy_network_engine.naive_quadtree_example.QuadTreeNode object at 0x7fdbd72ddbb0> [label=X0]
+	<fuzzy_network_engine.naive_quadtree_example.QuadTreeNode object at 0x7fdbd72ddf40> [label=X30 color=blue]
+	<fuzzy_network_engine.naive_quadtree_example.QuadTreeNode object at 0x7fdbd72e8100> [label=X32 color=blue]
+	<fuzzy_network_engine.naive_quadtree_example.QuadTreeNode object at 0x7fdbd72e81c0> [label=X33 color=blue]
+	<fuzzy_network_engine.naive_quadtree_example.QuadTreeNode object at 0x7fdbd72e8b80> [label=X310 color=blue]
+	<fuzzy_network_engine.naive_quadtree_example.QuadTreeNode object at 0x7fdbd72e8c40> [label=X311 color=blue]
+	<fuzzy_network_engine.naive_quadtree_example.QuadTreeNode object at 0x7fdbd72e8d00> [label=X312 color=blue]
+	<fuzzy_network_engine.naive_quadtree_example.QuadTreeNode object at 0x7fdbd72e8dc0> [label=X313 color=blue]
+	<fuzzy_network_engine.naive_quadtree_example.QuadTreeNode object at 0x7fdbd72e8280> [label=X20 color=blue]
+	<fuzzy_network_engine.naive_quadtree_example.QuadTreeNode object at 0x7fdbd72e8340> [label=X21 color=blue]
+	<fuzzy_network_engine.naive_quadtree_example.QuadTreeNode object at 0x7fdbd72e8400> [label=X22 color=blue]
+	<fuzzy_network_engine.naive_quadtree_example.QuadTreeNode object at 0x7fdbd72e84c0> [label=X23 color=blue]
+	<fuzzy_network_engine.naive_quadtree_example.QuadTreeNode object at 0x7fdbd72e8580> [label=X10 color=blue]
+	<fuzzy_network_engine.naive_quadtree_example.QuadTreeNode object at 0x7fdbd72e8640> [label=X11 color=blue]
+	<fuzzy_network_engine.naive_quadtree_example.QuadTreeNode object at 0x7fdbd72e8700> [label=X12 color=blue]
+	<fuzzy_network_engine.naive_quadtree_example.QuadTreeNode object at 0x7fdbd72e87c0> [label=X13 color=blue]
+	<fuzzy_network_engine.naive_quadtree_example.QuadTreeNode object at 0x7fdbd72e8880> [label=X00 color=blue]
+	<fuzzy_network_engine.naive_quadtree_example.QuadTreeNode object at 0x7fdbd72e8940> [label=X01 color=blue]
+	<fuzzy_network_engine.naive_quadtree_example.QuadTreeNode object at 0x7fdbd72e8a00> [label=X02 color=blue]
+	<fuzzy_network_engine.naive_quadtree_example.QuadTreeNode object at 0x7fdbd72e8ac0> [label=X03 color=blue]
+	<fuzzy_network_engine.naive_quadtree_example.QuadTreeNode object at 0x7fdbd72ddb80> -> <fuzzy_network_engine.naive_quadtree_example.QuadTreeNode object at 0x7fdbd72dde80>
+	<fuzzy_network_engine.naive_quadtree_example.QuadTreeNode object at 0x7fdbd72dde80> -> <fuzzy_network_engine.naive_quadtree_example.QuadTreeNode object at 0x7fdbd72e8040>
+	<fuzzy_network_engine.naive_quadtree_example.QuadTreeNode object at 0x7fdbd72ddb80> -> <fuzzy_network_engine.naive_quadtree_example.QuadTreeNode object at 0x7fdbd72dddc0>
+	<fuzzy_network_engine.naive_quadtree_example.QuadTreeNode object at 0x7fdbd72ddb80> -> <fuzzy_network_engine.naive_quadtree_example.QuadTreeNode object at 0x7fdbd72ddd00>
+	<fuzzy_network_engine.naive_quadtree_example.QuadTreeNode object at 0x7fdbd72ddb80> -> <fuzzy_network_engine.naive_quadtree_example.QuadTreeNode object at 0x7fdbd72ddbb0>
+	<fuzzy_network_engine.naive_quadtree_example.QuadTreeNode object at 0x7fdbd72dde80> -> <fuzzy_network_engine.naive_quadtree_example.QuadTreeNode object at 0x7fdbd72ddf40>
+	<fuzzy_network_engine.naive_quadtree_example.QuadTreeNode object at 0x7fdbd72dde80> -> <fuzzy_network_engine.naive_quadtree_example.QuadTreeNode object at 0x7fdbd72e8100>
+	<fuzzy_network_engine.naive_quadtree_example.QuadTreeNode object at 0x7fdbd72dde80> -> <fuzzy_network_engine.naive_quadtree_example.QuadTreeNode object at 0x7fdbd72e81c0>
+	<fuzzy_network_engine.naive_quadtree_example.QuadTreeNode object at 0x7fdbd72e8040> -> <fuzzy_network_engine.naive_quadtree_example.QuadTreeNode object at 0x7fdbd72e8b80>
+	<fuzzy_network_engine.naive_quadtree_example.QuadTreeNode object at 0x7fdbd72e8040> -> <fuzzy_network_engine.naive_quadtree_example.QuadTreeNode object at 0x7fdbd72e8c40>
+	<fuzzy_network_engine.naive_quadtree_example.QuadTreeNode object at 0x7fdbd72e8040> -> <fuzzy_network_engine.naive_quadtree_example.QuadTreeNode object at 0x7fdbd72e8d00>
+	<fuzzy_network_engine.naive_quadtree_example.QuadTreeNode object at 0x7fdbd72e8040> -> <fuzzy_network_engine.naive_quadtree_example.QuadTreeNode object at 0x7fdbd72e8dc0>
+	<fuzzy_network_engine.naive_quadtree_example.QuadTreeNode object at 0x7fdbd72dddc0> -> <fuzzy_network_engine.naive_quadtree_example.QuadTreeNode object at 0x7fdbd72e8280>
+	<fuzzy_network_engine.naive_quadtree_example.QuadTreeNode object at 0x7fdbd72dddc0> -> <fuzzy_network_engine.naive_quadtree_example.QuadTreeNode object at 0x7fdbd72e8340>
+	<fuzzy_network_engine.naive_quadtree_example.QuadTreeNode object at 0x7fdbd72dddc0> -> <fuzzy_network_engine.naive_quadtree_example.QuadTreeNode object at 0x7fdbd72e8400>
+	<fuzzy_network_engine.naive_quadtree_example.QuadTreeNode object at 0x7fdbd72dddc0> -> <fuzzy_network_engine.naive_quadtree_example.QuadTreeNode object at 0x7fdbd72e84c0>
+	<fuzzy_network_engine.naive_quadtree_example.QuadTreeNode object at 0x7fdbd72ddd00> -> <fuzzy_network_engine.naive_quadtree_example.QuadTreeNode object at 0x7fdbd72e8580>
+	<fuzzy_network_engine.naive_quadtree_example.QuadTreeNode object at 0x7fdbd72ddd00> -> <fuzzy_network_engine.naive_quadtree_example.QuadTreeNode object at 0x7fdbd72e8640>
+	<fuzzy_network_engine.naive_quadtree_example.QuadTreeNode object at 0x7fdbd72ddd00> -> <fuzzy_network_engine.naive_quadtree_example.QuadTreeNode object at 0x7fdbd72e8700>
+	<fuzzy_network_engine.naive_quadtree_example.QuadTreeNode object at 0x7fdbd72ddd00> -> <fuzzy_network_engine.naive_quadtree_example.QuadTreeNode object at 0x7fdbd72e87c0>
+	<fuzzy_network_engine.naive_quadtree_example.QuadTreeNode object at 0x7fdbd72ddbb0> -> <fuzzy_network_engine.naive_quadtree_example.QuadTreeNode object at 0x7fdbd72e8880>
+	<fuzzy_network_engine.naive_quadtree_example.QuadTreeNode object at 0x7fdbd72ddbb0> -> <fuzzy_network_engine.naive_quadtree_example.QuadTreeNode object at 0x7fdbd72e8940>
+	<fuzzy_network_engine.naive_quadtree_example.QuadTreeNode object at 0x7fdbd72ddbb0> -> <fuzzy_network_engine.naive_quadtree_example.QuadTreeNode object at 0x7fdbd72e8a00>
+	<fuzzy_network_engine.naive_quadtree_example.QuadTreeNode object at 0x7fdbd72ddbb0> -> <fuzzy_network_engine.naive_quadtree_example.QuadTreeNode object at 0x7fdbd72e8ac0>
+}
