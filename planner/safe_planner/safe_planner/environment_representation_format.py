@@ -6,7 +6,6 @@ import math
 
 
 class AbstractEnvironmentRepresentation(object):
-
     def __init__(self):
         self.data = None
 
@@ -76,7 +75,6 @@ class Grid(object):
 
 
 class GridBasedEnvironmentRepresentation(AbstractEnvironmentRepresentation):
-
     def __init__(self, grid):
         AbstractEnvironmentRepresentation.__init__(self)
         self.grid = grid

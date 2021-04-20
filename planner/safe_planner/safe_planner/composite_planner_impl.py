@@ -14,11 +14,13 @@ from safe_planner.environment_representation_format import AbstractEnvironmentRe
 
 class AbstractPlannerImplementation(object):
 
-    def __init__(self, env_repr):
+    def __init__(self, env_repr, idx_start=0, idx_end=-1):
         self.refined_trajectory = Trajectory()
         self.trajectory_points = []
         self.reference_trajectory = Trajectory()
         self.environment_snapshot = env_repr
+        self.idx_start = idx_start
+        self.idx_end = idx_end
         self.goal = None
         self.state = None
 
@@ -40,23 +42,21 @@ class AbstractPlannerImplementation(object):
         return np.array(self.trajectory_points)
 
     def construct_trajectory(self):
-        pts = np.array(self.trajectory_points)
         for p in self.trajectory_points:
             wp = Waypoint()
-            #wp.pose.pose.position.x = p.desc_coord[0]
-            #wp.pose.pose.position.y = p.desc_coord[1]
-            #self.reference_trajectory.waypoints
+            wp.pose.pose.position.x = p[0]
+            wp.pose.pose.position.y = p[1]
+            self.refined_trajectory.waypoints.append(wp)
 
     def plan(self, state, goal):
         self.set_state(state)
         self.set_goal(goal)
         self.refine()
 
-
     def plan_algorithm(self):
         raise NotImplementedError
 
-    def return_trajectory(self):
+    def get_trajectory(self):
         return self.refined_trajectory
 
 
@@ -68,8 +68,8 @@ def euclidean_distance_2d(state, goal):
 
 class AStarPlannerImplementation(AbstractPlannerImplementation):
 
-    def __init__(self, env_repr, goal_epsilon):
-        AbstractPlannerImplementation.__init__(self, env_repr)
+    def __init__(self, env_repr, goal_epsilon, idx_start=0, idx_end=-1):
+        AbstractPlannerImplementation.__init__(self, env_repr, idx_start, idx_end)
         self.goal_epsilon = goal_epsilon
 
     def heuristic(self, p):
@@ -128,6 +128,8 @@ class PlannerNode(Node):
 
     def cb_timer_planner(self):
         self.planner_adapter.refine()
+        self.planner_adapter.construct_trajectory()
+        self._refined_trajectory.publish(self.planner_adapter.get_trajectory())
 
 
 

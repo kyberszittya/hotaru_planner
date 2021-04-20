@@ -1,4 +1,4 @@
-from safe_planner.safe_planner_impl import AStarPlannerImplementation
+from safe_planner.composite_planner_impl import AStarPlannerImplementation
 from safe_planner.environment_representation_format import GridBasedEnvironmentRepresentation, Grid
 
 from fuzzy_network_engine.fuzzy_signature_quadtree import generate_elements, generate_quadtree, \
@@ -18,7 +18,7 @@ def test_simple_planning():
     r_points = np.array([[-5.0, -5.0], [5.0, -5.0], [2.0, 3.0], [-6.0, 3.0], [-1.0, -3.0]])
     elements = generate_elements(FuzzySignatureElementFactory(), r_points)
     q_tree, intermediate_nodes, leaf_nodes = generate_quadtree(elements)
-    # Infering on element
+    # Inferring on element
     env_repr = FuzzySignatureEnvironmentRepresentation(q_tree)
     obstacle_dimensions = [[5.0, 7.0],
                            [12.0, 12.0],
@@ -31,7 +31,7 @@ def test_simple_planning():
     X, Y, infer_grid, inference_result = env_repr.inference_grid(0.1)
     X_coarse, Y_coarse, coarse_grid, coarse_inference_result = env_repr.inference_grid(0.5)
     #visualize_infer_grid(X, Y, infer_grid, inference_result, X_coarse, Y_coarse, coarse_grid)
-    c_grid = 5.0
+    c_grid = 50.0
     grid = Grid(X_coarse, Y_coarse, coarse_grid * c_grid)
     grid_env_repr = GridBasedEnvironmentRepresentation(grid)
     print(grid.max_x)
@@ -40,7 +40,6 @@ def test_simple_planning():
     start.pose.position.x = -10.0
     start.pose.position.y = -10.0
     a_star_planner.set_state(start)
-
 
     goal = PoseStamped()
     goal.pose.position.x = 11.5
@@ -57,5 +56,5 @@ def test_simple_planning():
     plt.show()
 
 
-if __name__=="__main__":
+if __name__ == "__main__":
     test_simple_planning()

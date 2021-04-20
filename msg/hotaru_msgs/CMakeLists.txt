@@ -26,6 +26,7 @@ find_package(rosidl_default_generators REQUIRED)
 rosidl_generate_interfaces(${PROJECT_NAME}
   "msg/Trajectory.msg"
   "msg/Waypoint.msg"
+  "msg/GridEnvironmentRepresentation.msg"
  )
 
 if(BUILD_TESTING)
