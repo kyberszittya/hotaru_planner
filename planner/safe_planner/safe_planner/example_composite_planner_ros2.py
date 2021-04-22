@@ -49,12 +49,13 @@ def create_coarse_planner():
 
 def create_local_planner():
     """
-    Create a planner on higher-level to generate coarse trajectory
+    Create a planner on a local representation
 
     :return:
     """
     # Step 1 define environment representation
-    grid = create_env_representation()
+    grid = create_env_representation(np.array(
+        [[-5, 5], [5, 5], [5, -5], [-5, -5]]))
     # Step 2 define planner
     astar_planner = AStarPlannerComponent(grid, 0.05)
     local_planner = PlannerNode("local_planner", 0.1, astar_planner)
@@ -72,8 +73,10 @@ def main():
     """
     rclpy.init()
     coarse_planner = create_coarse_planner()
+    local_planner = create_local_planner()
     executor = rclpy.executors.MultiThreadedExecutor()
     executor.add_node(coarse_planner)
+    executor.add_node(local_planner)
     executor.spin()
     coarse_planner.destroy_node()
     rclpy.shutdown()
