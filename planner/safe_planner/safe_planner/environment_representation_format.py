@@ -18,8 +18,11 @@ class AbstractEnvironmentRepresentation(object):
     def get_cost(self, coord):
         raise NotImplementedError
 
+    def get_state_repr(self, state):
+        raise NotImplementedError
 
-class StateTreeNode(object):
+
+class GridStateTreeNode(object):
     def __init__(self, coord, desc_coord, value, parent=None):
         self.coord = coord
         self.desc_coord = desc_coord
@@ -83,6 +86,11 @@ class GridBasedEnvironmentRepresentation(AbstractEnvironmentRepresentation):
         ix, iy = self.grid.coord_to_index(coord)
         return self.grid.values[ix, iy]
 
+    def get_state_repr(self, state):
+        px, py = state
+        return GridStateTreeNode(self.grid.coord_to_index((px, py)),
+                      (px, py), 0.0)
+
     def expand_strategy(self, state):
         # Expand all nodes in neighbors
         x, y = state.desc_coord
@@ -93,5 +101,5 @@ class GridBasedEnvironmentRepresentation(AbstractEnvironmentRepresentation):
             for iy in indices_y:
                 n = self.grid.coord_to_index((ix, iy))
                 if n is not None and not (state.coord[0] == ix and state.coord[1] == iy):
-                    neighbors += [StateTreeNode(n, (ix, iy), 0.0, state)]
+                    neighbors += [GridStateTreeNode(n, (ix, iy), 0.0, state)]
         return neighbors
