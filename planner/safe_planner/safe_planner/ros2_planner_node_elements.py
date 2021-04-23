@@ -19,6 +19,7 @@ class PlannerNode(Node):
         self.get_logger().info("Starting planner node {0}".format(self.name))
 
     def cb_trajectory(self, msg):
+        print(msg)
         self.planner_adapter.update_trajectory(msg)
 
     def cb_timer_planner(self):

@@ -79,8 +79,8 @@ def main():
     executor.add_node(local_planner)
     executor.spin()
     coarse_planner.destroy_node()
+    local_planner.destroy_node()
     rclpy.shutdown()
-    #local_planner = create_local_planner()
 
 
 if __name__ == "__main__":
