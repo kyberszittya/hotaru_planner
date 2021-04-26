@@ -1,4 +1,4 @@
-from safe_planner.environment_representation_format import Grid, GridBasedEnvironmentRepresentation, StateTreeNode
+from safe_planner.environment_representation_format import Grid, GridBasedEnvironmentRepresentation, GridStateTreeNode
 
 import numpy as np
 
@@ -63,11 +63,11 @@ def test_grid_extreme_indexing():
 def test_grid_neighbors_simple():
     gr = generate_test_grid_10x10_1()
     gr_envrep = GridBasedEnvironmentRepresentation(gr)
-    tree_node = StateTreeNode((0, 0), (0, 0), gr_envrep.get_cost((0, 0)))
+    tree_node = GridStateTreeNode((0, 0), (0, 0), gr_envrep.get_cost((0, 0)))
     assert (tree_node.value == 0.0)
     center_neighbors = gr_envrep.expand_strategy(tree_node)
     assert (len(center_neighbors) == 8)
-    tree_node = StateTreeNode((5, 5), (5, 5), gr_envrep.get_cost((5, 5)))
+    tree_node = GridStateTreeNode((5, 5), (5, 5), gr_envrep.get_cost((5, 5)))
     assert (tree_node.value == 0.0)
     other_neighbors = gr_envrep.expand_strategy(tree_node)
     assert (len(other_neighbors) == 8)
@@ -76,7 +76,7 @@ def test_grid_neighbors_simple():
 def test_grid_neighbors_simple_indices():
     gr = generate_test_grid_10x10_1()
     gr_envrep = GridBasedEnvironmentRepresentation(gr)
-    tree_node = StateTreeNode((0, 0), (0, 0), gr_envrep.get_cost((0, 0)))
+    tree_node = GridStateTreeNode((0, 0), (0, 0), gr_envrep.get_cost((0, 0)))
     assert (tree_node.value == 0.0)
     center_neighbors = gr_envrep.expand_strategy(tree_node)
     assert (len(center_neighbors) == 8)
@@ -90,7 +90,7 @@ def test_grid_neighbors_simple_indices():
 def test_grid_neighbors_side():
     gr = generate_test_grid_10x10_1()
     gr_envrep = GridBasedEnvironmentRepresentation(gr)
-    tree_node = StateTreeNode((10, 0), (10, 0), gr_envrep.get_cost((10, 0)))
+    tree_node = GridStateTreeNode((10, 0), (10, 0), gr_envrep.get_cost((10, 0)))
     assert (tree_node.value == 0.0)
     center_neighbors = gr_envrep.expand_strategy(tree_node)
     assert (len(center_neighbors) == 5)
@@ -99,7 +99,7 @@ def test_grid_neighbors_side():
 def test_grid_neighbors_corner():
     gr = generate_test_grid_10x10_1()
     gr_envrep = GridBasedEnvironmentRepresentation(gr)
-    tree_node = StateTreeNode((10, 10), (10, 10), gr_envrep.get_cost((10, 10)))
+    tree_node = GridStateTreeNode((10, 10), (10, 10), gr_envrep.get_cost((10, 10)))
     assert (tree_node.value == 0.0)
     center_neighbors = gr_envrep.expand_strategy(tree_node)
     print(center_neighbors)

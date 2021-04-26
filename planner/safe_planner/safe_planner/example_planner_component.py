@@ -44,7 +44,7 @@ def test_simple_planning_astar():
     start = PoseStamped()
     start.pose.position.x = -19.0
     start.pose.position.y = -19.0
-    a_star_planner.set_state(start)
+    a_star_planner.set_start_point(start)
 
     goal = PoseStamped()
     goal.pose.position.x = 19.0
@@ -60,7 +60,6 @@ def test_simple_planning_astar():
     ax = fig.add_subplot(111, projection='3d')
     ax.plot_wireframe(X_coarse, Y_coarse, coarse_grid, rstride=1, cstride=1, color="green")
     ax.scatter(res[:, 0], res[:, 1], color='b')
-
     plt.show()
 
 
@@ -94,7 +93,7 @@ def test_fine_small_planning_astar():
     start = PoseStamped()
     start.pose.position.x = -19.0
     start.pose.position.y = -19.0
-    a_star_planner.set_state(start)
+    a_star_planner.set_start_point(start)
 
     goal = PoseStamped()
     goal.pose.position.x = 19.0
@@ -110,10 +109,9 @@ def test_fine_small_planning_astar():
     ax = fig.add_subplot(111, projection='3d')
     ax.plot_wireframe(X_coarse, Y_coarse, coarse_grid, rstride=1, cstride=1, color="green")
     ax.scatter(res[:, 0], res[:, 1], color='b')
-
     plt.show()
 
 
 if __name__ == "__main__":
     test_simple_planning_astar()
-    #test_fine_small_planning_astar()
+    test_fine_small_planning_astar()

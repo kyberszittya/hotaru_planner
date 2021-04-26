@@ -21,6 +21,12 @@ class AbstractEnvironmentRepresentation(object):
     def get_state_repr(self, state):
         raise NotImplementedError
 
+    """
+    Decide whether or not the object is included in the environment representation
+    """
+    def is_object_inclusion(self, object):
+        raise NotImplementedError
+
 
 class GridStateTreeNode(object):
     def __init__(self, coord, desc_coord, value, parent=None):
@@ -103,3 +109,6 @@ class GridBasedEnvironmentRepresentation(AbstractEnvironmentRepresentation):
                 if n is not None and not (state.coord[0] == ix and state.coord[1] == iy):
                     neighbors += [GridStateTreeNode(n, (ix, iy), 0.0, state)]
         return neighbors
+
+    def is_object_inclusion(self, object):
+        return self.grid.coord_to_index(object) is None

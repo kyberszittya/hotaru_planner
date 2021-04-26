@@ -31,16 +31,18 @@
     <select />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="8af481f2-449c-4ab0-a77a-5c09e8d4e07b" name="Default Changelist" comment="">
-      <change afterPath="$PROJECT_DIR$/msg/hotaru_msgs/msg/GridEnvironmentRepresentation.msg" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/planner/safe_planner/safe_planner/composite_planner_ros2_example.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/planner/safe_planner/safe_planner/environment_representation.py" afterDir="false" />
+    <list default="true" id="8af481f2-449c-4ab0-a77a-5c09e8d4e07b" name="Default Changelist" comment="Tomorrow's work: ROS 2 interface, environment repr. node, refinement for small env.">
+      <change afterPath="$PROJECT_DIR$/planner/safe_planner/safe_planner/definition_arbiter_components.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/planner/safe_planner/safe_planner/example_refine_explicit_trajectory.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/msg/hotaru_msgs/CMakeLists.txt" beforeDir="false" afterPath="$PROJECT_DIR$/msg/hotaru_msgs/CMakeLists.txt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/planner/safe_planner/safe_planner/definition_graph_planner.py" beforeDir="false" afterPath="$PROJECT_DIR$/planner/safe_planner/safe_planner/definition_graph_planner.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/planner/safe_planner/safe_planner/definition_planner_components.py" beforeDir="false" afterPath="$PROJECT_DIR$/planner/safe_planner/safe_planner/definition_planner_components.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/planner/safe_planner/safe_planner/environment_representation_format.py" beforeDir="false" afterPath="$PROJECT_DIR$/planner/safe_planner/safe_planner/environment_representation_format.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/planner/safe_planner/safe_planner/safe_planner_example.py" beforeDir="false" afterPath="$PROJECT_DIR$/planner/safe_planner/safe_planner/composite_planner_example.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/planner/safe_planner/safe_planner/safe_planner_impl.py" beforeDir="false" afterPath="$PROJECT_DIR$/planner/safe_planner/safe_planner/composite_planner_impl.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/planner/safe_planner/safe_planner/test_planner_algorithm.py" beforeDir="false" afterPath="$PROJECT_DIR$/planner/safe_planner/safe_planner/test_planner_algorithm.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/planner/safe_planner/safe_planner/example_composite_planner_ros2.py" beforeDir="false" afterPath="$PROJECT_DIR$/planner/safe_planner/safe_planner/example_composite_planner_ros2.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/planner/safe_planner/safe_planner/example_planner_component.py" beforeDir="false" afterPath="$PROJECT_DIR$/planner/safe_planner/safe_planner/example_planner_component.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/planner/safe_planner/safe_planner/impl_graph_planner.py" beforeDir="false" afterPath="$PROJECT_DIR$/planner/safe_planner/safe_planner/impl_graph_planner.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/planner/safe_planner/safe_planner/ros2_planner_node_elements.py" beforeDir="false" afterPath="$PROJECT_DIR$/planner/safe_planner/safe_planner/ros2_planner_node_elements.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/planner/safe_planner/safe_planner/test_environment_representation_format.py" beforeDir="false" afterPath="$PROJECT_DIR$/planner/safe_planner/safe_planner/test_environment_representation_format.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -76,7 +78,28 @@
   <component name="PropertiesComponent">
     <property name="last_opened_file_path" value="$PROJECT_DIR$" />
   </component>
-  <component name="RunManager" selected="Python.safe_planner_example">
+  <component name="RunManager" selected="Python.example_composite_planner_ros2">
+    <configuration name="example_composite_planner_ros2" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
+      <module name="hotaru_planner" />
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <envs>
+        <env name="PYTHONUNBUFFERED" value="1" />
+      </envs>
+      <option name="SDK_HOME" value="" />
+      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/planner/safe_planner/safe_planner" />
+      <option name="IS_MODULE_SDK" value="true" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/planner/safe_planner/safe_planner/example_composite_planner_ros2.py" />
+      <option name="PARAMETERS" value="" />
+      <option name="SHOW_COMMAND_LINE" value="false" />
+      <option name="EMULATE_TERMINAL" value="false" />
+      <option name="MODULE_MODE" value="false" />
+      <option name="REDIRECT_INPUT" value="false" />
+      <option name="INPUT_FILE" value="" />
+      <method v="2" />
+    </configuration>
     <configuration name="safe_planner_example" type="PythonConfigurationType" factoryName="Python" temporary="true">
       <module name="hotaru_planner" />
       <option name="INTERPRETER_OPTIONS" value="" />
@@ -98,7 +121,7 @@
       <option name="INPUT_FILE" value="" />
       <method v="2" />
     </configuration>
-    <configuration name="pytest for test_environment_representation_format.test_environment_representation_format" type="tests" factoryName="py.test" temporary="true" nameIsGenerated="true">
+    <configuration name="pytest for example_planner_component.test_fine_small_planning_astar" type="tests" factoryName="py.test" temporary="true" nameIsGenerated="true">
       <module name="hotaru_planner" />
       <option name="INTERPRETER_OPTIONS" value="" />
       <option name="PARENT_ENVS" value="true" />
@@ -110,14 +133,49 @@
       <option name="_new_keywords" value="&quot;&quot;" />
       <option name="_new_parameters" value="&quot;&quot;" />
       <option name="_new_additionalArguments" value="&quot;&quot;" />
-      <option name="_new_target" value="&quot;test_environment_representation_format.test_environment_representation_format&quot;" />
+      <option name="_new_target" value="&quot;example_planner_component.test_fine_small_planning_astar&quot;" />
       <option name="_new_targetType" value="&quot;PYTHON&quot;" />
+      <method v="2" />
+    </configuration>
+    <configuration name="pytest for example_planner_component.test_simple_planning_astar" type="tests" factoryName="py.test" temporary="true" nameIsGenerated="true">
+      <module name="hotaru_planner" />
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <option name="SDK_HOME" value="" />
+      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/planner/safe_planner/safe_planner" />
+      <option name="IS_MODULE_SDK" value="true" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <option name="_new_keywords" value="&quot;&quot;" />
+      <option name="_new_parameters" value="&quot;&quot;" />
+      <option name="_new_additionalArguments" value="&quot;&quot;" />
+      <option name="_new_target" value="&quot;example_planner_component.test_simple_planning_astar&quot;" />
+      <option name="_new_targetType" value="&quot;PYTHON&quot;" />
+      <method v="2" />
+    </configuration>
+    <configuration name="pytest in example_planner_component.py" type="tests" factoryName="py.test" temporary="true" nameIsGenerated="true">
+      <module name="hotaru_planner" />
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <option name="SDK_HOME" value="" />
+      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/planner/safe_planner/safe_planner" />
+      <option name="IS_MODULE_SDK" value="true" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <option name="_new_keywords" value="&quot;&quot;" />
+      <option name="_new_parameters" value="&quot;&quot;" />
+      <option name="_new_additionalArguments" value="&quot;&quot;" />
+      <option name="_new_target" value="&quot;$PROJECT_DIR$/planner/safe_planner/safe_planner/example_planner_component.py&quot;" />
+      <option name="_new_targetType" value="&quot;PATH&quot;" />
       <method v="2" />
     </configuration>
     <recent_temporary>
       <list>
+        <item itemvalue="Python.example_composite_planner_ros2" />
+        <item itemvalue="Python tests.pytest for example_planner_component.test_fine_small_planning_astar" />
+        <item itemvalue="Python tests.pytest for example_planner_component.test_simple_planning_astar" />
+        <item itemvalue="Python tests.pytest in example_planner_component.py" />
         <item itemvalue="Python.safe_planner_example" />
-        <item itemvalue="Python tests.pytest for test_environment_representation_format.test_environment_representation_format" />
       </list>
     </recent_temporary>
   </component>
@@ -133,39 +191,22 @@
       <option name="presentableId" value="Default" />
       <updated>1618838442993</updated>
     </task>
+    <task id="LOCAL-00001" summary="Tomorrow's work: ROS 2 interface, environment repr. node, refinement for small env.">
+      <created>1618957448913</created>
+      <option name="number" value="00001" />
+      <option name="presentableId" value="LOCAL-00001" />
+      <option name="project" value="LOCAL" />
+      <updated>1618957448913</updated>
+    </task>
+    <task id="LOCAL-00002" summary="Local environment representation works">
+      <created>1619134770061</created>
+      <option name="number" value="00002" />
+      <option name="presentableId" value="LOCAL-00002" />
+      <option name="project" value="LOCAL" />
+      <updated>1619134770061</updated>
+    </task>
+    <option name="localTasksCounter" value="3" />
     <servers />
-  </component>
-  <component name="TestHistory">
-    <history-entry file="pytest_for_test_environment_representation_format_test_environment_representation_format - 2021.04.20 at 10h 48m 30s.xml">
-      <configuration name="pytest for test_environment_representation_format.test_environment_representation_format" configurationId="tests" />
-    </history-entry>
-    <history-entry file="pytest_for_test_environment_representation_format_test_environment_representation_format - 2021.04.20 at 10h 49m 00s.xml">
-      <configuration name="pytest for test_environment_representation_format.test_environment_representation_format" configurationId="tests" />
-    </history-entry>
-    <history-entry file="pytest_for_test_environment_representation_format_test_environment_representation_format - 2021.04.20 at 10h 49m 29s.xml">
-      <configuration name="pytest for test_environment_representation_format.test_environment_representation_format" configurationId="tests" />
-    </history-entry>
-    <history-entry file="pytest_for_test_environment_representation_format_test_environment_representation_format - 2021.04.20 at 10h 50m 01s.xml">
-      <configuration name="pytest for test_environment_representation_format.test_environment_representation_format" configurationId="tests" />
-    </history-entry>
-    <history-entry file="pytest_for_test_environment_representation_format_test_environment_representation_format - 2021.04.20 at 10h 50m 39s.xml">
-      <configuration name="pytest for test_environment_representation_format.test_environment_representation_format" configurationId="tests" />
-    </history-entry>
-    <history-entry file="pytest_for_test_environment_representation_format_test_environment_representation_format - 2021.04.20 at 10h 51m 02s.xml">
-      <configuration name="pytest for test_environment_representation_format.test_environment_representation_format" configurationId="tests" />
-    </history-entry>
-    <history-entry file="pytest_for_test_environment_representation_format_test_environment_representation_format - 2021.04.20 at 10h 51m 31s.xml">
-      <configuration name="pytest for test_environment_representation_format.test_environment_representation_format" configurationId="tests" />
-    </history-entry>
-    <history-entry file="pytest_for_test_environment_representation_format_test_environment_representation_format - 2021.04.20 at 10h 51m 42s.xml">
-      <configuration name="pytest for test_environment_representation_format.test_environment_representation_format" configurationId="tests" />
-    </history-entry>
-    <history-entry file="pytest_for_test_environment_representation_format_test_environment_representation_format - 2021.04.20 at 10h 51m 56s.xml">
-      <configuration name="pytest for test_environment_representation_format.test_environment_representation_format" configurationId="tests" />
-    </history-entry>
-    <history-entry file="pytest_for_test_environment_representation_format_test_environment_representation_format - 2021.04.20 at 10h 52m 32s.xml">
-      <configuration name="pytest for test_environment_representation_format.test_environment_representation_format" configurationId="tests" />
-    </history-entry>
   </component>
   <component name="Vcs.Log.Tabs.Properties">
     <option name="TAB_STATES">
@@ -177,23 +218,53 @@
         </entry>
       </map>
     </option>
+    <option name="oldMeFiltersMigrated" value="true" />
+  </component>
+  <component name="VcsManagerConfiguration">
+    <MESSAGE value="Tomorrow's work: ROS 2 interface, environment repr. node, refinement for small env." />
+    <MESSAGE value="Local environment representation works" />
+    <option name="LAST_COMMIT_MESSAGE" value="Local environment representation works" />
   </component>
   <component name="WindowStateProjectService">
-    <state width="2537" height="275" key="GridCell.Tab.0.bottom" timestamp="1618957051248">
+    <state width="2537" height="340" key="GridCell.Tab.0.bottom" timestamp="1619309397369">
       <screen x="0" y="0" width="2560" height="1044" />
     </state>
-    <state width="2537" height="275" key="GridCell.Tab.0.bottom/0.0.2560.1044/2560.0.1920.1080@0.0.2560.1044" timestamp="1618957051248" />
-    <state width="2537" height="275" key="GridCell.Tab.0.center" timestamp="1618957051248">
+    <state width="2537" height="340" key="GridCell.Tab.0.bottom/0.0.2560.1044/2560.0.1920.1080@0.0.2560.1044" timestamp="1619309397369" />
+    <state width="2537" height="340" key="GridCell.Tab.0.center" timestamp="1619309397369">
       <screen x="0" y="0" width="2560" height="1044" />
     </state>
-    <state width="2537" height="275" key="GridCell.Tab.0.center/0.0.2560.1044/2560.0.1920.1080@0.0.2560.1044" timestamp="1618957051248" />
-    <state width="2537" height="275" key="GridCell.Tab.0.left" timestamp="1618957051248">
+    <state width="2537" height="340" key="GridCell.Tab.0.center/0.0.2560.1044/2560.0.1920.1080@0.0.2560.1044" timestamp="1619309397369" />
+    <state width="2537" height="340" key="GridCell.Tab.0.left" timestamp="1619309397369">
       <screen x="0" y="0" width="2560" height="1044" />
     </state>
-    <state width="2537" height="275" key="GridCell.Tab.0.left/0.0.2560.1044/2560.0.1920.1080@0.0.2560.1044" timestamp="1618957051248" />
-    <state width="2537" height="275" key="GridCell.Tab.0.right" timestamp="1618957051248">
+    <state width="2537" height="340" key="GridCell.Tab.0.left/0.0.2560.1044/2560.0.1920.1080@0.0.2560.1044" timestamp="1619309397369" />
+    <state width="2537" height="340" key="GridCell.Tab.0.right" timestamp="1619309397369">
       <screen x="0" y="0" width="2560" height="1044" />
     </state>
-    <state width="2537" height="275" key="GridCell.Tab.0.right/0.0.2560.1044/2560.0.1920.1080@0.0.2560.1044" timestamp="1618957051248" />
+    <state width="2537" height="340" key="GridCell.Tab.0.right/0.0.2560.1044/2560.0.1920.1080@0.0.2560.1044" timestamp="1619309397369" />
+    <state width="2537" height="340" key="GridCell.Tab.1.bottom" timestamp="1619309397369">
+      <screen x="0" y="0" width="2560" height="1044" />
+    </state>
+    <state width="2537" height="340" key="GridCell.Tab.1.bottom/0.0.2560.1044/2560.0.1920.1080@0.0.2560.1044" timestamp="1619309397369" />
+    <state width="2537" height="340" key="GridCell.Tab.1.center" timestamp="1619309397369">
+      <screen x="0" y="0" width="2560" height="1044" />
+    </state>
+    <state width="2537" height="340" key="GridCell.Tab.1.center/0.0.2560.1044/2560.0.1920.1080@0.0.2560.1044" timestamp="1619309397369" />
+    <state width="2537" height="340" key="GridCell.Tab.1.left" timestamp="1619309397369">
+      <screen x="0" y="0" width="2560" height="1044" />
+    </state>
+    <state width="2537" height="340" key="GridCell.Tab.1.left/0.0.2560.1044/2560.0.1920.1080@0.0.2560.1044" timestamp="1619309397369" />
+    <state width="2537" height="340" key="GridCell.Tab.1.right" timestamp="1619309397369">
+      <screen x="0" y="0" width="2560" height="1044" />
+    </state>
+    <state width="2537" height="340" key="GridCell.Tab.1.right/0.0.2560.1044/2560.0.1920.1080@0.0.2560.1044" timestamp="1619309397369" />
+    <state x="880" y="244" width="800" height="527" key="Vcs.Push.Dialog.v2" timestamp="1619134781930">
+      <screen x="0" y="0" width="2560" height="1044" />
+    </state>
+    <state x="880" y="244" width="800" height="527" key="Vcs.Push.Dialog.v2/0.0.2560.1044/2560.0.1920.1080@0.0.2560.1044" timestamp="1619134781930" />
+    <state x="3336" y="0" width="1080" height="697" maximized="true" key="dock-window-1" timestamp="1619281766886">
+      <screen x="2560" y="0" width="1920" height="1080" />
+    </state>
+    <state x="3336" y="0" width="1080" height="697" maximized="true" key="dock-window-1/0.0.2560.1044/2560.0.1920.1080@0.0.2560.1044" timestamp="1619281766886" />
   </component>
 </project>
