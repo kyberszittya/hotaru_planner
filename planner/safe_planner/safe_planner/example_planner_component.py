@@ -19,7 +19,7 @@ def test_simple_planning_astar():
     r_points = np.array([[-5.0, -5.0], [5.0, -5.0], [2.0, 3.0], [-6.0, 3.0], [-1.0, -3.0]])
     elements = generate_elements(FuzzySignatureElementFactory(), r_points)
     q_tree, intermediate_nodes, leaf_nodes = generate_quadtree(elements,
-                                                               boundary=np.array([[-20, 20], [20, 20], [20, -20], [-20, -20]]))
+                                                               boundary=np.array([[-10, 10], [10, 10], [10, -10], [-10, -10]]))
     # Inferring on element
     env_repr = FuzzySignatureEnvironmentRepresentation(q_tree)
     obstacle_dimensions = [[5.0, 7.0],
@@ -36,19 +36,19 @@ def test_simple_planning_astar():
     t1_env_infer = time.perf_counter()
     #visualize_infer_grid(X, Y, infer_grid, inference_result, X_coarse, Y_coarse, coarse_grid)
     print('Time to infer on environment representation (res 0.5): {0}'.format(t1_env_infer - t0_env_infer))
-    c_grid = 50.0
+    c_grid = 20.0
     grid = Grid(X_coarse, Y_coarse, coarse_grid * c_grid)
     grid_env_repr = GridBasedEnvironmentRepresentation(grid)
     print(grid.max_x)
     a_star_planner = AStarPlannerComponent(grid_env_repr, 0.1)
     start = PoseStamped()
-    start.pose.position.x = -19.0
-    start.pose.position.y = -19.0
+    start.pose.position.x = -9.0
+    start.pose.position.y = -9.0
     a_star_planner.set_start_point(start)
 
     goal = PoseStamped()
-    goal.pose.position.x = 19.0
-    goal.pose.position.y = 19.0
+    goal.pose.position.x = 9.0
+    goal.pose.position.y = 9.0
     a_star_planner.set_goal(goal)
     t0_astar_plan = time.perf_counter()
     a_star_planner.refine()
@@ -58,7 +58,7 @@ def test_simple_planning_astar():
     # Visualize
     fig = plt.figure()
     ax = fig.add_subplot(111, projection='3d')
-    ax.plot_wireframe(X_coarse, Y_coarse, coarse_grid, rstride=1, cstride=1, color="green")
+    ax.plot_wireframe(X_coarse, Y_coarse, coarse_grid, rstride=1, cstride=1, color="green", alpha=0.4)
     ax.scatter(res[:, 0], res[:, 1], color='b')
     plt.show()
 
@@ -69,7 +69,7 @@ def test_fine_small_planning_astar():
     r_points = np.array([[-5.0, -5.0], [5.0, -5.0], [2.0, 3.0], [-6.0, 3.0], [-1.0, -3.0]])
     elements = generate_elements(FuzzySignatureElementFactory(), r_points)
     q_tree, intermediate_nodes, leaf_nodes = generate_quadtree(elements,
-                                                               boundary=np.array([[-20, 20], [20, 20], [20, -20], [-20, -20]]))
+                                                               boundary=np.array([[-10, 10], [10, 10], [10, -10], [-10, -10]]))
     # Inferring on element
     env_repr = FuzzySignatureEnvironmentRepresentation(q_tree)
     obstacle_dimensions = [[5.0, 7.0],
@@ -91,13 +91,13 @@ def test_fine_small_planning_astar():
     print(grid.max_x)
     a_star_planner = AStarPlannerComponent(grid_env_repr, 0.1)
     start = PoseStamped()
-    start.pose.position.x = -19.0
-    start.pose.position.y = -19.0
+    start.pose.position.x = -9.0
+    start.pose.position.y = -9.0
     a_star_planner.set_start_point(start)
 
     goal = PoseStamped()
-    goal.pose.position.x = 19.0
-    goal.pose.position.y = 19.0
+    goal.pose.position.x = 9.0
+    goal.pose.position.y = 9.0
     a_star_planner.set_goal(goal)
     t0_astar_plan = time.perf_counter()
     a_star_planner.refine()
@@ -107,7 +107,7 @@ def test_fine_small_planning_astar():
     # Visualize
     fig = plt.figure()
     ax = fig.add_subplot(111, projection='3d')
-    ax.plot_wireframe(X_coarse, Y_coarse, coarse_grid, rstride=1, cstride=1, color="green")
+    ax.plot_wireframe(X_coarse, Y_coarse, coarse_grid, rstride=1, cstride=1, color="green", alpha=0.4)
     ax.scatter(res[:, 0], res[:, 1], color='b')
     plt.show()
 
