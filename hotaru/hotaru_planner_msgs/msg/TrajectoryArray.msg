@@ -1,2 +1,0 @@
-std_msgs/Header header
-hotaru_planner_msgs/Trajectory[] trajectory_set
