@@ -1,0 +1,19 @@
+@startuml
+'https://plantuml.com/sequence-diagram
+
+autonumber
+
+ -> AbstractPlannerImplementation: plan(state, goal)
+activate AbstractPlannerImplementation
+AbstractPlannerImplementation --> AbstractPlannerImplementation: set_state(state)
+activate AbstractPlannerImplementation
+deactivate AbstractPlannerImplementation
+AbstractPlannerImplementation -> AbstractPlannerImplementation: set_goal(goal)
+activate AbstractPlannerImplementation
+deactivate AbstractPlannerImplementation
+AbstractPlannerImplementation <-- AbstractPlannerImplementation: refine()
+activate AbstractPlannerImplementation
+deactivate AbstractPlannerImplementation
+
+deactivate AbstractPlannerImplementation
+@enduml

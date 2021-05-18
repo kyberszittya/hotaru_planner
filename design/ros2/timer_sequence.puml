@@ -1,0 +1,21 @@
+@startuml
+'https://plantuml.com/sequence-diagram
+
+autonumber
+
+
+-> PlannerNode: cb_timer_planner()
+activate PlannerNode
+PlannerNode -> planner_adapter: refine()
+activate planner_adapter
+deactivate planner_adapter
+PlannerNode -> planner_adapter: serialize_trajectory()
+activate planner_adapter
+deactivate planner_adapter
+PlannerNode -> planner_adapter: get_trajectory()
+activate planner_adapter
+return trajectory
+PlannerNode -> _refined_trajectory: publish(trajectory)
+
+deactivate PlannerNode
+@enduml

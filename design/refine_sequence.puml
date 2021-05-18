@@ -1,0 +1,14 @@
+@startuml
+'https://plantuml.com/sequence-diagram
+
+autonumber
+
+ -> AbstractPlannerImplementation: refine()
+ activate AbstractPlannerImplementation
+ opt self.goal is not Null && self.start is not Null && not bypassed
+ AbstractPlannerImplementation->AbstractPlannerImplementation: self.plan_algorithm()
+ activate AbstractPlannerImplementation
+ return trajectory_points, goal_node
+ deactivate AbstractPlannerImplementation
+ deactivate AbstractPlannerImplementation
+@enduml

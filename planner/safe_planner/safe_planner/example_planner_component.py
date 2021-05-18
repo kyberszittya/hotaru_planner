@@ -8,6 +8,7 @@ from fuzzy_network_engine.fuzzy_signature_quadtree import generate_elements, gen
 from geometry_msgs.msg import PoseStamped
 
 import matplotlib.pyplot as plt
+from matplotlib import cm
 
 import numpy as np
 import time
@@ -53,12 +54,14 @@ def test_simple_planning_astar():
     t0_astar_plan = time.perf_counter()
     a_star_planner.refine()
     t1_astar_plan = time.perf_counter()
+    norm = plt.Normalize((coarse_grid * c_grid).min(), (coarse_grid * c_grid).max())
+    grid_color = cm.viridis(norm(coarse_grid * c_grid))
     print('Time to plan (A*): {0}'.format(t1_astar_plan - t0_astar_plan))
     res = a_star_planner.get_trajectory_array()
     # Visualize
     fig = plt.figure()
     ax = fig.add_subplot(111, projection='3d')
-    ax.plot_wireframe(X_coarse, Y_coarse, coarse_grid, rstride=1, cstride=1, color="green", alpha=0.4)
+    ax.plot_surface(X_coarse, Y_coarse, coarse_grid, rstride=1, cstride=1, facecolors=grid_color, alpha=0.4)
     ax.scatter(res[:, 0], res[:, 1], color='b')
     plt.show()
 
@@ -88,7 +91,6 @@ def test_fine_small_planning_astar():
     c_grid = 50.0
     grid = Grid(X_coarse, Y_coarse, coarse_grid * c_grid)
     grid_env_repr = GridBasedEnvironmentRepresentation(grid)
-    print(grid.max_x)
     a_star_planner = AStarPlannerComponent(grid_env_repr, 0.1)
     start = PoseStamped()
     start.pose.position.x = -9.0
@@ -105,9 +107,12 @@ def test_fine_small_planning_astar():
     print('Time to plan (A*): {0}'.format(t1_astar_plan - t0_astar_plan))
     res = a_star_planner.get_trajectory_array()
     # Visualize
+    norm = plt.Normalize((coarse_grid * c_grid).min(), (coarse_grid * c_grid).max())
+    grid_color = cm.viridis(norm(coarse_grid * c_grid))
     fig = plt.figure()
     ax = fig.add_subplot(111, projection='3d')
-    ax.plot_wireframe(X_coarse, Y_coarse, coarse_grid, rstride=1, cstride=1, color="green", alpha=0.4)
+    ax.plot_surface(X_coarse, Y_coarse, coarse_grid, rstride=10, cstride=10,
+                      facecolors=grid_color, alpha=0.4)
     ax.scatter(res[:, 0], res[:, 1], color='b')
     plt.show()
 

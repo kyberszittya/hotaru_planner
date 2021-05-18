@@ -6,7 +6,7 @@ from queue import PriorityQueue
 
 
 class AbstractGraphAlgorithmPlannerComponent(AbstractPlannerImplementation):
-    def __init__(self, env_repr, goal_epsilon,
+    def __init__(self, env_repr, goal_epsilon: float,
                  idx_start=0, idx_end=-1, distance_metric=euclidean_distance_2d,
                  bypass_planning=False):
         AbstractPlannerImplementation.__init__(self, env_repr, idx_start, idx_end, bypass_planning=bypass_planning)
@@ -14,7 +14,7 @@ class AbstractGraphAlgorithmPlannerComponent(AbstractPlannerImplementation):
         self.goal_epsilon = goal_epsilon
 
     @staticmethod
-    def backtrack_trajectory(node):
+    def backtrack_trajectory(node) -> list:
         n = node
         trajectory = []
         while n.parent is not None:

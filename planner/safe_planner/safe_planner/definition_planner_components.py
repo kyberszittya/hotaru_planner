@@ -25,7 +25,7 @@ class AbstractPlannerImplementation(object):
     def refine(self):
         if self.goal is not None and self.start is not None and not self.bypass_planning:
             self.trajectory_points, goal_node = self.plan_algorithm()
-            self.construct_trajectory()
+            #self.construct_trajectory()
 
     def set_goal(self, goal):
         if isinstance(goal, PoseStamped):
@@ -42,16 +42,16 @@ class AbstractPlannerImplementation(object):
         else:
             self.start = start
 
-    def get_trajectory_array(self):
-        return np.array(self.trajectory_points)
-
     """
     Act on trajectory update 
     """
-    def on_update_trajectory(self, traj):
+    def on_update_trajectory(self, traj) -> None:
         raise NotImplementedError
 
-    def construct_trajectory(self):
+    def plan_algorithm(self):
+        raise NotImplementedError
+
+    def serialize_trajectory(self):
         self.refined_trajectory.waypoints.clear()
         for p in self.trajectory_points:
             wp = Waypoint()
@@ -64,8 +64,8 @@ class AbstractPlannerImplementation(object):
         self.set_goal(goal)
         self.refine()
 
-    def plan_algorithm(self):
-        raise NotImplementedError
+    def get_trajectory_array(self):
+        return np.array(self.trajectory_points)
 
     def get_trajectory(self):
         return self.refined_trajectory

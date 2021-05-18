@@ -1,0 +1,21 @@
+@startuml HotaruPlannerComposition
+class AbstractPlannerImplementation {
+    {field} 
+    {method}{abstract} # void on_update_trajectory
+    {method}{abstract} # plan_algorithm()
+    {method} # void refine()
+    {method} # serialize_trajectory()
+    {method} + void plan()
+}
+class AbstractGraphAlgorithmPlannerComponent {
+    {method} # List[TreeNode] backtrack_trajectory (TreeNode)
+    {method} # plan_algorithm
+}
+class PlannerNode {
+    {method} + connect_to_node ()
+    {method} # cb_trajectory()
+    {method} # cb_timer_planner()
+}
+PlannerNode *-- AbstractPlannerImplementation: planner_adapter
+AbstractPlannerImplementation <|-- AbstractGraphAlgorithmPlannerComponent
+@enduml
